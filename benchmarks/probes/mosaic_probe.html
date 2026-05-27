@@ -15,18 +15,14 @@ const N_TRACES      = {{N_TRACES}};        // integer
 const BINS_OR_NPTS  = {{BINS_OR_NPOINTS}}; // integer
 // ----------------------------
 
-import {
-  socketConnector, coordinator, Selection,
-} from "https://cdn.jsdelivr.net/npm/@uwdata/mosaic-core@0.10/+esm";
 import * as vg from "https://cdn.jsdelivr.net/npm/@uwdata/vgplot@0.10/+esm";
 
 const heapBefore = (performance.memory || {}).usedJSHeapSize || 0;
 
-const conn = socketConnector(WS_URL);
-coordinator().databaseConnector(conn);
+vg.coordinator().databaseConnector(vg.socketConnector(WS_URL));
 
 // Load the file as a DuckDB view named 'bench'
-await coordinator().exec(
+await vg.coordinator().exec(
   `CREATE OR REPLACE VIEW bench AS SELECT * FROM '${FILE_PATH}'`
 );
 
@@ -61,12 +57,8 @@ if (CHART_TYPE === "histogram") {
 
 document.getElementById("chart").replaceWith(plot);
 
-// Wait for Mosaic to finish rendering (plot emits 'ready' or resolves pending queries)
-await new Promise(resolve => {
-  // vgplot mark elements dispatch a custom 'ready' event when queries resolve
-  plot.addEventListener ? plot.addEventListener('ready', resolve, { once: true })
-    : setTimeout(resolve, 500); // fallback
-});
+// Wait for Mosaic to finish rendering after async mark queries complete.
+await plot.value.update();
 
 const t_renderDone = performance.now();
 
