@@ -99,6 +99,25 @@ def dataset_path_for_rows(template: str, rows: int) -> Path:
     return Path(template.format(rows=rows))
 
 
+def parse_n_traces_arg(raw: str) -> list[int]:
+    counts: list[int] = []
+    for part in raw.split(","):
+        token = part.strip()
+        if not token:
+            continue
+        value = int(token)
+        if value <= 0:
+            raise ValueError(f"n_traces must be positive integers, got: {value}")
+        counts.append(value)
+    if not counts:
+        raise ValueError("n_traces cannot be empty")
+    return counts
+
+
+def dataset_path_for_params(template: str, rows: int, n_traces: int) -> Path:
+    return Path(template.format(rows=rows, n_traces=n_traces))
+
+
 # ---------------------------------------------------------------------------
 # Trial execution
 # ---------------------------------------------------------------------------
