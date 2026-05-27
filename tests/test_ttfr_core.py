@@ -85,3 +85,39 @@ class TestRawTrialsToJson:
         assert set(result.keys()) == {"500", "1000"}
         assert result["500"]["1"]["mem"]["t1"][0]["total_ms"] == 1.0
         assert result["1000"]["2"]["mem"]["t1"][0]["total_ms"] == 2.0
+
+
+class TestTrialMemoryFields:
+    def test_trial_accepts_memory_fields(self):
+        t = Trial(
+            query_ms=1.0, transfer_ms=2.0, render_ms=3.0,
+            total_ms=6.0, payload_bytes=100,
+            peak_python_mb=12.5, peak_browser_mb=8.0,
+        )
+        assert t.peak_python_mb == 12.5
+        assert t.peak_browser_mb == 8.0
+
+    def test_trial_dict_includes_memory_fields(self):
+        import dataclasses
+        t = Trial(
+            query_ms=1.0, transfer_ms=2.0, render_ms=3.0,
+            total_ms=6.0, payload_bytes=0,
+            peak_python_mb=1.0, peak_browser_mb=2.0,
+        )
+        d = dataclasses.asdict(t)
+        assert "peak_python_mb" in d
+        assert "peak_browser_mb" in d
+
+
+class TestSummaryMemoryFields:
+    def test_summary_has_memory_medians(self, make_trial):
+        trials = [make_trial(peak_python_mb=10.0), make_trial(peak_python_mb=20.0)]
+        s = summarize_trials(rows=1000, n_traces=1, tool="t", source="s", trials=trials)
+        assert s.peak_python_median_mb == 15.0
+        assert s.peak_browser_median_mb == 0.0
+
+    def test_summarize_single_trial_memory(self, make_trial):
+        trials = [make_trial(peak_python_mb=5.0, peak_browser_mb=3.0)]
+        s = summarize_trials(rows=1000, n_traces=1, tool="t", source="s", trials=trials)
+        assert s.peak_python_median_mb == 5.0
+        assert s.peak_browser_median_mb == 3.0

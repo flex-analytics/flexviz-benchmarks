@@ -46,6 +46,8 @@ class Trial:
     render_ms: float
     total_ms: float
     payload_bytes: int
+    peak_python_mb: float = 0.0
+    peak_browser_mb: float = 0.0
 
 
 @dataclass
@@ -62,6 +64,8 @@ class Summary:
     transfer_median_ms: float
     render_median_ms: float
     payload_bytes_median: int
+    peak_python_median_mb: float
+    peak_browser_median_mb: float
 
 
 ContenderFactory = tuple[str, Callable[[], Any]]
@@ -190,6 +194,8 @@ def summarize_trials(
         transfer_median_ms=statistics.median(t.transfer_ms for t in trials),
         render_median_ms=statistics.median(t.render_ms for t in trials),
         payload_bytes_median=round(statistics.median(t.payload_bytes for t in trials)),
+        peak_python_median_mb=statistics.median(t.peak_python_mb for t in trials),
+        peak_browser_median_mb=statistics.median(t.peak_browser_mb for t in trials),
     )
 
 
