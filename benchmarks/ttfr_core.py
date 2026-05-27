@@ -212,7 +212,7 @@ def print_summary_table(summaries: list[Summary]) -> None:
         f"{'n':>6}"
     )
 
-    for (rows, n_traces) in sorted(by_key):
+    for rows, n_traces in sorted(by_key):
         print(f"\nrows={rows:,}  n_traces={n_traces}")
         print(header)
         print("-" * len(header))
@@ -242,8 +242,7 @@ def raw_trials_to_json(trials_by_rows: TrialMatrix) -> dict[str, Any]:
         str(rows): {
             str(n_traces): {
                 source: {
-                    tool: [trial.__dict__ for trial in trials]
-                    for tool, trials in tool_map.items()
+                    tool: [trial.__dict__ for trial in trials] for tool, trials in tool_map.items()
                 }
                 for source, tool_map in source_map.items()
             }
