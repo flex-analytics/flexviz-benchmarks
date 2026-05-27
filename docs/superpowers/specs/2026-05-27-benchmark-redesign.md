@@ -226,7 +226,7 @@ The `source` dimension in the benchmark matrix expands to:
 | `disk-parquet` | Parquet file read by the contender |
 | `disk-csv` | CSV file |
 | `disk-ipc` | Arrow IPC (`.arrow`) file |
-| `memory` | In-memory Polars DataFrame (generated fresh per trial) |
+| `in-memory` | In-memory Polars DataFrame (generated fresh per trial) |
 
 `DiskSource.name` carries the source name (e.g. `"disk-parquet"`). Format is inferred from path extension; no structural change to `DiskSource` is required.
 

@@ -38,10 +38,10 @@ Both scripts share these flags: `--sizes`, `--n-traces`, `--data-sources`, `--re
 ## Plotting results
 
 ```bash
-uv run python benchmarks/plot_results.py results/ttfr_line_sizes.json
+uv run python benchmarks/report.py results/ttfr_line_sizes.json
 ```
 
-Flags: `--metric` (`total`, `query`, `transfer`, `render`), `--fixed-n-traces`, `--fixed-rows`, `--out-dir` (default: `results/figures/`), `--show`.
+Flags: `--no-memory`, `--fixed-n-traces`, `--fixed-rows`, `--out-dir` (default: same dir as JSON), `--show`.
 
 ## Configuration
 
@@ -66,7 +66,7 @@ All three can be overridden per run with `--sizes`, `--n-traces`, and `--data-so
 3. Three concrete contenders: `FlexVizContender`, `MosaicContender` (DuckDB + Arrow IPC), `VaexContender` — each handles both `DiskSource` and `MemorySource` in their `query()` method
 4. `prepare_data_source(source_name, rows, ...)` — returns the appropriate `DataSource` (generating/loading data as needed)
 5. `RenderProbe` — context manager that launches headless Chromium via Playwright and renders SVG to measure render time
-6. Results are written as JSON to `results/` with two top-level keys: `"summary"` (list of `Summary` dicts, used by `plot_results.py`) and `"trials"` (raw nested trial data)
+6. Results are written as JSON to `results/` with two top-level keys: `"summary"` (list of `Summary` dicts, used by `report.py`) and `"trials"` (raw nested trial data)
 
 **Timing model** — each `Trial` splits time into three phases:
 - `query_ms`: time to run the backend computation

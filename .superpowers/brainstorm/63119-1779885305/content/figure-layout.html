@@ -1,0 +1,175 @@
+<h2>Consolidated Figure Layout Options</h2>
+<p class="subtitle">Currently: ~8 separate PNG files per benchmark. Goal: one figure per chart type (histogram / line) containing all subplots.</p>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#0f172a;padding:10px;border-radius:6px;font-size:11px;color:#94a3b8;">
+        <div style="text-align:center;color:#e2e8f0;margin-bottom:8px;font-weight:600;font-size:12px;">ttfr_histogram — rows={fixed} &amp; traces={fixed}</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr>
+              <td style="width:52px"></td>
+              <th colspan="2" style="text-align:center;padding:3px;color:#60a5fa;border-bottom:1px solid #334155">Rows scaling (n_traces=1)</th>
+              <th colspan="2" style="text-align:center;padding:3px;color:#f472b6;border-bottom:1px solid #334155">Traces scaling (rows=10M)</th>
+            </tr>
+            <tr>
+              <td></td>
+              <th style="text-align:center;font-weight:400;color:#94a3b8;font-size:10px;padding:2px">disk</th>
+              <th style="text-align:center;font-weight:400;color:#94a3b8;font-size:10px;padding:2px">memory</th>
+              <th style="text-align:center;font-weight:400;color:#94a3b8;font-size:10px;padding:2px">disk</th>
+              <th style="text-align:center;font-weight:400;color:#94a3b8;font-size:10px;padding:2px">memory</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th style="color:#94a3b8;font-size:10px;text-align:right;padding-right:4px">total</th>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(to right,#3b82f6,#8b5cf6);opacity:.4;border-radius:2px"></div></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(to right,#3b82f6,#8b5cf6);opacity:.4;border-radius:2px"></div></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(to right,#3b82f6,#8b5cf6);opacity:.4;border-radius:2px"></div></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(to right,#3b82f6,#8b5cf6);opacity:.4;border-radius:2px"></div></div></td>
+            </tr>
+            <tr>
+              <th style="color:#94a3b8;font-size:10px;text-align:right;padding-right:4px">query</th>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+            </tr>
+            <tr>
+              <th style="color:#94a3b8;font-size:10px;text-align:right;padding-right:4px">transfer</th>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+            </tr>
+            <tr>
+              <th style="color:#94a3b8;font-size:10px;text-align:right;padding-right:4px">render</th>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:32px;border-radius:3px;border:1px solid #334155"></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:6px;font-size:10px;color:#475569;text-align:center">4 rows × 4 cols = 16 subplots</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Metrics × Scaling grid</h3>
+      <p>Rows = metric (total/query/transfer/render). Columns = scaling type × source. All variation in one glance.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Everything visible at once</li><li>Easy to compare a metric across scaling types</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Wide figure (16 cols effectively)</li><li>Subplots can be small</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#0f172a;padding:10px;border-radius:6px;font-size:11px;color:#94a3b8;">
+        <div style="text-align:center;color:#e2e8f0;margin-bottom:6px;font-weight:600;font-size:12px;">ttfr_histogram</div>
+        <!-- Block 1: rows scaling -->
+        <div style="color:#60a5fa;font-size:10px;margin-bottom:3px;font-weight:600">▸ Rows scaling (n_traces=1)</div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:8px">
+          <tr>
+            <td style="width:52px"></td>
+            <th style="text-align:center;color:#94a3b8;font-size:10px;padding:2px">disk — total</th>
+            <th style="text-align:center;color:#94a3b8;font-size:10px;padding:2px">disk — query</th>
+            <th style="text-align:center;color:#94a3b8;font-size:10px;padding:2px">mem — total</th>
+            <th style="text-align:center;color:#94a3b8;font-size:10px;padding:2px">mem — query</th>
+          </tr>
+          <tr>
+            <td></td>
+            <td style="padding:2px"><div style="background:#1e293b;height:36px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:55%;background:linear-gradient(to right,#3b82f6,#8b5cf6);opacity:.4;border-radius:2px"></div></div></td>
+            <td style="padding:2px"><div style="background:#1e293b;height:36px;border-radius:3px;border:1px solid #334155"></div></td>
+            <td style="padding:2px"><div style="background:#1e293b;height:36px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:55%;background:linear-gradient(to right,#3b82f6,#8b5cf6);opacity:.4;border-radius:2px"></div></div></td>
+            <td style="padding:2px"><div style="background:#1e293b;height:36px;border-radius:3px;border:1px solid #334155"></div></td>
+          </tr>
+        </table>
+        <!-- Block 2: traces scaling -->
+        <div style="color:#f472b6;font-size:10px;margin-bottom:3px;font-weight:600">▸ Traces scaling (rows=10M)</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="width:52px"></td>
+            <th style="text-align:center;color:#94a3b8;font-size:10px;padding:2px">disk — total</th>
+            <th style="text-align:center;color:#94a3b8;font-size:10px;padding:2px">disk — query</th>
+            <th style="text-align:center;color:#94a3b8;font-size:10px;padding:2px">mem — total</th>
+            <th style="text-align:center;color:#94a3b8;font-size:10px;padding:2px">mem — query</th>
+          </tr>
+          <tr>
+            <td></td>
+            <td style="padding:2px"><div style="background:#1e293b;height:36px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(to right,#ec4899,#f97316);opacity:.4;border-radius:2px"></div></div></td>
+            <td style="padding:2px"><div style="background:#1e293b;height:36px;border-radius:3px;border:1px solid #334155"></div></td>
+            <td style="padding:2px"><div style="background:#1e293b;height:36px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(to right,#ec4899,#f97316);opacity:.4;border-radius:2px"></div></div></td>
+            <td style="padding:2px"><div style="background:#1e293b;height:36px;border-radius:3px;border:1px solid #334155"></div></td>
+          </tr>
+        </table>
+        <div style="margin-top:6px;font-size:10px;color:#475569;text-align:center">2 row-groups × (1 row × 4 cols) = 8 subplots, grouped by scaling</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Two row-groups (scaling first)</h3>
+      <p>Top block = rows scaling, bottom block = traces scaling. Within each block: columns are source × metric combos.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Visual separation of scaling dimensions</li><li>Easier to read one scaling story at a time</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Comparing same metric across scaling requires vertical scan</li><li>Column headers get verbose</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#0f172a;padding:10px;border-radius:6px;font-size:11px;color:#94a3b8;">
+        <div style="text-align:center;color:#e2e8f0;margin-bottom:6px;font-weight:600;font-size:12px;">ttfr_histogram</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr>
+              <td style="width:52px"></td>
+              <th style="text-align:center;color:#60a5fa;font-size:10px;padding:2px" colspan="2">total (ms)</th>
+              <th style="text-align:center;color:#60a5fa;font-size:10px;padding:2px" colspan="2">query (ms)</th>
+            </tr>
+            <tr>
+              <td></td>
+              <th style="text-align:center;color:#94a3b8;font-size:9px;padding:2px">disk</th>
+              <th style="text-align:center;color:#94a3b8;font-size:9px;padding:2px">memory</th>
+              <th style="text-align:center;color:#94a3b8;font-size:9px;padding:2px">disk</th>
+              <th style="text-align:center;color:#94a3b8;font-size:9px;padding:2px">memory</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th style="color:#60a5fa;font-size:9px;text-align:right;padding-right:4px">rows↑</th>
+              <td style="padding:2px"><div style="background:#1e293b;height:34px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(to right,#3b82f6,#8b5cf6);opacity:.4;border-radius:2px"></div></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:34px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(to right,#3b82f6,#8b5cf6);opacity:.4;border-radius:2px"></div></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:34px;border-radius:3px;border:1px solid #334155"></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:34px;border-radius:3px;border:1px solid #334155"></div></td>
+            </tr>
+            <tr>
+              <th style="color:#f472b6;font-size:9px;text-align:right;padding-right:4px">traces↑</th>
+              <td style="padding:2px"><div style="background:#1e293b;height:34px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:45%;background:linear-gradient(to right,#ec4899,#f97316);opacity:.4;border-radius:2px"></div></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:34px;border-radius:3px;border:1px solid #334155;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;height:45%;background:linear-gradient(to right,#ec4899,#f97316);opacity:.4;border-radius:2px"></div></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:34px;border-radius:3px;border:1px solid #334155"></div></td>
+              <td style="padding:2px"><div style="background:#1e293b;height:34px;border-radius:3px;border:1px solid #334155"></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:4px;font-size:9px;color:#475569;text-align:center">(transfer &amp; render cols not shown — same pattern) → 2 rows × 8 cols = 16 subplots</div>
+        <div style="margin-top:3px;font-size:9px;color:#475569;text-align:center">+ optional memory row below each timing row</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Scaling × Metrics grid (recommended)</h3>
+      <p>Rows = scaling dimension (rows↑, traces↑). Columns = metric × source. Sources stay adjacent; scaling types are immediately comparable top-to-bottom.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Compact — 2 rows read naturally</li><li>Easy to add memory row beneath each scaling row</li><li>Per-source comparison stays local</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>8 columns — needs a wide figure</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
