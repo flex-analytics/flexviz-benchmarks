@@ -140,12 +140,13 @@ def build_figure(
                         continue
                     show_legend = tool not in already_in_legend
                     already_in_legend.add(tool)
-                    xs = [s[x_key] for s in tool_data]
-                    ys = [s.get(m_field) for s in tool_data]
+                    points = [(s[x_key], s.get(m_field), s) for s in tool_data]
+                    xs = [x for x, y, _ in points]
+                    ys = [y for x, y, _ in points]
                     hover = [
                         f"{tool}<br>{x_key}={x}<br>{m_field}={y:.2f}<br>n={s['trials']}"
-                        for x, y, s in zip(xs, ys, tool_data)
-                        if y is not None
+                        if y is not None else ""
+                        for x, y, s in points
                     ]
                     fig.add_trace(
                         go.Scatter(

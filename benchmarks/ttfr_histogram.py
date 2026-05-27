@@ -90,8 +90,6 @@ class FlexVizContender:
     name = "flexviz"
     peak_python_mb: float = 0.0
 
-    # Class-level singleton: (host, port) → True once a server is running there
-    _started_ports: set[tuple[str, int]] = set()
     _port: int = 0
 
     def __init__(self, flexviz_repo: Path) -> None:

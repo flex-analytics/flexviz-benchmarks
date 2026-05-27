@@ -48,7 +48,7 @@ Flags: `--no-memory`, `--fixed-n-traces`, `--fixed-rows`, `--out-dir` (default: 
 **`benchmarks/config.py`** is the single file for shared defaults across all benchmark scripts:
 - `SIZES` — row counts in the size matrix
 - `N_TRACES` — trace counts per chart (default: 1, 2, 5, 10)
-- `DATA_SOURCES` — data source types (`"disk"`, `"memory"`; future: `"db"`)
+- `DATA_SOURCES` — data source types (`"disk-parquet"`, `"disk-csv"`, `"disk-ipc"`, `"in-memory"`; future: `"db"`)
 
 All three can be overridden per run with `--sizes`, `--n-traces`, and `--data-sources` CLI flags.
 
@@ -61,18 +61,19 @@ All three can be overridden per run with `--sizes`, `--n-traces`, and `--data-so
 - `summarize_trials()`, `print_summary_table()`, `raw_trials_to_json()` — reporting utilities; output is nested as `rows → n_traces → source → tool`
 
 **Each benchmark script** (`ttfr_histogram.py`, `ttfr_line.py`) follows the same pattern:
-1. A payload dataclass (e.g. `HistogramPayload`, `LinePayload`)
-2. A `Contender` protocol with `query(data: DataSource, ...)`, `encode()`, `decode()` methods
-3. Three concrete contenders: `FlexVizContender`, `MosaicContender` (DuckDB + Arrow IPC), `VaexContender` — each handles both `DiskSource` and `MemorySource` in their `query()` method
-4. `prepare_data_source(source_name, rows, ...)` — returns the appropriate `DataSource` (generating/loading data as needed)
-5. `RenderProbe` — context manager that launches headless Chromium via Playwright and renders SVG to measure render time
+1. `_generate_*_frame(rows, max_n_traces, seed)` — generates a wide DataFrame for all trace columns
+2. `prepare_*_data_source(source_name, rows, ...)` — returns the appropriate `DataSource`
+3. A `WebContender` protocol with `setup(data, ...)`, `get_url()`, `teardown()` methods
+4. Four concrete contenders: `FlexVizContender`, `MosaicContender`, `VaexContender`, `PyGWalkerContender`
+5. `RenderProbe` — context manager that launches headless Chromium via Playwright, navigates to each contender's URL, and reads `window.__benchTimings`
 6. Results are written as JSON to `results/` with two top-level keys: `"summary"` (list of `Summary` dicts, used by `report.py`) and `"trials"` (raw nested trial data)
 
-**Timing model** — each `Trial` splits time into three phases:
-- `query_ms`: time to run the backend computation
-- `transfer_ms`: encode + decode round-trip (simulates wire transfer)
-- `render_ms`: Playwright SVG render time (measured inside the browser via `performance.now()`)
+**Timing model** — each `Trial` splits time into three phases (measured browser-side):
+- `query_ms`: server processing time (from `PerformanceResourceTiming`) or Python-side time for HTML-artifact tools
+- `transfer_ms`: body transfer time (from `PerformanceResourceTiming`); 0 for HTML-artifact tools
+- `render_ms`: time from data received to render-complete signal
+- `peak_python_mb` / `peak_browser_mb`: peak memory via `tracemalloc` and JS heap delta
 
 **FlexViz dependency** is a local editable install from `../flexviz` (see `pyproject.toml`). The `FlexVizContender` adds the repo path to `sys.path` at runtime and imports from `flexviz.*`.
 
-**Mosaic note**: represented here as DuckDB query + Arrow IPC only — not the full vgplot runtime.
+**Mosaic contender** uses `@uwdata/mosaic-duckdb` (Node.js DuckDB server) with `mosaic_probe.html` served via Python HTTP server.
