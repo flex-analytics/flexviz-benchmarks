@@ -10,7 +10,7 @@ import statistics
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 import polars as pl
 
@@ -32,6 +32,64 @@ class MemorySource:
 
 
 DataSource = DiskSource | MemorySource
+
+
+# ---------------------------------------------------------------------------
+# Disk format helpers
+# ---------------------------------------------------------------------------
+
+FORMAT_SUFFIX: dict[str, str] = {
+    "disk-parquet": ".parquet",
+    "disk-csv": ".csv",
+    "disk-ipc": ".arrow",
+}
+
+
+def ensure_wide_disk_datasets(
+    base: Path,
+    df_factory: Callable[[], pl.DataFrame],
+    *,
+    regenerate: bool = False,
+) -> None:
+    """Generate .parquet, .csv, and .arrow files from one wide DataFrame.
+
+    All three are derived from a single df_factory() call so column layout
+    and random seed are identical across formats.
+    """
+    parquet = base.with_suffix(".parquet")
+    csv = base.with_suffix(".csv")
+    ipc = base.with_suffix(".arrow")
+    if not regenerate and parquet.exists() and csv.exists() and ipc.exists():
+        return
+    base.parent.mkdir(parents=True, exist_ok=True)
+    df = df_factory()
+    df.write_parquet(parquet)
+    df.write_csv(csv)
+    df.write_ipc(ipc)
+
+
+# ---------------------------------------------------------------------------
+# WebContender protocol
+# ---------------------------------------------------------------------------
+
+
+class WebContender(Protocol):
+    """Each benchmarked tool implements this lifecycle."""
+
+    name: str
+    peak_python_mb: float  # set by setup(); read by run_web_trial()
+
+    def setup(self, data: DataSource, **kwargs: Any) -> None:
+        """Start server / generate page; register data source."""
+        ...
+
+    def get_url(self) -> str:
+        """Return the URL Playwright should navigate to."""
+        ...
+
+    def teardown(self) -> None:
+        """Stop server; release resources."""
+        ...
 
 
 # ---------------------------------------------------------------------------

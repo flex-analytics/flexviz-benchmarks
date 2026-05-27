@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from ttfr_core import (
     Summary,
@@ -121,3 +123,60 @@ class TestSummaryMemoryFields:
         s = summarize_trials(rows=1000, n_traces=1, tool="t", source="s", trials=trials)
         assert s.peak_python_median_mb == 5.0
         assert s.peak_browser_median_mb == 3.0
+
+
+from ttfr_core import FORMAT_SUFFIX, ensure_wide_disk_datasets
+
+
+class TestFormatSuffix:
+    def test_parquet_suffix(self):
+        assert FORMAT_SUFFIX["disk-parquet"] == ".parquet"
+
+    def test_csv_suffix(self):
+        assert FORMAT_SUFFIX["disk-csv"] == ".csv"
+
+    def test_ipc_suffix(self):
+        assert FORMAT_SUFFIX["disk-ipc"] == ".arrow"
+
+
+class TestEnsureWideDiskDatasets:
+    def test_creates_all_three_formats(self, tmp_path):
+        import polars as pl
+
+        def factory():
+            return pl.DataFrame({"value1": [1.0, 2.0], "value2": [3.0, 4.0]})
+
+        base = tmp_path / "bench_2"
+        ensure_wide_disk_datasets(base, factory, regenerate=False)
+
+        assert (tmp_path / "bench_2.parquet").exists()
+        assert (tmp_path / "bench_2.csv").exists()
+        assert (tmp_path / "bench_2.arrow").exists()
+
+    def test_skips_generation_when_all_exist(self, tmp_path):
+        import polars as pl
+
+        call_count = {"n": 0}
+
+        def factory():
+            call_count["n"] += 1
+            return pl.DataFrame({"value1": [1.0]})
+
+        base = tmp_path / "bench_1"
+        ensure_wide_disk_datasets(base, factory, regenerate=False)
+        ensure_wide_disk_datasets(base, factory, regenerate=False)
+        assert call_count["n"] == 1
+
+    def test_regenerate_forces_rebuild(self, tmp_path):
+        import polars as pl
+
+        call_count = {"n": 0}
+
+        def factory():
+            call_count["n"] += 1
+            return pl.DataFrame({"value1": [1.0]})
+
+        base = tmp_path / "bench_1"
+        ensure_wide_disk_datasets(base, factory, regenerate=False)
+        ensure_wide_disk_datasets(base, factory, regenerate=True)
+        assert call_count["n"] == 2
