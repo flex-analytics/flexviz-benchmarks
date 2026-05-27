@@ -1,30 +1,25 @@
-"""TTFR benchmark: line charts across multiple data sizes, trace counts, and data sources.
-
-Default size matrix: 1M, 2M, 10M, 50M rows.
-Default trace counts: 1, 2, 5, 10.
-Default data sources: disk (Parquet), memory (Polars DataFrame).
-"""
+"""TTFR benchmark: line charts across multiple data sizes, trace counts, and data sources."""
 
 from __future__ import annotations
 
-import argparse
-import json
 import sys
 import time
-from dataclasses import asdict, dataclass
+import tracemalloc
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
 
 import numpy as np
 import polars as pl
+
 from config import DATA_SOURCES, N_TRACES, SIZES
-from playwright.sync_api import sync_playwright
 from ttfr_core import (
     DataSource,
     DiskSource,
+    FORMAT_SUFFIX,
     MemorySource,
     Trial,
-    dataset_path_for_params,
+    WebContender,
+    ensure_wide_disk_datasets,
     parse_n_traces_arg,
     parse_sizes_arg,
     parse_sources_arg,
@@ -35,389 +30,589 @@ from ttfr_core import (
 )
 
 
-@dataclass
-class LinePayload:
-    x: list[float]
-    ys: list[list[float]]
-
-
-class Contender(Protocol):
-    name: str
-
-    def query(self, data: DataSource, n_points: int, n_traces: int) -> Any: ...
-
-    def encode(self, result: Any) -> bytes: ...
-
-    def decode(self, blob: bytes) -> LinePayload: ...
-
-
-class FlexVizContender:
-    name = "flexviz"
-
-    def __init__(self, flexviz_repo: Path) -> None:
-        if not flexviz_repo.exists():
-            raise RuntimeError(f"FlexViz repo does not exist: {flexviz_repo}")
-        repo_str = str(flexviz_repo.resolve())
-        if repo_str not in sys.path:
-            sys.path.insert(0, repo_str)
-
-        try:
-            from flexviz.engine import FlexEngine, TraceInfo
-            from flexviz.events import InteractionEvent
-            from flexviz.LF import LFQueryBuilder
-            from flexviz.trace.line import LinePlot
-        except Exception as exc:  # pragma: no cover - environment-dependent
-            raise RuntimeError(
-                "Could not import FlexViz. Ensure --flexviz-repo points to a valid local clone, "
-                "and run make build-plugin-release in the FlexViz repo."
-            ) from exc
-
-        self.LFQueryBuilder = LFQueryBuilder
-        self.FlexEngine = FlexEngine
-        self.TraceInfo = TraceInfo
-        self.InteractionEvent = InteractionEvent
-        self.LinePlot = LinePlot
-
-    def query(self, data: DataSource, n_points: int, n_traces: int) -> LinePayload:
-        lf = pl.scan_parquet(str(data.path)) if isinstance(data, DiskSource) else data.frame.lazy()
-        lf_builder = self.LFQueryBuilder(lf)
-
-        lines = [
-            self.LinePlot(x="x", y=f"y{t + 1}", name=f"line{t + 1}", n_points=n_points)
-            for t in range(n_traces)
-        ]
-        scalable_traces = {line.uid: line for line in lines}
-        infos = [
-            self.TraceInfo(uid=line.uid, axes=("x", f"y{t + 1}"), trace_type=line.trace_type)
-            for t, line in enumerate(lines)
-        ]
-        engine = self.FlexEngine(backend_lf=lf_builder, scalable_traces=scalable_traces)
-        event = self.InteractionEvent(type="init", force_update=True)
-        deltas = engine.process(event, infos)
-
-        if not deltas:
-            raise RuntimeError("FlexViz produced no trace deltas")
-
-        x = [float(v) for v in deltas[0].updates["x"]]
-        ys = [[float(v) for v in delta.updates["y"]] for delta in deltas]
-        return LinePayload(x=x, ys=ys)
-
-    def encode(self, result: LinePayload) -> bytes:
-        return json.dumps({"x": result.x, "ys": result.ys}, separators=(",", ":")).encode("utf-8")
-
-    def decode(self, blob: bytes) -> LinePayload:
-        obj = json.loads(blob)
-        return LinePayload(
-            x=[float(v) for v in obj["x"]],
-            ys=[[float(v) for v in y] for y in obj["ys"]],
-        )
-
-
-class MosaicContender:
-    name = "mosaic"
-
-    def __init__(self) -> None:
-        try:
-            import duckdb
-            import pyarrow as pa
-        except Exception as exc:  # pragma: no cover - environment-dependent
-            raise RuntimeError("Could not import duckdb/pyarrow for Mosaic path") from exc
-
-        self.duckdb = duckdb
-        self.pa = pa
-
-    def query(self, data: DataSource, n_points: int, n_traces: int):
-        con = self.duckdb.connect()
-        try:
-            con.execute("SET enable_external_file_cache = false")
-            if isinstance(data, DiskSource):
-                quoted_path = str(data.path).replace("'", "''")
-                table_ref = f"read_parquet('{quoted_path}')"
-            else:
-                con.register("input_data", data.frame.to_arrow())
-                table_ref = "input_data"
-
-            y_aggs = ", ".join(f"avg(y{t + 1})::DOUBLE AS y{t + 1}" for t in range(n_traces))
-            y_cols = ", ".join(f"y{t + 1}" for t in range(n_traces))
-            sql = f"""
-WITH bounds AS (
-  SELECT min(x) AS lo, max(x) + 1e-12 AS hi
-  FROM {table_ref}
-),
-binned AS (
-  SELECT
-    CAST(floor((x - lo) / ((hi - lo) / {n_points})) AS INTEGER) AS bin_idx,
-    lo,
-    hi,
-    {y_cols}
-  FROM {table_ref}, bounds
-  WHERE x IS NOT NULL
-)
-SELECT
-  lo + (bin_idx + 0.5) * ((hi - lo) / {n_points}) AS x,
-  {y_aggs}
-FROM binned
-WHERE bin_idx BETWEEN 0 AND {n_points - 1}
-GROUP BY lo, hi, bin_idx
-ORDER BY bin_idx
-"""
-            return con.sql(sql).to_arrow_table()
-        finally:
-            con.close()
-
-    def encode(self, result) -> bytes:
-        sink = self.pa.BufferOutputStream()
-        with self.pa.ipc.new_stream(sink, result.schema) as writer:
-            writer.write_table(result)
-        return sink.getvalue().to_pybytes()
-
-    def decode(self, blob: bytes) -> LinePayload:
-        table = self.pa.ipc.open_stream(blob).read_all()
-        x = [float(v) for v in table["x"].to_pylist()]
-        ys = [
-            [float(v) for v in table[col].to_pylist()]
-            for col in table.schema.names
-            if col.startswith("y")
-        ]
-        return LinePayload(x=x, ys=ys)
-
-
-class VaexContender:
-    name = "vaex"
-
-    def __init__(self) -> None:
-        try:
-            import vaex
-        except Exception as exc:  # pragma: no cover - environment-dependent
-            raise RuntimeError("Could not import vaex-core") from exc
-
-        self.vaex = vaex
-
-    def query(self, data: DataSource, n_points: int, n_traces: int) -> LinePayload:
-        if isinstance(data, DiskSource):
-            df = self.vaex.open(str(data.path))
-        else:
-            arr = data.frame
-            kwargs: dict[str, Any] = {"x": arr["x"].to_numpy()}
-            for t in range(n_traces):
-                col = f"y{t + 1}"
-                kwargs[col] = arr[col].to_numpy()
-            df = self.vaex.from_arrays(**kwargs)
-
-        try:
-            lo, hi = df.minmax("x")
-            lo = float(lo)
-            hi = float(hi)
-            if hi <= lo:
-                hi = lo + 1.0
-
-            edges = np.linspace(lo, hi, n_points + 1, dtype=np.float64)
-            centers = (edges[:-1] + edges[1:]) / 2.0
-
-            ys = []
-            for t in range(n_traces):
-                col = f"y{t + 1}"
-                means = np.asarray(
-                    df.mean(col, binby="x", limits=[lo, hi], shape=n_points, array_type="numpy"),
-                    dtype=np.float64,
-                ).reshape(-1)
-                ys.append(np.nan_to_num(means, nan=0.0).tolist())
-        finally:
-            df.close()
-
-        return LinePayload(x=[float(v) for v in centers], ys=ys)
-
-    def encode(self, result: LinePayload) -> bytes:
-        return json.dumps({"x": result.x, "ys": result.ys}, separators=(",", ":")).encode("utf-8")
-
-    def decode(self, blob: bytes) -> LinePayload:
-        obj = json.loads(blob)
-        return LinePayload(
-            x=[float(v) for v in obj["x"]],
-            ys=[[float(v) for v in y] for y in obj["ys"]],
-        )
-
-
-_RENDER_PROBE_HTML = """<!doctype html>
-<html>
-  <head>
-    <meta charset='utf-8'>
-    <style>
-      body { margin: 0; font-family: sans-serif; }
-      #root { width: 960px; height: 360px; }
-    </style>
-  </head>
-  <body>
-    <div id='root'></div>
-    <script>
-      function polylinePoints(xs, ys, width, height, pad, xMin, xMax, yMin, yMax) {
-        const n = Math.min(xs.length, ys.length);
-        const innerW = width - pad * 2;
-        const innerH = height - pad * 2;
-        const xSpan = Math.max(1e-12, xMax - xMin);
-        const ySpan = Math.max(1e-12, yMax - yMin);
-        let out = '';
-        for (let i = 0; i < n; i++) {
-          const x = pad + ((xs[i] - xMin) / xSpan) * innerW;
-          const y = height - pad - ((ys[i] - yMin) / ySpan) * innerH;
-          if (Number.isFinite(x) && Number.isFinite(y)) out += x + ',' + y + ' ';
-        }
-        return out.trim();
-      }
-
-      window.renderLines = async function renderLines(payload) {
-        const t0 = performance.now();
-        const root = document.getElementById('root');
-        root.replaceChildren();
-
-        const width = 960, height = 360, pad = 24;
-        const svgNS = 'http://www.w3.org/2000/svg';
-        const svg = document.createElementNS(svgNS, 'svg');
-        svg.setAttribute('width', String(width));
-        svg.setAttribute('height', String(height));
-
-        const colors = ['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed',
-                        '#0891b2','#be185d','#65a30d','#ea580c','#6366f1'];
-
-        const xs = payload.x;
-        const allYs = payload.ys;
-        const xMin = Math.min(...xs), xMax = Math.max(...xs);
-        let yMin = Infinity, yMax = -Infinity;
-        for (const ys of allYs) {
-          for (const v of ys) { if (v < yMin) yMin = v; if (v > yMax) yMax = v; }
-        }
-
-        for (let t = 0; t < allYs.length; t++) {
-          const line = document.createElementNS(svgNS, 'polyline');
-          line.setAttribute('fill', 'none');
-          line.setAttribute('stroke', colors[t % colors.length]);
-          line.setAttribute('stroke-width', '1.5');
-          line.setAttribute('points',
-            polylinePoints(xs, allYs[t], width, height, pad, xMin, xMax, yMin, yMax));
-          svg.appendChild(line);
-        }
-
-        root.appendChild(svg);
-        await new Promise(requestAnimationFrame);
-        return performance.now() - t0;
-      };
-    </script>
-  </body>
-</html>
-"""
-
-
-class RenderProbe:
-    def __enter__(self) -> RenderProbe:
-        self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(headless=True)
-        self._page = self._browser.new_page(viewport={"width": 1200, "height": 800})
-        self._page.set_content(_RENDER_PROBE_HTML)
-        return self
-
-    def __exit__(self, exc_type, exc, tb) -> None:
-        self._browser.close()
-        self._playwright.stop()
-
-    def render(self, payload: LinePayload) -> float:
-        return float(
-            self._page.evaluate(
-                "payload => window.renderLines(payload)",
-                {"x": payload.x, "ys": payload.ys},
-            )
-        )
-
-
 # ---------------------------------------------------------------------------
-# Data preparation
+# Data generation
 # ---------------------------------------------------------------------------
 
 
-def _generate_line_frame(rows: int, n_traces: int) -> pl.DataFrame:
-    i = np.arange(rows, dtype=np.float64)
-    cols: dict[str, np.ndarray] = {"x": i}
-    for t in range(n_traces):
-        freq = 0.00002 * (1.0 + t * 0.3)
-        phase = t * 0.7
-        cols[f"y{t + 1}"] = np.sin(i * freq + phase) + 0.15 * np.sin(i * 0.0013 + phase)
+def _generate_line_frame(rows: int, max_n_traces: int, seed: int) -> pl.DataFrame:
+    """Returns DataFrame with columns x, y1, y2, … y{max_n_traces}."""
+    rng = np.random.default_rng(seed + rows)
+    x = np.sort(rng.uniform(0.0, 1.0, size=rows)).astype(np.float64)
+    cols: dict[str, np.ndarray] = {"x": x}
+    for t in range(max_n_traces):
+        rng2 = np.random.default_rng(seed + rows + (t + 1) * 9999)
+        y = np.cumsum(rng2.normal(0, 1, rows)).astype(np.float64)
+        cols[f"y{t + 1}"] = y
     return pl.DataFrame(cols)
 
 
-def ensure_disk_dataset(path: Path, rows: int, n_traces: int, regenerate: bool) -> None:
-    if path.exists() and not regenerate:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    import duckdb
-
-    y_exprs = []
-    for t in range(n_traces):
-        freq = 0.00002 * (1.0 + t * 0.3)
-        phase = t * 0.7
-        y_exprs.append(f"sin(i * {freq} + {phase}) + 0.15 * sin(i * 0.0013 + {phase}) AS y{t + 1}")
-    y_select = ",\n    ".join(y_exprs)
-
-    quoted_path = str(path).replace("'", "''")
-    con = duckdb.connect()
-    try:
-        con.execute(
-            f"""
-COPY (
-  SELECT
-    i::DOUBLE AS x,
-    {y_select}
-  FROM range({rows}) t(i)
-) TO '{quoted_path}' (FORMAT PARQUET, COMPRESSION ZSTD)
-"""
-        )
-    finally:
-        con.close()
-
-
-def prepare_data_source(
+def prepare_line_data_source(
     source_name: str,
     rows: int,
-    n_traces: int,
-    dataset_template: str,
+    max_n_traces: int,
+    seed: int,
+    dataset_base: str,
     regenerate: bool,
 ) -> DataSource:
-    if source_name == "disk":
-        path = dataset_path_for_params(dataset_template, rows=rows, n_traces=n_traces)
-        ensure_disk_dataset(path, rows, n_traces, regenerate)
-        return DiskSource(path=path)
-    elif source_name == "memory":
-        return MemorySource(frame=_generate_line_frame(rows, n_traces))
+    if source_name in FORMAT_SUFFIX:
+        base = Path(dataset_base.format(rows=rows))
+        ensure_wide_disk_datasets(
+            base,
+            lambda: _generate_line_frame(rows, max_n_traces, seed),
+            regenerate=regenerate,
+        )
+        return DiskSource(path=base.with_suffix(FORMAT_SUFFIX[source_name]), name=source_name)
+    elif source_name == "in-memory":
+        return MemorySource(frame=_generate_line_frame(rows, max_n_traces, seed), name="in-memory")
     else:
-        raise ValueError(f"Unknown data source: {source_name!r}. Valid: disk, memory")
+        raise ValueError(f"Unknown data source: {source_name!r}. Valid: {list(FORMAT_SUFFIX)} + ['in-memory']")
 
 
 # ---------------------------------------------------------------------------
-# Trial execution
+# FlexViz contender
+# ---------------------------------------------------------------------------
+
+import socket
+import threading
+
+
+def _free_port() -> int:
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+class FlexVizContender:
+    """Starts the FlexViz FastAPI server, registers a line figure."""
+
+    name = "flexviz"
+    peak_python_mb: float = 0.0
+
+    # Class-level singleton: port once a server is running
+    _started_ports: set[tuple[str, int]] = set()
+    _port: int = 0
+
+    def __init__(self, flexviz_repo: Path) -> None:
+        self._flexviz_repo = flexviz_repo
+        self._url = ""
+
+    def _ensure_server(self) -> int:
+        """Start flexviz FastAPI server if not already running; return port."""
+        if FlexVizContender._port != 0:
+            return FlexVizContender._port
+
+        repo_str = str(self._flexviz_repo.resolve())
+        if repo_str not in sys.path:
+            sys.path.insert(0, repo_str)
+
+        from flexviz.figure import _start_server_thread  # noqa: PLC0415
+
+        port = _free_port()
+        _start_server_thread("127.0.0.1", port)
+
+        # Wait until server is accepting connections.
+        import time as _time  # noqa: PLC0415
+        deadline = _time.monotonic() + 10.0
+        while _time.monotonic() < deadline:
+            try:
+                import socket as _socket  # noqa: PLC0415
+                with _socket.create_connection(("127.0.0.1", port), timeout=0.2):
+                    break
+            except OSError:
+                _time.sleep(0.05)
+        else:
+            raise RuntimeError("FlexViz server did not start within 10 s")
+
+        FlexVizContender._port = port
+        return port
+
+    def setup(self, data: DataSource, n_points: int, n_traces: int) -> None:
+        port = self._ensure_server()
+        server_url = f"http://127.0.0.1:{port}"
+
+        repo_str = str(self._flexviz_repo.resolve())
+        if repo_str not in sys.path:
+            sys.path.insert(0, repo_str)
+
+        tracemalloc.start()
+
+        from flexviz.figure import Figure, _register_source_if_needed  # noqa: PLC0415
+
+        if isinstance(data, DiskSource):
+            if data.path.suffix == ".parquet":
+                lf = pl.scan_parquet(str(data.path))
+            elif data.path.suffix == ".csv":
+                lf = pl.scan_csv(str(data.path))
+            else:
+                lf = pl.scan_ipc(str(data.path))
+        else:
+            lf = data.frame.lazy()
+
+        fig = Figure(lf)
+        for t in range(n_traces):
+            fig.add_line(x="x", y=f"y{t + 1}", n_points=n_points)
+
+        # Register source and build spec
+        source_name = fig._uid
+        _register_source_if_needed(source_name, fig._backend_lf)
+        spec = fig.to_spec(source=source_name)
+
+        from flexviz.spec import DashboardSpec as _DashboardSpec  # noqa: PLC0415
+        dash_spec = _DashboardSpec(figures=[spec.figure], state=spec.state)
+
+        import requests  # noqa: PLC0415
+        resp = requests.post(
+            f"{server_url}/share",
+            json={"spec": dash_spec.model_dump(), "server_url": server_url},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        view_url = resp.json()["url"] + "&renderer=plotly"
+
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        tracemalloc.clear_traces()
+        self.peak_python_mb = peak / 1024 / 1024
+
+        self._url = view_url
+
+    def get_url(self) -> str:
+        return self._url
+
+    def teardown(self) -> None:
+        pass  # Server is a singleton; dies with the process.
+
+
+# ---------------------------------------------------------------------------
+# Mosaic contender
+# ---------------------------------------------------------------------------
+
+import http.server
+import subprocess
+import tempfile
+import threading as _threading
+
+
+class MosaicContender:
+    """Starts mosaic-sql (Node.js DuckDB server) and serves the probe page."""
+
+    name = "mosaic"
+    peak_python_mb: float = 0.0
+
+    def __init__(self) -> None:
+        self._mosaic_proc: subprocess.Popen | None = None
+        self._http_server: http.server.HTTPServer | None = None
+        self._http_port: int = 0
+        self._mosaic_port: int = 0
+        self._url: str = ""
+        self._tmpdir: tempfile.TemporaryDirectory | None = None
+
+    def setup(self, data: DataSource, n_points: int, n_traces: int) -> None:
+        tracemalloc.start()
+
+        self._mosaic_port = _free_port()
+        self._http_port = _free_port()
+
+        # Start mosaic-sql server
+        if isinstance(data, DiskSource):
+            file_path = str(data.path.resolve())
+        else:
+            # Write in-memory frame to a temporary parquet file
+            self._tmpdir = tempfile.TemporaryDirectory()
+            tmp_path = Path(self._tmpdir.name) / "bench.parquet"
+            data.frame.write_parquet(tmp_path)
+            file_path = str(tmp_path)
+
+        # Locate or install @uwdata/mosaic-duckdb, then start a WebSocket server.
+        mosaic_node_dir = Path.home() / ".cache" / "flexviz-bench" / "mosaic-node"
+        mosaic_node_dir.mkdir(parents=True, exist_ok=True)
+        mosaic_pkg = mosaic_node_dir / "node_modules" / "@uwdata" / "mosaic-duckdb"
+        if not mosaic_pkg.exists():
+            subprocess.run(
+                ["npm", "install", "@uwdata/mosaic-duckdb"],
+                cwd=str(mosaic_node_dir),
+                capture_output=True,
+                check=True,
+            )
+
+        if self._tmpdir is None:
+            self._tmpdir = tempfile.TemporaryDirectory()
+        # Script must live in the same dir as node_modules so Node resolves it.
+        node_script_path = mosaic_node_dir / "mosaic_server.mjs"
+        node_script_path.write_text(
+            f"import {{DuckDB, dataServer}} from '@uwdata/mosaic-duckdb';\n"
+            f"dataServer(new DuckDB(':memory:'), "
+            f"{{rest:true, socket:true, port:{self._mosaic_port}}});\n"
+        )
+        self._mosaic_proc = subprocess.Popen(
+            ["node", str(node_script_path)],
+            cwd=str(mosaic_node_dir),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        # Read probe template and substitute placeholders
+        probe_template = (
+            Path(__file__).parent / "probes" / "mosaic_probe.html"
+        ).read_text()
+        html = (
+            probe_template
+            .replace("{{WS_URL}}", f"ws://127.0.0.1:{self._mosaic_port}/")
+            .replace("{{FILE_PATH}}", file_path.replace("\\", "/"))
+            .replace("{{CHART_TYPE}}", "line")
+            .replace("{{N_TRACES}}", str(n_traces))
+            .replace("{{BINS_OR_NPOINTS}}", str(n_points))
+        )
+
+        # Serve the HTML via a simple HTTP server
+        tmpdir = tempfile.mkdtemp()
+        probe_path = Path(tmpdir) / "index.html"
+        probe_path.write_text(html)
+
+        handler = http.server.SimpleHTTPRequestHandler
+        self._http_server = http.server.HTTPServer(
+            ("127.0.0.1", self._http_port),
+            lambda *a, **kw: handler(*a, directory=tmpdir, **kw),
+        )
+        t = _threading.Thread(target=self._http_server.serve_forever, daemon=True)
+        t.start()
+
+        # Wait for mosaic-sql to be ready
+        import time as _time  # noqa: PLC0415
+        import socket as _socket  # noqa: PLC0415
+        deadline = _time.monotonic() + 15.0
+        while _time.monotonic() < deadline:
+            try:
+                with _socket.create_connection(("127.0.0.1", self._mosaic_port), 0.3):
+                    break
+            except OSError:
+                _time.sleep(0.1)
+        else:
+            raise RuntimeError("mosaic-sql did not start within 15 s")
+
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        tracemalloc.clear_traces()
+        self.peak_python_mb = peak / 1024 / 1024
+
+        self._url = f"http://127.0.0.1:{self._http_port}/"
+
+    def get_url(self) -> str:
+        return self._url
+
+    def teardown(self) -> None:
+        if self._http_server:
+            self._http_server.shutdown()
+            self._http_server = None
+        if self._mosaic_proc:
+            self._mosaic_proc.terminate()
+            self._mosaic_proc = None
+        if self._tmpdir:
+            self._tmpdir.cleanup()
+            self._tmpdir = None
+
+
+# ---------------------------------------------------------------------------
+# Vaex contender
+# ---------------------------------------------------------------------------
+
+_VAEX_PROBE_TEMPLATE = """\
+<!doctype html>
+<html>
+<head><meta charset="utf-8">
+<style>
+body{{margin:0;}} svg{{display:block;}}
+</style>
+</head>
+<body>
+<script>
+window.__benchQueryMs     = {query_ms};
+window.__benchPayloadBytes = {payload_bytes};
+</script>
+<script>
+{bench_utils_js}
+</script>
+<svg id="chart" width="960" height="400" xmlns="http://www.w3.org/2000/svg">
+{svg_polylines}
+</svg>
+</body>
+</html>
+"""
+
+_COLORS = [
+    "#3b82f6","#ef4444","#22c55e","#f59e0b","#8b5cf6",
+    "#06b6d4","#ec4899","#84cc16","#f97316","#6366f1",
+]
+
+
+def _line_to_svg_polyline(
+    x_values: list[float], y_values: list[float], trace_idx: int,
+    panel_x: float, panel_w: float, height: int = 400, pad: int = 12,
+) -> str:
+    if not y_values:
+        return ""
+    y_min, y_max = min(y_values), max(y_values)
+    if y_max <= y_min:
+        y_max = y_min + 1.0
+    inner_h = height - 2 * pad
+    n = len(x_values)
+    color = _COLORS[trace_idx % len(_COLORS)]
+    points = []
+    for i, (xv, yv) in enumerate(zip(x_values, y_values)):
+        px = panel_x + (i / max(n - 1, 1)) * panel_w
+        py = height - pad - ((yv - y_min) / (y_max - y_min)) * inner_h
+        points.append(f"{px:.2f},{py:.2f}")
+    return f'<polyline points="{" ".join(points)}" fill="none" stroke="{color}" stroke-width="1.5"/>'
+
+
+class VaexContender:
+    """Uses df.mean(..., binby=...) for line computation; renders inline SVG."""
+
+    name = "vaex"
+    peak_python_mb: float = 0.0
+
+    def __init__(self) -> None:
+        self._http_server: http.server.HTTPServer | None = None
+        self._http_port: int = 0
+        self._url: str = ""
+
+    def setup(self, data: DataSource, n_points: int, n_traces: int) -> None:
+        try:
+            import vaex  # noqa: PLC0415
+        except ImportError as exc:
+            raise RuntimeError("vaex not installed") from exc
+
+        tracemalloc.start()
+        t0 = time.perf_counter()
+
+        if isinstance(data, DiskSource):
+            df = vaex.open(str(data.path))
+        else:
+            kwargs = {"x": data.frame["x"].to_numpy()}
+            for t in range(n_traces):
+                col = f"y{t + 1}"
+                kwargs[col] = data.frame[col].to_numpy()
+            df = vaex.from_arrays(**kwargs)
+
+        svg_parts: list[str] = []
+        n_panels = n_traces
+        panel_w = (960 - 12 * (n_panels + 1)) / max(n_panels, 1)
+
+        try:
+            x_lo, x_hi = float(df.min("x")), float(df.max("x"))
+            if x_hi <= x_lo:
+                x_hi = x_lo + 1.0
+            limits = [x_lo, x_hi]
+
+            edges = np.linspace(x_lo, x_hi, n_points + 1)
+            x_centers = ((edges[:-1] + edges[1:]) / 2).tolist()
+
+            for t in range(n_traces):
+                ycol = f"y{t + 1}"
+                means_arr = df.mean(
+                    ycol, binby="x", limits=limits, shape=n_points, array_type="numpy"
+                )
+                y_values = [float(v) if not np.isnan(v) else 0.0 for v in means_arr]
+                panel_x = 12 + t * (panel_w + 12)
+                svg_parts.append(_line_to_svg_polyline(x_centers, y_values, t, panel_x, panel_w))
+        finally:
+            df.close()
+
+        query_ms = (time.perf_counter() - t0) * 1000.0
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        tracemalloc.clear_traces()
+        self.peak_python_mb = peak / 1024 / 1024
+
+        bench_utils_js = (Path(__file__).parent / "probes" / "bench_utils.js").read_text()
+        html = _VAEX_PROBE_TEMPLATE.format(
+            query_ms=f"{query_ms:.3f}",
+            payload_bytes=sum(len(p) for p in svg_parts),
+            bench_utils_js=bench_utils_js,
+            svg_polylines="\n".join(svg_parts),
+        )
+
+        self._http_port = _free_port()
+        tmpdir = tempfile.mkdtemp()
+        (Path(tmpdir) / "index.html").write_text(html)
+        self._http_server = http.server.HTTPServer(
+            ("127.0.0.1", self._http_port),
+            lambda *a, **kw: http.server.SimpleHTTPRequestHandler(
+                *a, directory=tmpdir, **kw
+            ),
+        )
+        t2 = _threading.Thread(target=self._http_server.serve_forever, daemon=True)
+        t2.start()
+        self._url = f"http://127.0.0.1:{self._http_port}/"
+
+    def get_url(self) -> str:
+        return self._url
+
+    def teardown(self) -> None:
+        if self._http_server:
+            self._http_server.shutdown()
+            self._http_server = None
+
+
+# ---------------------------------------------------------------------------
+# PyGWalker contender
 # ---------------------------------------------------------------------------
 
 
-def run_trial(
-    contender: Contender, data: DataSource, n_points: int, n_traces: int, renderer: RenderProbe
-) -> Trial:
-    q0 = time.perf_counter()
-    query_result = contender.query(data, n_points, n_traces)
-    query_ms = (time.perf_counter() - q0) * 1000.0
+class PyGWalkerContender:
+    """Generates a PyGWalker (Graphic Walker) HTML artifact and serves it."""
 
-    t0 = time.perf_counter()
-    blob = contender.encode(query_result)
-    payload = contender.decode(blob)
-    transfer_ms = (time.perf_counter() - t0) * 1000.0
+    name = "pygwalker"
+    peak_python_mb: float = 0.0
 
-    render_ms = renderer.render(payload)
-    total_ms = query_ms + transfer_ms + render_ms
+    def __init__(self) -> None:
+        self._http_server: http.server.HTTPServer | None = None
+        self._http_port: int = 0
+        self._url: str = ""
 
-    return Trial(
-        query_ms=query_ms,
-        transfer_ms=transfer_ms,
-        render_ms=render_ms,
-        total_ms=total_ms,
-        payload_bytes=len(blob),
-    )
+    def setup(self, data: DataSource, n_points: int, n_traces: int) -> None:
+        try:
+            import pygwalker as pyg  # noqa: PLC0415
+        except ImportError as exc:
+            raise RuntimeError("pygwalker not installed") from exc
+
+        tracemalloc.start()
+        t0 = time.perf_counter()
+
+        if isinstance(data, DiskSource):
+            if data.path.suffix == ".parquet":
+                df = pl.read_parquet(data.path)
+            elif data.path.suffix == ".csv":
+                df = pl.read_csv(data.path)
+            else:
+                df = pl.read_ipc(data.path)
+        else:
+            df = data.frame
+
+        # Select only the columns we need
+        cols = ["x"] + [f"y{t + 1}" for t in range(n_traces)]
+        df_subset = df.select(cols)
+
+        # pyg.to_html() generates a self-contained HTML string
+        html_content: str = pyg.to_html(df_subset)
+
+        query_ms = (time.perf_counter() - t0) * 1000.0
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        tracemalloc.clear_traces()
+        self.peak_python_mb = peak / 1024 / 1024
+
+        bench_utils_js = (Path(__file__).parent / "probes" / "bench_utils.js").read_text()
+        bench_injection = (
+            f"<script>window.__benchQueryMs = {query_ms:.3f};"
+            f"window.__benchPayloadBytes = {len(html_content.encode())};</script>"
+            f"<script>{bench_utils_js}</script>"
+        )
+        # Inject before </body>
+        if "</body>" in html_content:
+            html = html_content.replace("</body>", bench_injection + "</body>", 1)
+        else:
+            html = html_content + bench_injection
+
+        self._http_port = _free_port()
+        tmpdir = tempfile.mkdtemp()
+        (Path(tmpdir) / "index.html").write_text(html, encoding="utf-8")
+        self._http_server = http.server.HTTPServer(
+            ("127.0.0.1", self._http_port),
+            lambda *a, **kw: http.server.SimpleHTTPRequestHandler(
+                *a, directory=tmpdir, **kw
+            ),
+        )
+        t2 = _threading.Thread(target=self._http_server.serve_forever, daemon=True)
+        t2.start()
+        self._url = f"http://127.0.0.1:{self._http_port}/"
+
+    def get_url(self) -> str:
+        return self._url
+
+    def teardown(self) -> None:
+        if self._http_server:
+            self._http_server.shutdown()
+            self._http_server = None
+
+
+# ---------------------------------------------------------------------------
+# RenderProbe — shared Playwright browser session
+# ---------------------------------------------------------------------------
+
+import argparse
+import json
+from dataclasses import asdict
+
+from playwright.sync_api import Page, sync_playwright
+
+
+class RenderProbe:
+    """Shared Playwright Chromium session for the full benchmark run."""
+
+    def __init__(self, *, headless: bool = True, flexviz_repo: Path) -> None:
+        self._headless = headless
+        self._flexviz_probe_js = (
+            Path(__file__).parent / "probes" / "flexviz_probe.js"
+        ).read_text()
+        self._flexviz_repo = flexviz_repo
+
+    def __enter__(self) -> "RenderProbe":
+        self._playwright = sync_playwright().start()
+        self._browser = self._playwright.chromium.launch(headless=self._headless)
+        self._page: Page = self._browser.new_page(viewport={"width": 1280, "height": 800})
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self._browser.close()
+        self._playwright.stop()
+
+    def run_trial(
+        self,
+        contender: Any,
+        data: DataSource,
+        n_points: int,
+        n_traces: int,
+    ) -> Trial:
+        page = self._page
+
+        # Inject FlexViz probe for FlexViz pages only
+        if contender.name == "flexviz":
+            page.add_init_script(self._flexviz_probe_js)
+
+        tracemalloc.start()
+        try:
+            contender.setup(data, n_points=n_points, n_traces=n_traces)
+            page.goto(contender.get_url(), wait_until="networkidle", timeout=60_000)
+            page.wait_for_function(
+                "() => window.__benchTimings !== undefined",
+                timeout=30_000,
+            )
+            timings: dict = page.evaluate("() => window.__benchTimings")
+        finally:
+            _, peak = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+            tracemalloc.clear_traces()
+            extra_python_mb = peak / 1024 / 1024
+            contender.teardown()
+
+        # Use contender's own peak_python_mb if it pre-measured (Vaex, PyGWalker);
+        # otherwise fall back to the tracemalloc window.
+        python_mb = max(contender.peak_python_mb, extra_python_mb)
+
+        q  = float(timings.get("query_ms", 0.0))
+        tr = float(timings.get("transfer_ms", 0.0))
+        r  = float(timings.get("render_ms", 0.0))
+        return Trial(
+            query_ms=q,
+            transfer_ms=tr,
+            render_ms=r,
+            total_ms=q + tr + r,
+            payload_bytes=int(timings.get("payload_bytes", 0)),
+            peak_python_mb=python_mb,
+            peak_browser_mb=float(timings.get("peak_browser_mb", 0.0)),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -428,93 +623,78 @@ def run_trial(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--sizes",
-        type=str,
-        default=",".join(str(s) for s in SIZES),
-        help="Comma-separated row counts, e.g. 1000000,2000000,10000000,50000000",
+        "--sizes", type=str, default=",".join(str(s) for s in SIZES),
+        help="Comma-separated row counts",
     )
     parser.add_argument(
-        "--n-traces",
-        type=str,
-        default=",".join(str(n) for n in N_TRACES),
-        help="Comma-separated trace counts, e.g. 1,2,5,10",
+        "--n-traces", type=str, default=",".join(str(n) for n in N_TRACES),
+        help="Comma-separated trace counts",
     )
     parser.add_argument(
-        "--data-sources",
-        type=str,
-        default=",".join(DATA_SOURCES),
-        help="Comma-separated data source types: disk,memory",
+        "--data-sources", type=str, default=",".join(DATA_SOURCES),
+        help="Comma-separated source types: disk-parquet,disk-csv,disk-ipc,in-memory",
     )
     parser.add_argument(
-        "--dataset-template",
-        type=str,
-        default="data/ttfr_line_{n_traces}x_{rows}.parquet",
-        help="Path template with {rows} and {n_traces} placeholders (disk source only)",
+        "--dataset-base", type=str,
+        default="data/ttfr_line_{rows}",
+        help="Path template with {rows} placeholder (no extension)",
     )
-    parser.add_argument("--n-points", type=int, default=1000)
+    parser.add_argument("--n-points", type=int, default=500)
     parser.add_argument("--repeats", type=int, default=7)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--shuffle-order", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument(
         "--fresh-contender-per-trial",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Recreate contender instances for each trial to reduce precompute/cache bias",
+        action=argparse.BooleanOptionalAction, default=False,
+        help="Re-create contenders for each trial (slower; use for isolation)",
     )
+    parser.add_argument("--regenerate-datasets", action="store_true")
     parser.add_argument(
-        "--regenerate-datasets",
-        action="store_true",
-        help="Force regeneration of all disk datasets in the size matrix",
-    )
-    parser.add_argument(
-        "--flexviz-repo",
-        type=Path,
-        default=Path("../flexviz"),
+        "--flexviz-repo", type=Path, default=Path("../flexviz"),
         help="Path to local FlexViz repo",
     )
     parser.add_argument(
-        "--json-out",
-        type=Path,
-        default=Path("results/ttfr_line_sizes.json"),
-        help="Where to save machine-readable results",
+        "--no-headless", action="store_true",
+        help="Run browser in visible (non-headless) mode",
+    )
+    parser.add_argument(
+        "--json-out", type=Path, default=Path("results/ttfr_line.json"),
     )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    sizes = parse_sizes_arg(args.sizes)
-    trace_counts = parse_n_traces_arg(args.n_traces)
-    data_sources = parse_sources_arg(args.data_sources)
+    sizes         = parse_sizes_arg(args.sizes)
+    trace_counts  = parse_n_traces_arg(args.n_traces)
+    data_sources  = parse_sources_arg(args.data_sources)
+    max_n_traces  = max(trace_counts)
 
     contenders = [
-        ("flexviz", lambda: FlexVizContender(args.flexviz_repo)),
-        ("mosaic", MosaicContender),
-        ("vaex", VaexContender),
+        ("flexviz",   lambda: FlexVizContender(args.flexviz_repo)),
+        ("mosaic",    MosaicContender),
+        ("vaex",      VaexContender),
+        ("pygwalker", PyGWalkerContender),
     ]
 
-    all_trials: dict[int, dict[int, dict[str, dict[str, list[Trial]]]]] = {}
-    summaries = []
+    all_trials: dict = {}
+    summaries: list = []
 
-    with RenderProbe() as renderer:
+    with RenderProbe(headless=not args.no_headless, flexviz_repo=args.flexviz_repo) as probe:
         for rows in sizes:
             all_trials[rows] = {}
             for n_traces in trace_counts:
                 all_trials[rows][n_traces] = {}
                 for source_name in data_sources:
-                    data = prepare_data_source(
-                        source_name,
-                        rows,
-                        n_traces,
-                        args.dataset_template,
-                        args.regenerate_datasets,
+                    data = prepare_line_data_source(
+                        source_name, rows, max_n_traces,
+                        args.seed, args.dataset_base, args.regenerate_datasets,
                     )
-
-                    trials_for_source = run_repeated_trials(
+                    trials_map = run_repeated_trials(
                         contenders,
-                        run_trial=lambda contender, d=data, nt=n_traces: run_trial(
-                            contender, d, args.n_points, nt, renderer
+                        run_trial=lambda c, d=data, nt=n_traces: probe.run_trial(
+                            c, d, n_points=args.n_points, n_traces=nt
                         ),
                         warmup=args.warmup,
                         repeats=args.repeats,
@@ -523,9 +703,8 @@ def main() -> None:
                         shuffle_order=args.shuffle_order,
                         fresh_contender_per_trial=args.fresh_contender_per_trial,
                     )
-                    all_trials[rows][n_traces][source_name] = trials_for_source
-
-                    for tool, tool_trials in trials_for_source.items():
+                    all_trials[rows][n_traces][source_name] = trials_map
+                    for tool, tool_trials in trials_map.items():
                         summaries.append(
                             summarize_trials(rows, n_traces, tool, source_name, tool_trials)
                         )
@@ -534,28 +713,13 @@ def main() -> None:
 
     report = {
         "config": {
-            "sizes": sizes,
-            "n_traces": trace_counts,
-            "data_sources": data_sources,
-            "dataset_template": args.dataset_template,
-            "n_points": args.n_points,
-            "repeats": args.repeats,
-            "warmup": args.warmup,
-            "seed": args.seed,
-            "shuffle_order": args.shuffle_order,
-            "fresh_contender_per_trial": args.fresh_contender_per_trial,
-            "regenerate_datasets": args.regenerate_datasets,
-            "flexviz_repo": str(args.flexviz_repo),
+            "sizes": sizes, "n_traces": trace_counts, "data_sources": data_sources,
+            "n_points": args.n_points, "repeats": args.repeats, "warmup": args.warmup,
+            "seed": args.seed, "dataset_base": args.dataset_base,
         },
-        "summary": [asdict(summary) for summary in summaries],
-        "trials": raw_trials_to_json(all_trials),
-        "notes": [
-            "Order is seed-shuffled per repeat to reduce order bias while keeping runs reproducible.",
-            "Mosaic path disables DuckDB external file cache per query connection.",
-            "fresh_contender_per_trial=true helps reduce in-process state/precompute effects.",
-        ],
+        "summary": [asdict(s) for s in summaries],
+        "trials":  raw_trials_to_json(all_trials),
     }
-
     args.json_out.parent.mkdir(parents=True, exist_ok=True)
     args.json_out.write_text(json.dumps(report, indent=2), encoding="utf-8")
 

@@ -1,36 +1,48 @@
-import numpy as np
-import polars as pl
 import pytest
+import polars as pl
+from pathlib import Path
 
-from ttfr_line import LinePayload, _generate_line_frame
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
-
-class TestLinePayload:
-    def test_has_x_and_ys(self):
-        p = LinePayload(x=[1.0, 2.0], ys=[[3.0, 4.0], [5.0, 6.0]])
-        assert p.x == [1.0, 2.0]
-        assert len(p.ys) == 2
-
-    def test_single_trace(self):
-        p = LinePayload(x=[1.0], ys=[[0.5]])
-        assert len(p.ys) == 1
+from ttfr_line import _generate_line_frame, prepare_line_data_source
+from ttfr_core import DiskSource, MemorySource
 
 
 class TestGenerateLineFrame:
-    def test_columns_single_trace(self):
-        df = _generate_line_frame(rows=50, n_traces=1)
-        assert df.columns == ["x", "y1"]
+    def test_has_x_and_y_columns(self):
+        df = _generate_line_frame(rows=50, max_n_traces=2, seed=42)
+        assert "x" in df.columns
+        assert "y1" in df.columns
+        assert "y2" in df.columns
         assert len(df) == 50
 
-    def test_columns_multi_trace(self):
-        df = _generate_line_frame(rows=100, n_traces=3)
-        assert set(df.columns) == {"x", "y1", "y2", "y3"}
-        assert len(df) == 100
+    def test_seed_is_reproducible(self):
+        df1 = _generate_line_frame(rows=100, max_n_traces=1, seed=7)
+        df2 = _generate_line_frame(rows=100, max_n_traces=1, seed=7)
+        assert df1["x"].to_list() == df2["x"].to_list()
 
-    def test_x_is_arange(self):
-        df = _generate_line_frame(rows=10, n_traces=1)
-        assert df["x"].to_list() == list(range(10))
+    def test_x_is_sorted(self):
+        df = _generate_line_frame(rows=100, max_n_traces=1, seed=42)
+        xs = df["x"].to_list()
+        assert xs == sorted(xs)
 
-    def test_y_columns_differ(self):
-        df = _generate_line_frame(rows=1000, n_traces=2)
-        assert not np.allclose(df["y1"].to_numpy(), df["y2"].to_numpy())
+
+class TestPrepareLineDataSource:
+    def test_disk_parquet(self, tmp_path):
+        src = prepare_line_data_source(
+            "disk-parquet", rows=20, max_n_traces=2, seed=1,
+            dataset_base=str(tmp_path / "bench_{rows}"), regenerate=False,
+        )
+        assert isinstance(src, DiskSource)
+        assert src.path.suffix == ".parquet"
+        assert src.path.exists()
+
+    def test_in_memory(self, tmp_path):
+        src = prepare_line_data_source(
+            "in-memory", rows=20, max_n_traces=2, seed=1,
+            dataset_base=str(tmp_path / "bench_{rows}"), regenerate=False,
+        )
+        assert isinstance(src, MemorySource)
+        assert "x" in src.frame.columns
+        assert "y1" in src.frame.columns
