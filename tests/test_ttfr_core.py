@@ -4,7 +4,6 @@ import pytest
 from ttfr_core import (
     Summary,
     Trial,
-    dataset_path_for_params,
     parse_n_traces_arg,
     raw_trials_to_json,
     summarize_trials,
@@ -35,17 +34,6 @@ class TestParseNTracesArg:
 
     def test_blank_tokens_are_skipped(self):
         assert parse_n_traces_arg("1,,2") == [1, 2]
-
-
-class TestDatasetPathForParams:
-    def test_substitutes_both_placeholders(self):
-        p = dataset_path_for_params("data/line_{n_traces}x_{rows}.parquet", rows=1000, n_traces=2)
-        assert str(p) == "data/line_2x_1000.parquet"
-
-    def test_returns_path_object(self):
-        from pathlib import Path
-        p = dataset_path_for_params("data/line_{n_traces}x_{rows}.parquet", rows=1000, n_traces=2)
-        assert isinstance(p, Path)
 
 
 class TestSummarizeTrials:
