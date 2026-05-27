@@ -213,27 +213,30 @@ class VaexContender:
                 kwargs[col] = arr[col].to_numpy()
             df = self.vaex.from_arrays(**kwargs)
 
-        xs_out: list[list[float]] = []
-        ys_out: list[list[int]] = []
-        for t in range(n_traces):
-            col = f"value{t + 1}"
-            lo, hi = df.minmax(col)
-            lo = float(lo)
-            hi = float(hi)
-            if hi <= lo:
-                hi = lo + 1.0
+        try:
+            xs_out: list[list[float]] = []
+            ys_out: list[list[int]] = []
+            for t in range(n_traces):
+                col = f"value{t + 1}"
+                lo, hi = df.minmax(col)
+                lo = float(lo)
+                hi = float(hi)
+                if hi <= lo:
+                    hi = lo + 1.0
 
-            result = df.count(
-                binby=col,
-                limits=[lo, hi],
-                shape=bins,
-                edges=True,
-                array_type="numpy",
-            )
-            counts, edges = self._normalize_counts_and_edges(result, bins, lo, hi)
-            centers = (edges[:-1] + edges[1:]) / 2.0
-            xs_out.append([float(v) for v in centers])
-            ys_out.append([int(v) for v in counts])
+                result = df.count(
+                    binby=col,
+                    limits=[lo, hi],
+                    shape=bins,
+                    edges=True,
+                    array_type="numpy",
+                )
+                counts, edges = self._normalize_counts_and_edges(result, bins, lo, hi)
+                centers = (edges[:-1] + edges[1:]) / 2.0
+                xs_out.append([float(v) for v in centers])
+                ys_out.append([int(v) for v in counts])
+        finally:
+            df.close()
 
         return HistogramPayload(xs=xs_out, ys=ys_out)
 

@@ -204,23 +204,26 @@ class VaexContender:
                 kwargs[col] = arr[col].to_numpy()
             df = self.vaex.from_arrays(**kwargs)
 
-        lo, hi = df.minmax("x")
-        lo = float(lo)
-        hi = float(hi)
-        if hi <= lo:
-            hi = lo + 1.0
+        try:
+            lo, hi = df.minmax("x")
+            lo = float(lo)
+            hi = float(hi)
+            if hi <= lo:
+                hi = lo + 1.0
 
-        edges = np.linspace(lo, hi, n_points + 1, dtype=np.float64)
-        centers = (edges[:-1] + edges[1:]) / 2.0
+            edges = np.linspace(lo, hi, n_points + 1, dtype=np.float64)
+            centers = (edges[:-1] + edges[1:]) / 2.0
 
-        ys = []
-        for t in range(n_traces):
-            col = f"y{t + 1}"
-            means = np.asarray(
-                df.mean(col, binby="x", limits=[lo, hi], shape=n_points, array_type="numpy"),
-                dtype=np.float64,
-            ).reshape(-1)
-            ys.append(np.nan_to_num(means, nan=0.0).tolist())
+            ys = []
+            for t in range(n_traces):
+                col = f"y{t + 1}"
+                means = np.asarray(
+                    df.mean(col, binby="x", limits=[lo, hi], shape=n_points, array_type="numpy"),
+                    dtype=np.float64,
+                ).reshape(-1)
+                ys.append(np.nan_to_num(means, nan=0.0).tolist())
+        finally:
+            df.close()
 
         return LinePayload(x=[float(v) for v in centers], ys=ys)
 
