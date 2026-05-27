@@ -536,3 +536,194 @@ class PyGWalkerContender:
         if self._http_server:
             self._http_server.shutdown()
             self._http_server = None
+
+
+# ---------------------------------------------------------------------------
+# RenderProbe — shared Playwright browser session
+# ---------------------------------------------------------------------------
+
+import argparse
+import json
+from dataclasses import asdict
+
+from playwright.sync_api import Page, sync_playwright
+
+
+class RenderProbe:
+    """Shared Playwright Chromium session for the full benchmark run."""
+
+    def __init__(self, *, headless: bool = True, flexviz_repo: Path) -> None:
+        self._headless = headless
+        self._flexviz_probe_js = (
+            Path(__file__).parent / "probes" / "flexviz_probe.js"
+        ).read_text()
+        self._flexviz_repo = flexviz_repo
+
+    def __enter__(self) -> "RenderProbe":
+        self._playwright = sync_playwright().start()
+        self._browser = self._playwright.chromium.launch(headless=self._headless)
+        self._page: Page = self._browser.new_page(viewport={"width": 1280, "height": 800})
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self._browser.close()
+        self._playwright.stop()
+
+    def run_trial(
+        self,
+        contender: Any,
+        data: DataSource,
+        bins: int,
+        n_traces: int,
+    ) -> Trial:
+        page = self._page
+
+        # Inject FlexViz probe for FlexViz pages only
+        if contender.name == "flexviz":
+            page.add_init_script(self._flexviz_probe_js)
+
+        tracemalloc.start()
+        try:
+            contender.setup(data, bins=bins, n_traces=n_traces)
+            page.goto(contender.get_url(), wait_until="networkidle", timeout=60_000)
+            page.wait_for_function(
+                "() => window.__benchTimings !== undefined",
+                timeout=30_000,
+            )
+            timings: dict = page.evaluate("() => window.__benchTimings")
+        finally:
+            _, peak = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+            tracemalloc.clear_traces()
+            extra_python_mb = peak / 1024 / 1024
+            contender.teardown()
+
+        # Use contender's own peak_python_mb if it pre-measured (Vaex, PyGWalker);
+        # otherwise fall back to the tracemalloc window.
+        python_mb = max(contender.peak_python_mb, extra_python_mb)
+
+        q  = float(timings.get("query_ms", 0.0))
+        tr = float(timings.get("transfer_ms", 0.0))
+        r  = float(timings.get("render_ms", 0.0))
+        return Trial(
+            query_ms=q,
+            transfer_ms=tr,
+            render_ms=r,
+            total_ms=q + tr + r,
+            payload_bytes=int(timings.get("payload_bytes", 0)),
+            peak_python_mb=python_mb,
+            peak_browser_mb=float(timings.get("peak_browser_mb", 0.0)),
+        )
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--sizes", type=str, default=",".join(str(s) for s in SIZES),
+        help="Comma-separated row counts",
+    )
+    parser.add_argument(
+        "--n-traces", type=str, default=",".join(str(n) for n in N_TRACES),
+        help="Comma-separated trace counts",
+    )
+    parser.add_argument(
+        "--data-sources", type=str, default=",".join(DATA_SOURCES),
+        help="Comma-separated source types: disk-parquet,disk-csv,disk-ipc,in-memory",
+    )
+    parser.add_argument(
+        "--dataset-base", type=str,
+        default="data/ttfr_histogram_{rows}",
+        help="Path template with {rows} placeholder (no extension)",
+    )
+    parser.add_argument("--bins", type=int, default=100)
+    parser.add_argument("--repeats", type=int, default=7)
+    parser.add_argument("--warmup", type=int, default=2)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--shuffle-order", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--fresh-contender-per-trial",
+        action=argparse.BooleanOptionalAction, default=False,
+        help="Re-create contenders for each trial (slower; use for isolation)",
+    )
+    parser.add_argument("--regenerate-datasets", action="store_true")
+    parser.add_argument(
+        "--flexviz-repo", type=Path, default=Path("../flexviz"),
+        help="Path to local FlexViz repo",
+    )
+    parser.add_argument(
+        "--no-headless", action="store_true",
+        help="Run browser in visible (non-headless) mode",
+    )
+    parser.add_argument(
+        "--json-out", type=Path, default=Path("results/ttfr_histogram.json"),
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    sizes         = parse_sizes_arg(args.sizes)
+    trace_counts  = parse_n_traces_arg(args.n_traces)
+    data_sources  = parse_sources_arg(args.data_sources)
+    max_n_traces  = max(trace_counts)
+
+    contenders = [
+        ("flexviz",   lambda: FlexVizContender(args.flexviz_repo)),
+        ("mosaic",    MosaicContender),
+        ("vaex",      VaexContender),
+        ("pygwalker", PyGWalkerContender),
+    ]
+
+    all_trials: dict = {}
+    summaries: list = []
+
+    with RenderProbe(headless=not args.no_headless, flexviz_repo=args.flexviz_repo) as probe:
+        for rows in sizes:
+            all_trials[rows] = {}
+            for n_traces in trace_counts:
+                all_trials[rows][n_traces] = {}
+                for source_name in data_sources:
+                    data = prepare_histogram_data_source(
+                        source_name, rows, max_n_traces,
+                        args.seed, args.dataset_base, args.regenerate_datasets,
+                    )
+                    trials_map = run_repeated_trials(
+                        contenders,
+                        run_trial=lambda c, d=data, nt=n_traces: probe.run_trial(
+                            c, d, bins=args.bins, n_traces=nt
+                        ),
+                        warmup=args.warmup,
+                        repeats=args.repeats,
+                        seed=args.seed,
+                        seed_offset=rows + n_traces,
+                        shuffle_order=args.shuffle_order,
+                        fresh_contender_per_trial=args.fresh_contender_per_trial,
+                    )
+                    all_trials[rows][n_traces][source_name] = trials_map
+                    for tool, tool_trials in trials_map.items():
+                        summaries.append(
+                            summarize_trials(rows, n_traces, tool, source_name, tool_trials)
+                        )
+
+    print_summary_table(summaries)
+
+    report = {
+        "config": {
+            "sizes": sizes, "n_traces": trace_counts, "data_sources": data_sources,
+            "bins": args.bins, "repeats": args.repeats, "warmup": args.warmup,
+            "seed": args.seed, "dataset_base": args.dataset_base,
+        },
+        "summary": [asdict(s) for s in summaries],
+        "trials":  raw_trials_to_json(all_trials),
+    }
+    args.json_out.parent.mkdir(parents=True, exist_ok=True)
+    args.json_out.write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
