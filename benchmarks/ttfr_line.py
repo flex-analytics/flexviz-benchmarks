@@ -408,7 +408,7 @@ def parse_args() -> argparse.Namespace:
         default="data/ttfr_line_1x_{rows}.parquet",
         help="Path template with {rows} placeholder (disk source only)",
     )
-    parser.add_argument("--n-points", type=int, default=5000)
+    parser.add_argument("--n-points", type=int, default=1000)
     parser.add_argument("--repeats", type=int, default=7)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
