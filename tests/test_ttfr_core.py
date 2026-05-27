@@ -180,3 +180,19 @@ class TestEnsureWideDiskDatasets:
         ensure_wide_disk_datasets(base, factory, regenerate=False)
         ensure_wide_disk_datasets(base, factory, regenerate=True)
         assert call_count["n"] == 2
+
+
+from ttfr_core import parse_sources_arg
+
+
+class TestParseSourcesArg:
+    def test_accepts_new_disk_formats(self):
+        result = parse_sources_arg("disk-parquet,disk-csv,disk-ipc,in-memory")
+        assert result == ["disk-parquet", "disk-csv", "disk-ipc", "in-memory"]
+
+    def test_strips_whitespace(self):
+        assert parse_sources_arg(" disk-parquet , in-memory ") == ["disk-parquet", "in-memory"]
+
+    def test_empty_raises(self):
+        with pytest.raises(ValueError, match="empty"):
+            parse_sources_arg("")
