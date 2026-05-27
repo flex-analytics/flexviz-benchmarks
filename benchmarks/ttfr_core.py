@@ -51,6 +51,7 @@ class Trial:
 @dataclass
 class Summary:
     rows: int
+    n_traces: int
     tool: str
     source: str
     trials: int
@@ -169,13 +170,16 @@ def run_repeated_trials(
 # ---------------------------------------------------------------------------
 
 
-def summarize_trials(rows: int, tool: str, source: str, trials: list[Trial]) -> Summary:
+def summarize_trials(
+    rows: int, n_traces: int, tool: str, source: str, trials: list[Trial]
+) -> Summary:
     if not trials:
         raise ValueError("cannot summarize empty trials list")
 
     totals = [t.total_ms for t in trials]
     return Summary(
         rows=rows,
+        n_traces=n_traces,
         tool=tool,
         source=source,
         trials=len(trials),
@@ -190,13 +194,14 @@ def summarize_trials(rows: int, tool: str, source: str, trials: list[Trial]) -> 
 
 
 def print_summary_table(summaries: list[Summary]) -> None:
-    by_rows: dict[int, list[Summary]] = {}
+    by_key: dict[tuple[int, int], list[Summary]] = {}
     for summary in summaries:
-        by_rows.setdefault(summary.rows, []).append(summary)
+        by_key.setdefault((summary.rows, summary.n_traces), []).append(summary)
 
     header = (
         f"{'source':<10}"
         f"{'tool':<10}"
+        f"{'n_traces':>10}"
         f"{'total_med':>12}"
         f"{'total_mean':>12}"
         f"{'stdev':>10}"
@@ -207,16 +212,16 @@ def print_summary_table(summaries: list[Summary]) -> None:
         f"{'n':>6}"
     )
 
-    for rows in sorted(by_rows):
-        print(f"\nrows={rows:,}")
+    for (rows, n_traces) in sorted(by_key):
+        print(f"\nrows={rows:,}  n_traces={n_traces}")
         print(header)
         print("-" * len(header))
-        # Sort by source (alphabetical), then by total_median_ms within each source.
-        ordered = sorted(by_rows[rows], key=lambda s: (s.source, s.total_median_ms))
+        ordered = sorted(by_key[(rows, n_traces)], key=lambda s: (s.source, s.total_median_ms))
         for s in ordered:
             print(
                 f"{s.source:<10}"
                 f"{s.tool:<10}"
+                f"{s.n_traces:>10}"
                 f"{s.total_median_ms:>12.2f}"
                 f"{s.total_mean_ms:>12.2f}"
                 f"{s.total_stdev_ms:>10.2f}"
@@ -228,16 +233,21 @@ def print_summary_table(summaries: list[Summary]) -> None:
             )
 
 
-def raw_trials_to_json(
-    trials_by_rows: Mapping[int, Mapping[str, Mapping[str, list[Trial]]]],
-) -> dict[str, Any]:
-    """Serialize trials nested as rows → source → tool."""
+TrialMatrix = Mapping[int, Mapping[int, Mapping[str, Mapping[str, list[Trial]]]]]
+
+
+def raw_trials_to_json(trials_by_rows: TrialMatrix) -> dict[str, Any]:
+    """Serialize trials nested as rows → n_traces → source → tool."""
     return {
         str(rows): {
-            source: {
-                tool: [trial.__dict__ for trial in trials] for tool, trials in tool_map.items()
+            str(n_traces): {
+                source: {
+                    tool: [trial.__dict__ for trial in trials]
+                    for tool, trials in tool_map.items()
+                }
+                for source, tool_map in source_map.items()
             }
-            for source, tool_map in source_map.items()
+            for n_traces, source_map in n_traces_map.items()
         }
-        for rows, source_map in trials_by_rows.items()
+        for rows, n_traces_map in trials_by_rows.items()
     }
