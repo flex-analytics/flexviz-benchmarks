@@ -314,3 +314,143 @@ class MosaicContender:
         if self._tmpdir:
             self._tmpdir.cleanup()
             self._tmpdir = None
+
+
+# ---------------------------------------------------------------------------
+# Vaex contender
+# ---------------------------------------------------------------------------
+
+_VAEX_PROBE_TEMPLATE = """\
+<!doctype html>
+<html>
+<head><meta charset="utf-8">
+<style>
+body{{margin:0;}} svg{{display:block;}}
+</style>
+</head>
+<body>
+<script>
+window.__benchQueryMs     = {query_ms};
+window.__benchPayloadBytes = {payload_bytes};
+</script>
+<script>
+{bench_utils_js}
+</script>
+<svg id="chart" width="960" height="400" xmlns="http://www.w3.org/2000/svg">
+{svg_rects}
+</svg>
+</body>
+</html>
+"""
+
+_COLORS = [
+    "#3b82f6","#ef4444","#22c55e","#f59e0b","#8b5cf6",
+    "#06b6d4","#ec4899","#84cc16","#f97316","#6366f1",
+]
+
+
+def _histogram_to_svg_rects(
+    centers: list[float], counts: list[int], trace_idx: int,
+    panel_x: float, panel_w: float, height: int = 400, pad: int = 12,
+) -> str:
+    max_count = max(counts) if counts else 1
+    inner_h = height - 2 * pad
+    n = len(centers)
+    bar_w = panel_w / max(n, 1)
+    color = _COLORS[trace_idx % len(_COLORS)]
+    rects = []
+    for i, (_, c) in enumerate(zip(centers, counts)):
+        h = (c / max_count) * inner_h
+        x = panel_x + i * bar_w
+        y = height - pad - h
+        rects.append(
+            f'<rect x="{x:.2f}" y="{y:.2f}" width="{max(1, bar_w - 0.5):.2f}" '
+            f'height="{h:.2f}" fill="{color}"/>'
+        )
+    return "\n".join(rects)
+
+
+class VaexContender:
+    """Uses df.count(..., binby=...) for histogram computation; renders inline SVG."""
+
+    name = "vaex"
+    peak_python_mb: float = 0.0
+
+    def __init__(self) -> None:
+        self._http_server: http.server.HTTPServer | None = None
+        self._http_port: int = 0
+        self._url: str = ""
+
+    def setup(self, data: DataSource, bins: int, n_traces: int) -> None:
+        try:
+            import vaex  # noqa: PLC0415
+        except ImportError as exc:
+            raise RuntimeError("vaex not installed") from exc
+
+        tracemalloc.start()
+        t0 = time.perf_counter()
+
+        if isinstance(data, DiskSource):
+            df = vaex.open(str(data.path))
+        else:
+            kwargs = {
+                f"value{t + 1}": data.frame[f"value{t + 1}"].to_numpy()
+                for t in range(n_traces)
+            }
+            df = vaex.from_arrays(**kwargs)
+
+        svg_parts: list[str] = []
+        n_panels = n_traces
+        panel_w = (960 - 12 * (n_panels + 1)) / max(n_panels, 1)
+
+        try:
+            for t in range(n_traces):
+                col = f"value{t + 1}"
+                lo, hi = float(df.min(col)), float(df.max(col))
+                if hi <= lo:
+                    hi = lo + 1.0
+                counts_arr = df.count(
+                    col, binby=col, limits=[lo, hi], shape=bins, array_type="numpy"
+                )
+                counts = [int(v) for v in counts_arr]
+                edges = np.linspace(lo, hi, bins + 1)
+                centers = ((edges[:-1] + edges[1:]) / 2).tolist()
+                panel_x = 12 + t * (panel_w + 12)
+                svg_parts.append(_histogram_to_svg_rects(centers, counts, t, panel_x, panel_w))
+        finally:
+            df.close()
+
+        query_ms = (time.perf_counter() - t0) * 1000.0
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        tracemalloc.clear_traces()
+        self.peak_python_mb = peak / 1024 / 1024
+
+        bench_utils_js = (Path(__file__).parent / "probes" / "bench_utils.js").read_text()
+        html = _VAEX_PROBE_TEMPLATE.format(
+            query_ms=f"{query_ms:.3f}",
+            payload_bytes=sum(len(p) for p in svg_parts),
+            bench_utils_js=bench_utils_js,
+            svg_rects="\n".join(svg_parts),
+        )
+
+        self._http_port = _free_port()
+        tmpdir = tempfile.mkdtemp()
+        (Path(tmpdir) / "index.html").write_text(html)
+        self._http_server = http.server.HTTPServer(
+            ("127.0.0.1", self._http_port),
+            lambda *a, **kw: http.server.SimpleHTTPRequestHandler(
+                *a, directory=tmpdir, **kw
+            ),
+        )
+        t2 = _threading.Thread(target=self._http_server.serve_forever, daemon=True)
+        t2.start()
+        self._url = f"http://127.0.0.1:{self._http_port}/"
+
+    def get_url(self) -> str:
+        return self._url
+
+    def teardown(self) -> None:
+        if self._http_server:
+            self._http_server.shutdown()
+            self._http_server = None
