@@ -454,3 +454,85 @@ class VaexContender:
         if self._http_server:
             self._http_server.shutdown()
             self._http_server = None
+
+
+# ---------------------------------------------------------------------------
+# PyGWalker contender
+# ---------------------------------------------------------------------------
+
+
+class PyGWalkerContender:
+    """Generates a PyGWalker (Graphic Walker) HTML artifact and serves it."""
+
+    name = "pygwalker"
+    peak_python_mb: float = 0.0
+
+    def __init__(self) -> None:
+        self._http_server: http.server.HTTPServer | None = None
+        self._http_port: int = 0
+        self._url: str = ""
+
+    def setup(self, data: DataSource, bins: int, n_traces: int) -> None:
+        try:
+            import pygwalker as pyg  # noqa: PLC0415
+        except ImportError as exc:
+            raise RuntimeError("pygwalker not installed") from exc
+
+        tracemalloc.start()
+        t0 = time.perf_counter()
+
+        if isinstance(data, DiskSource):
+            if data.path.suffix == ".parquet":
+                df = pl.read_parquet(data.path)
+            elif data.path.suffix == ".csv":
+                df = pl.read_csv(data.path)
+            else:
+                df = pl.read_ipc(data.path)
+        else:
+            df = data.frame
+
+        # Select only the traces we need
+        cols = [f"value{t + 1}" for t in range(n_traces)]
+        df_subset = df.select(cols)
+
+        # pyg.to_html() generates a self-contained HTML string
+        html_content: str = pyg.to_html(df_subset)
+
+        query_ms = (time.perf_counter() - t0) * 1000.0
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        tracemalloc.clear_traces()
+        self.peak_python_mb = peak / 1024 / 1024
+
+        bench_utils_js = (Path(__file__).parent / "probes" / "bench_utils.js").read_text()
+        bench_injection = (
+            f"<script>window.__benchQueryMs = {query_ms:.3f};"
+            f"window.__benchPayloadBytes = {len(html_content.encode())};</script>"
+            f"<script>{bench_utils_js}</script>"
+        )
+        # Inject before </body>
+        if "</body>" in html_content:
+            html = html_content.replace("</body>", bench_injection + "</body>", 1)
+        else:
+            html = html_content + bench_injection
+
+        self._http_port = _free_port()
+        tmpdir = tempfile.mkdtemp()
+        (Path(tmpdir) / "index.html").write_text(html, encoding="utf-8")
+        self._http_server = http.server.HTTPServer(
+            ("127.0.0.1", self._http_port),
+            lambda *a, **kw: http.server.SimpleHTTPRequestHandler(
+                *a, directory=tmpdir, **kw
+            ),
+        )
+        t2 = _threading.Thread(target=self._http_server.serve_forever, daemon=True)
+        t2.start()
+        self._url = f"http://127.0.0.1:{self._http_port}/"
+
+    def get_url(self) -> str:
+        return self._url
+
+    def teardown(self) -> None:
+        if self._http_server:
+            self._http_server.shutdown()
+            self._http_server = None
