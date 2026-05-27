@@ -183,3 +183,134 @@ class FlexVizContender:
 
     def teardown(self) -> None:
         pass  # Server is a singleton; dies with the process.
+
+
+# ---------------------------------------------------------------------------
+# Mosaic contender
+# ---------------------------------------------------------------------------
+
+import http.server
+import subprocess
+import tempfile
+import threading as _threading
+
+
+class MosaicContender:
+    """Starts mosaic-sql (Node.js DuckDB server) and serves the probe page."""
+
+    name = "mosaic"
+    peak_python_mb: float = 0.0
+
+    def __init__(self) -> None:
+        self._mosaic_proc: subprocess.Popen | None = None
+        self._http_server: http.server.HTTPServer | None = None
+        self._http_port: int = 0
+        self._mosaic_port: int = 0
+        self._url: str = ""
+        self._tmpdir: tempfile.TemporaryDirectory | None = None
+
+    def setup(self, data: DataSource, bins: int, n_traces: int) -> None:
+        tracemalloc.start()
+
+        self._mosaic_port = _free_port()
+        self._http_port = _free_port()
+
+        # Start mosaic-sql server
+        if isinstance(data, DiskSource):
+            file_path = str(data.path.resolve())
+        else:
+            # Write in-memory frame to a temporary parquet file
+            self._tmpdir = tempfile.TemporaryDirectory()
+            tmp_path = Path(self._tmpdir.name) / "bench.parquet"
+            data.frame.write_parquet(tmp_path)
+            file_path = str(tmp_path)
+
+        # Locate or install @uwdata/mosaic-duckdb, then start a WebSocket server.
+        # We keep a persistent node_modules dir under the user's cache to avoid
+        # re-downloading on every trial.
+        mosaic_node_dir = Path.home() / ".cache" / "flexviz-bench" / "mosaic-node"
+        mosaic_node_dir.mkdir(parents=True, exist_ok=True)
+        mosaic_pkg = mosaic_node_dir / "node_modules" / "@uwdata" / "mosaic-duckdb"
+        if not mosaic_pkg.exists():
+            subprocess.run(
+                ["npm", "install", "@uwdata/mosaic-duckdb"],
+                cwd=str(mosaic_node_dir),
+                capture_output=True,
+                check=True,
+            )
+
+        if self._tmpdir is None:
+            self._tmpdir = tempfile.TemporaryDirectory()
+        # Script must live in the same dir as node_modules so Node resolves it.
+        node_script_path = mosaic_node_dir / "mosaic_server.mjs"
+        node_script_path.write_text(
+            f"import {{DuckDB, dataServer}} from '@uwdata/mosaic-duckdb';\n"
+            f"dataServer(new DuckDB(':memory:'), "
+            f"{{rest:true, socket:true, port:{self._mosaic_port}}});\n"
+        )
+        self._mosaic_proc = subprocess.Popen(
+            ["node", str(node_script_path)],
+            cwd=str(mosaic_node_dir),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        # Read probe template and substitute placeholders
+        probe_template = (
+            Path(__file__).parent / "probes" / "mosaic_probe.html"
+        ).read_text()
+        html = (
+            probe_template
+            .replace("{{WS_URL}}", f"ws://127.0.0.1:{self._mosaic_port}/")
+            .replace("{{FILE_PATH}}", file_path.replace("\\", "/"))
+            .replace("{{CHART_TYPE}}", "histogram")
+            .replace("{{N_TRACES}}", str(n_traces))
+            .replace("{{BINS_OR_NPOINTS}}", str(bins))
+        )
+
+        # Serve the HTML via a simple HTTP server
+        tmpdir = tempfile.mkdtemp()
+        probe_path = Path(tmpdir) / "index.html"
+        probe_path.write_text(html)
+
+        handler = http.server.SimpleHTTPRequestHandler
+        self._http_server = http.server.HTTPServer(
+            ("127.0.0.1", self._http_port),
+            lambda *a, **kw: handler(*a, directory=tmpdir, **kw),
+        )
+        t = _threading.Thread(target=self._http_server.serve_forever, daemon=True)
+        t.start()
+
+        # Wait for mosaic-sql to be ready
+        import time as _time  # noqa: PLC0415
+        import socket as _socket  # noqa: PLC0415
+        deadline = _time.monotonic() + 15.0
+        while _time.monotonic() < deadline:
+            try:
+                with _socket.create_connection(("127.0.0.1", self._mosaic_port), 0.3):
+                    break
+            except OSError:
+                _time.sleep(0.1)
+        else:
+            raise RuntimeError("mosaic-sql did not start within 15 s")
+
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        tracemalloc.clear_traces()
+        self.peak_python_mb = peak / 1024 / 1024
+
+        self._url = f"http://127.0.0.1:{self._http_port}/"
+
+    def get_url(self) -> str:
+        return self._url
+
+    def teardown(self) -> None:
+        if self._http_server:
+            self._http_server.shutdown()
+            self._http_server = None
+        if self._mosaic_proc:
+            self._mosaic_proc.terminate()
+            self._mosaic_proc = None
+        if self._tmpdir:
+            self._tmpdir.cleanup()
+            self._tmpdir = None
