@@ -198,6 +198,46 @@ tests/
 
 ---
 
+## Data Sources (on-disk)
+
+### File layout
+
+One wide file per (row count, format) combination — not per (row count, n\_traces):
+
+```
+data/
+├── benchmark_1000000.parquet
+├── benchmark_1000000.csv
+├── benchmark_1000000.arrow      # Arrow IPC
+├── benchmark_2000000.parquet
+├── benchmark_2000000.csv
+├── benchmark_2000000.arrow
+└── ...
+```
+
+Each file contains all columns needed for the maximum n\_traces value (`value1` … `valueN`). The benchmark script reads only the columns relevant to the current n\_traces. This eliminates the old `{n_traces}x_{rows}` file naming and reduces total data on disk.
+
+### Source types
+
+The `source` dimension in the benchmark matrix expands to:
+
+| Source name | Description |
+|-------------|-------------|
+| `disk-parquet` | Parquet file read by the contender |
+| `disk-csv` | CSV file |
+| `disk-ipc` | Arrow IPC (`.arrow`) file |
+| `memory` | In-memory Polars DataFrame (generated fresh per trial) |
+
+`DiskSource.name` carries the source name (e.g. `"disk-parquet"`). Format is inferred from path extension; no structural change to `DiskSource` is required.
+
+`config.py` default: `DATA_SOURCES = ["disk-parquet", "disk-csv", "disk-ipc", "memory"]`.
+
+### Data generation
+
+`prepare_data_source` generates the wide Parquet file first, then derives CSV and Arrow IPC from it (avoiding redundant random generation). The `--regenerate-datasets` flag forces regeneration of all three formats.
+
+---
+
 ## Out of Scope
 
 - ECharts adapter benchmarking (deprecated in FlexViz)
