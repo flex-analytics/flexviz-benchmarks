@@ -19,8 +19,14 @@ flexviz = { path = "../flexviz", editable = true }
 
 [dependency-groups]
 dev = [
+    "matplotlib>=3.9",
+    "pytest>=8.0",
     "ruff>=0.15.14",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["benchmarks"]
 
 [tool.ruff]
 line-length = 100
