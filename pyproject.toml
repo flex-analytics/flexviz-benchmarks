@@ -1,0 +1,35 @@
+[project]
+name = "flexviz-benchmarks"
+version = "0.1.0"
+description = "Benchmarking FlexViz against other tools"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "duckdb>=1.5.3",
+    "flexviz",
+    "numpy>=2.4.6",
+    "playwright>=1.52.0",
+    "polars>=1.40.1",
+    "pyarrow>=16.0.0",
+    "vaex-core>=4.19.0",
+]
+
+[tool.uv.sources]
+flexviz = { path = "../flexviz", editable = true }
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.14",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+# E501 line too long — formatter handles this, linter warning is redundant
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
