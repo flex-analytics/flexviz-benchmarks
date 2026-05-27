@@ -77,14 +77,14 @@ Useful flags:
 
 Script:
 
-- `benchmarks/ttfr_line_2x50m.py`
+- `benchmarks/ttfr_line.py`
 
 Runs two lines over shared `x` (`y1`, `y2`) for each configured size.
 
 Run:
 
 ```bash
-uv run python benchmarks/ttfr_line_2x50m.py --flexviz-repo ../flexviz
+uv run python benchmarks/ttfr_line.py --flexviz-repo ../flexviz
 ```
 
 Useful flags:

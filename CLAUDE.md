@@ -21,7 +21,7 @@ uv run playwright install chromium
 uv run python benchmarks/ttfr_histogram.py --flexviz-repo ../flexviz
 
 # Line benchmark (two lines)
-uv run python benchmarks/ttfr_line_2x50m.py --flexviz-repo ../flexviz
+uv run python benchmarks/ttfr_line.py --flexviz-repo ../flexviz
 ```
 
 Both scripts share these flags: `--sizes`, `--data-sources`, `--repeats`, `--warmup`, `--seed`, `--shuffle-order`, `--fresh-contender-per-trial`, `--regenerate-datasets`, `--json-out`.
@@ -42,7 +42,7 @@ Both can be overridden per run with `--sizes` and `--data-sources` CLI flags.
 - `run_repeated_trials()` — executes warmup + shuffled repeat loop across all contenders
 - `summarize_trials()`, `print_summary_table()`, `raw_trials_to_json()` — reporting utilities; output is nested as rows → source → tool
 
-**Each benchmark script** (`ttfr_histogram.py`, `ttfr_line_2x50m.py`) follows the same pattern:
+**Each benchmark script** (`ttfr_histogram.py`, `ttfr_line.py`) follows the same pattern:
 1. A payload dataclass (e.g. `HistogramPayload`, `LinePayload`)
 2. A `Contender` protocol with `query(data: DataSource, ...)`, `encode()`, `decode()` methods
 3. Three concrete contenders: `FlexVizContender`, `MosaicContender` (DuckDB + Arrow IPC), `VaexContender` — each handles both `DiskSource` and `MemorySource` in their `query()` method
