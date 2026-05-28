@@ -1,6 +1,6 @@
 // flexviz_probe.js — Playwright init-script for FlexViz pages.
-// Hooks Plotly.newPlot / Plotly.react; writes window.__benchTimings after
-// the first render completes. Uses PerformanceResourceTiming to split
+// Hooks Plotly.react; writes window.__benchTimings after the first real
+// data render completes. Uses PerformanceResourceTiming to split
 // query_ms (server processing) from transfer_ms (body receive).
 //
 // Uses Object.defineProperty to intercept window.Plotly assignment so the
@@ -35,7 +35,12 @@
   }
 
   function hookPlotly(plotly) {
-    ['newPlot', 'react'].forEach(function (method) {
+    // Only hook 'react', not 'newPlot': FlexViz always calls newPlot first with
+    // empty stub traces (before any /dashboard/update request), then calls react
+    // after the initial data fetch completes.  Capturing on newPlot finds no
+    // resource timing entry and records zeros; capturing on react gets the real
+    // query/transfer split from the completed /dashboard/update entry.
+    ['react'].forEach(function (method) {
       var orig = plotly[method].bind(plotly);
       plotly[method] = function () {
         var result = orig.apply(this, arguments);
