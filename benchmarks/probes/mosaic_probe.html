@@ -62,17 +62,16 @@ await plot.value.update();
 
 const t_renderDone = performance.now();
 
-// Read resource timing for the WebSocket query message
-const entries = performance.getEntriesByType('resource');
-const wsEntry  = entries.filter(e => e.initiatorType === 'fetch' || e.name.includes(WS_URL.replace('ws://', 'http://'))).pop();
-
+// Mosaic uses WebSocket for DuckDB queries; those transfers are not visible to
+// PerformanceResourceTiming, so per-phase breakdown is not measurable here.
 const heapAfter = (performance.memory || {}).usedJSHeapSize || 0;
 window.__benchTimings = {
-  query_ms:        wsEntry ? Math.max(0, wsEntry.responseStart - wsEntry.requestStart) : (t_renderDone - t_queryStart) * 0.7,
-  transfer_ms:     wsEntry ? Math.max(0, wsEntry.responseEnd   - wsEntry.responseStart) : (t_renderDone - t_queryStart) * 0.1,
-  render_ms:       wsEntry ? Math.max(0, t_renderDone - wsEntry.responseEnd) : (t_renderDone - t_queryStart) * 0.2,
+  total_ms:        t_renderDone - t_queryStart,
+  query_ms:        null,
+  transfer_ms:     null,
+  render_ms:       null,
   peak_browser_mb: Math.max(0, (heapAfter - heapBefore) / 1048576),
-  payload_bytes:   wsEntry ? (wsEntry.transferSize || 0) : 0,
+  payload_bytes:   null,
 };
 </script>
 </body>

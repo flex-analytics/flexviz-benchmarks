@@ -25,12 +25,14 @@
     }
 
     var heapAfter = (performance.memory || {}).usedJSHeapSize || 0;
+    var now = performance.now();
     window.__benchTimings = {
-      query_ms:        entry ? Math.max(0, entry.responseStart - entry.requestStart) : 0,
-      transfer_ms:     entry ? Math.max(0, entry.responseEnd   - entry.responseStart) : 0,
-      render_ms:       entry ? Math.max(0, performance.now()   - entry.responseEnd)   : performance.now(),
+      total_ms:        entry ? Math.max(0, now - entry.requestStart) : now,
+      query_ms:        entry ? Math.max(0, entry.responseStart - entry.requestStart) : null,
+      transfer_ms:     entry ? Math.max(0, entry.responseEnd   - entry.responseStart) : null,
+      render_ms:       entry ? Math.max(0, now - entry.responseEnd)                   : null,
       peak_browser_mb: Math.max(0, (heapAfter - heapBefore) / 1048576),
-      payload_bytes:   entry ? (entry.transferSize || 0) : 0,
+      payload_bytes:   entry ? (entry.transferSize || 0) : null,
     };
   }
 

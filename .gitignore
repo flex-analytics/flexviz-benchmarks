@@ -221,3 +221,6 @@ __marimo__/
 # Benchmark artifacts
 data/
 results/
+
+# MCP server runtime directory
+.playwright-mcp/

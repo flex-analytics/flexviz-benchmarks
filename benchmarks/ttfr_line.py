@@ -613,15 +613,21 @@ class RenderProbe:
         # otherwise fall back to the tracemalloc window.
         python_mb = max(contender.peak_python_mb, extra_python_mb)
 
-        q = float(timings.get("query_ms", 0.0))
-        tr = float(timings.get("transfer_ms", 0.0))
-        r = float(timings.get("render_ms", 0.0))
+        raw_q = timings.get("query_ms")
+        raw_tr = timings.get("transfer_ms")
+        raw_r = timings.get("render_ms")
+        raw_total = timings.get("total_ms")
+        raw_payload = timings.get("payload_bytes")
+        q = float(raw_q) if raw_q is not None else None
+        tr = float(raw_tr) if raw_tr is not None else None
+        r = float(raw_r) if raw_r is not None else None
+        total = float(raw_total) if raw_total is not None else (q or 0.0) + (tr or 0.0) + (r or 0.0)
         return Trial(
             query_ms=q,
             transfer_ms=tr,
             render_ms=r,
-            total_ms=q + tr + r,
-            payload_bytes=int(timings.get("payload_bytes", 0)),
+            total_ms=total,
+            payload_bytes=int(raw_payload) if raw_payload is not None else None,
             peak_python_mb=python_mb,
             peak_browser_mb=float(timings.get("peak_browser_mb", 0.0)),
         )
