@@ -19,16 +19,31 @@ from plotly.subplots import make_subplots
 # Constants
 # ---------------------------------------------------------------------------
 
+# Sets the graph-div to 100 % width and re-renders the figure whenever the
+# window resizes. Plotly's built-in config.responsive only works when it can
+# observe the *container* changing size; without this the div keeps its
+# initial pixel width and the gaps between subplots appear to grow.
+_RESIZE_JS = (
+    "(function(){"
+    "var gd=document.querySelector('.plotly-graph-div');"
+    "if(!gd)return;"
+    "gd.style.width='100%';"
+    "function r(){Plotly.relayout(gd,{width:gd.parentElement.offsetWidth});}"
+    "window.addEventListener('resize',r);"
+    "r();"
+    "})();"
+)
+
 TIMING_METRICS: list[tuple[str, str]] = [
-    ("total_median_ms", "total (ms)"),
-    ("query_median_ms", "query (ms)"),
-    ("transfer_median_ms", "transfer (ms)"),
-    ("render_median_ms", "render (ms)"),
+    ("total_median_ms", "total"),
+    ("query_median_ms", "query"),
+    ("transfer_median_ms", "transfer"),
+    ("render_median_ms", "render"),
 ]
 
 MEMORY_METRICS: list[tuple[str, str]] = [
-    ("peak_python_median_mb", "peak Python (MB)"),
-    ("peak_browser_median_mb", "peak browser (MB)"),
+    ("peak_python_median_mb", "Python peak"),
+    ("peak_browser_median_mb", "browser peak"),
 ]
 
 TOOL_COLOR: dict[str, str] = {
@@ -42,6 +57,12 @@ TOOL_MARKER: dict[str, str] = {
     "mosaic": "square",
     "vaex": "triangle-up",
     "pygwalker": "diamond",
+}
+SOURCE_DASH: dict[str, str] = {
+    "disk-parquet": "solid",
+    "disk-csv": "dash",
+    "disk-ipc": "dot",
+    "in-memory": "dashdot",
 }
 
 
@@ -89,49 +110,31 @@ def build_figure(
     fixed_rows = fixed_rows if fixed_rows is not None else dims["rows"][-1]
 
     metrics = TIMING_METRICS + (MEMORY_METRICS if include_memory else [])
+    n_timing = len(TIMING_METRICS)
+    n_memory = len(MEMORY_METRICS) if include_memory else 0
     sources = dims["sources"]
     tools = dims["tools"]
-    n_cols = len(metrics) * len(sources)
+    n_cols = len(metrics)
 
-    col_titles = [
-        f"{m_label}<br><sub>{src}</sub>" for m_field, m_label in metrics for src in sources
-    ]
-    row_titles = [
-        f"Rows scaling  (n_traces={fixed_n_traces})",
-        f"Traces scaling  (rows={fixed_rows:,})",
-    ]
+    col_titles = [m_label for _, m_label in metrics]
+    # Show metric names only on row 1; row 2 gets empty strings
+    subplot_titles_list = col_titles + [""] * n_cols
 
     fig = make_subplots(
         rows=2,
         cols=n_cols,
-        subplot_titles=col_titles,
+        subplot_titles=subplot_titles_list,
         shared_yaxes=False,
         vertical_spacing=0.18,
-        horizontal_spacing=0.04,
+        horizontal_spacing=0.03,
     )
-
-    for row_idx, title in enumerate(row_titles, start=1):
-        fig.add_annotation(
-            text=f"<b>{title}</b>",
-            xref="paper",
-            yref="paper",
-            x=-0.01,
-            y=1.0 - (row_idx - 1) / 2 - 0.5 / 2,
-            xanchor="right",
-            yanchor="middle",
-            showarrow=False,
-            font=dict(size=12),
-            textangle=-90,
-        )
 
     def _add_traces(row: int, x_key: str, row_filter: dict) -> None:
         data_filtered = _filter(summaries, **row_filter)
-        col = 0
-        for m_field, _ in metrics:
+        shown_in_legend: set[str] = set()
+        for col, (m_field, _) in enumerate(metrics, start=1):
             for src in sources:
-                col += 1
                 src_data = [s for s in data_filtered if s["source"] == src]
-                already_in_legend: set[str] = set()
                 for tool in tools:
                     tool_data = sorted(
                         [s for s in src_data if s["tool"] == tool],
@@ -139,13 +142,15 @@ def build_figure(
                     )
                     if not tool_data:
                         continue
-                    show_legend = tool not in already_in_legend
-                    already_in_legend.add(tool)
+                    legend_key = f"{tool}__{src}"
+                    show_legend = legend_key not in shown_in_legend and row == 1 and col == 1
+                    if show_legend:
+                        shown_in_legend.add(legend_key)
                     points = [(s[x_key], s.get(m_field), s) for s in tool_data]
                     xs = [x for x, y, _ in points]
                     ys = [y for x, y, _ in points]
                     hover = [
-                        f"{tool}<br>{x_key}={x}<br>{m_field}={y:.2f}<br>n={s['trials']}"
+                        f"{tool} / {src}<br>{x_key}={x}<br>{m_field}={y:.2f}<br>n={s['trials']}"
                         if y is not None
                         else ""
                         for x, y, s in points
@@ -155,10 +160,14 @@ def build_figure(
                             x=xs,
                             y=ys,
                             mode="lines+markers",
-                            name=tool,
-                            legendgroup=tool,
-                            showlegend=show_legend and row == 1 and col == 1,
-                            line=dict(color=TOOL_COLOR.get(tool), width=1.5),
+                            name=f"{tool} · {src}",
+                            legendgroup=legend_key,
+                            showlegend=show_legend,
+                            line=dict(
+                                color=TOOL_COLOR.get(tool),
+                                width=1.5,
+                                dash=SOURCE_DASH.get(src, "solid"),
+                            ),
                             marker=dict(
                                 symbol=TOOL_MARKER.get(tool, "circle"),
                                 color=TOOL_COLOR.get(tool),
@@ -174,16 +183,72 @@ def build_figure(
     _add_traces(1, "rows", {"n_traces": fixed_n_traces})
     _add_traces(2, "n_traces", {"rows": fixed_rows})
 
+    # Helpers to get axis names by (row, col) position.
+    # make_subplots numbers axes sequentially: row 1 left→right, then row 2, etc.
+    def _axis_key(row: int, col: int) -> str:
+        idx = (row - 1) * n_cols + col
+        return "yaxis" if idx == 1 else f"yaxis{idx}"
+
+    def _y_ref(row: int, col: int) -> str:
+        idx = (row - 1) * n_cols + col
+        return "y" if idx == 1 else f"y{idx}"
+
+    # Share y-axis range within the timing group and the memory group per row.
+    # Non-reference subplots hide their tick labels so only the leftmost axis reads.
+    for row_idx in [1, 2]:
+        ref_timing = _y_ref(row_idx, 1)
+        for col in range(2, n_timing + 1):
+            fig.update_layout(**{_axis_key(row_idx, col): dict(matches=ref_timing)})
+            fig.update_yaxes(showticklabels=False, row=row_idx, col=col)
+
+        if n_memory > 1:
+            ref_mem = _y_ref(row_idx, n_timing + 1)
+            for col in range(n_timing + 2, n_cols + 1):
+                fig.update_layout(**{_axis_key(row_idx, col): dict(matches=ref_mem)})
+                fig.update_yaxes(showticklabels=False, row=row_idx, col=col)
+
+    # Y-axis unit labels on the reference (leftmost) column of each metric group
+    for row_idx in [1, 2]:
+        fig.update_yaxes(title_text="Time (ms)", row=row_idx, col=1)
+        if n_memory > 0:
+            fig.update_yaxes(title_text="Peak memory (MB)", row=row_idx, col=n_timing + 1)
+
+    # Row suptitles: rotated annotations on the far left, one per row
+    v_spacing = 0.18
+    subplot_h = (1 - v_spacing) / 2  # paper-coord height of each row ≈ 0.41
+    row1_center = 1.0 - subplot_h / 2  # ≈ 0.795
+    row2_center = subplot_h / 2        # ≈ 0.205
+
+    for title, y_pos in [
+        (f"Rows scaling  (n_traces={fixed_n_traces})", row1_center),
+        (f"Traces scaling  (rows={fixed_rows:,})", row2_center),
+    ]:
+        fig.add_annotation(
+            text=f"<b>{title}</b>",
+            x=-0.06,
+            y=y_pos,
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+            textangle=-90,
+            font=dict(size=13),
+            xanchor="center",
+            yanchor="middle",
+        )
+
     fig.update_layout(
         height=300 * 2 + 100,
-        width=max(1200, 180 * n_cols),
+        autosize=True,
         title_text="Benchmark Results",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        legend=dict(orientation="h", yanchor="top", y=-0.08, xanchor="center", x=0.5),
+        margin=dict(b=80, l=120),
         template="plotly_white",
     )
 
     for col in range(1, n_cols + 1):
         fig.update_xaxes(type="log", row=1, col=col)
+
+    fig.update_yaxes(automargin=True)
 
     return fig
 
@@ -238,7 +303,12 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{args.json_file.stem}_report.html"
 
-    fig.write_html(str(out_path), include_plotlyjs="cdn")
+    fig.write_html(
+        str(out_path),
+        include_plotlyjs="cdn",
+        config={"responsive": True},
+        post_script=_RESIZE_JS,
+    )
     print(f"Report saved: {out_path}")
 
     if args.show:
