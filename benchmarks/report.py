@@ -85,8 +85,18 @@ def _format_size(n: int) -> str:
 # ---------------------------------------------------------------------------
 
 
+def load_json(path: Path) -> dict[str, Any]:
+    raw = json.loads(path.read_text())
+    return {
+        "summary": raw.get("summary", []),
+        "trials": raw.get("trials", {}),
+        "config": raw.get("config", {}),
+        "notes": raw.get("notes", []),
+    }
+
+
 def load_summaries(path: Path) -> list[dict[str, Any]]:
-    return json.loads(path.read_text())["summary"]
+    return load_json(path)["summary"]
 
 
 def _detect_dimensions(summaries: list[dict[str, Any]]) -> dict[str, list]:

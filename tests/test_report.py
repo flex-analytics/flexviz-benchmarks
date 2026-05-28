@@ -1,40 +1,74 @@
 # tests/test_report.py
 import json
+import os
+import tempfile
 import pytest
 from pathlib import Path
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
-from report import load_summaries, _detect_dimensions, build_figure, _hex_to_rgba, _format_size
+from report import load_summaries, load_json, _detect_dimensions, build_figure, _hex_to_rgba, _format_size
 
 
 SAMPLE_SUMMARY = [
-    {
-        "rows": 1000, "n_traces": 1, "tool": "flexviz", "source": "disk-parquet",
-        "trials": 3,
-        "total_median_ms": 100.0, "total_mean_ms": 100.0, "total_stdev_ms": 5.0,
-        "query_median_ms": 60.0, "transfer_median_ms": 10.0, "render_median_ms": 30.0,
-        "payload_bytes_median": 1024,
-        "peak_python_median_mb": 50.0, "peak_browser_median_mb": 20.0,
-    },
-    {
-        "rows": 2000, "n_traces": 1, "tool": "flexviz", "source": "disk-parquet",
-        "trials": 3,
-        "total_median_ms": 150.0, "total_mean_ms": 150.0, "total_stdev_ms": 8.0,
-        "query_median_ms": 90.0, "transfer_median_ms": 15.0, "render_median_ms": 45.0,
-        "payload_bytes_median": 2048,
-        "peak_python_median_mb": 80.0, "peak_browser_median_mb": 30.0,
-    },
-    {
-        "rows": 1000, "n_traces": 2, "tool": "mosaic", "source": "disk-parquet",
-        "trials": 3,
-        "total_median_ms": 200.0, "total_mean_ms": 200.0, "total_stdev_ms": 10.0,
-        "query_median_ms": 120.0, "transfer_median_ms": 20.0, "render_median_ms": 60.0,
-        "payload_bytes_median": 4096,
-        "peak_python_median_mb": 100.0, "peak_browser_median_mb": 40.0,
-    },
+    # flexviz — rows scaling
+    {"rows": 1000, "n_traces": 1, "tool": "flexviz", "source": "disk-parquet", "trials": 3,
+     "total_median_ms": 100.0, "total_mean_ms": 100.0, "total_stdev_ms": 5.0,
+     "query_median_ms": 60.0, "transfer_median_ms": 10.0, "render_median_ms": 30.0,
+     "peak_python_median_mb": 50.0, "peak_browser_median_mb": 20.0},
+    {"rows": 2000, "n_traces": 1, "tool": "flexviz", "source": "disk-parquet", "trials": 3,
+     "total_median_ms": 150.0, "total_mean_ms": 150.0, "total_stdev_ms": 8.0,
+     "query_median_ms": 90.0, "transfer_median_ms": 15.0, "render_median_ms": 45.0,
+     "peak_python_median_mb": 80.0, "peak_browser_median_mb": 30.0},
+    # flexviz — traces scaling
+    {"rows": 2000, "n_traces": 2, "tool": "flexviz", "source": "disk-parquet", "trials": 3,
+     "total_median_ms": 200.0, "total_mean_ms": 200.0, "total_stdev_ms": 10.0,
+     "query_median_ms": 120.0, "transfer_median_ms": 20.0, "render_median_ms": 60.0,
+     "peak_python_median_mb": 100.0, "peak_browser_median_mb": 40.0},
+    # mosaic — rows scaling
+    {"rows": 1000, "n_traces": 1, "tool": "mosaic", "source": "disk-parquet", "trials": 3,
+     "total_median_ms": 200.0, "total_mean_ms": 200.0, "total_stdev_ms": 10.0,
+     "query_median_ms": 120.0, "transfer_median_ms": 20.0, "render_median_ms": 60.0,
+     "peak_python_median_mb": 100.0, "peak_browser_median_mb": 40.0},
+    {"rows": 2000, "n_traces": 1, "tool": "mosaic", "source": "disk-parquet", "trials": 3,
+     "total_median_ms": 250.0, "total_mean_ms": 250.0, "total_stdev_ms": 12.0,
+     "query_median_ms": 150.0, "transfer_median_ms": 25.0, "render_median_ms": 75.0,
+     "peak_python_median_mb": 120.0, "peak_browser_median_mb": 50.0},
+    # mosaic — traces scaling
+    {"rows": 2000, "n_traces": 2, "tool": "mosaic", "source": "disk-parquet", "trials": 3,
+     "total_median_ms": 280.0, "total_mean_ms": 280.0, "total_stdev_ms": 14.0,
+     "query_median_ms": 170.0, "transfer_median_ms": 28.0, "render_median_ms": 82.0,
+     "peak_python_median_mb": 130.0, "peak_browser_median_mb": 55.0},
 ]
+
+
+class TestLoadJson:
+    def test_returns_summary(self):
+        payload = {"summary": [{"rows": 1, "n_traces": 1}], "trials": {}, "config": {}, "notes": []}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(payload, f)
+            path = Path(f.name)
+        try:
+            data = load_json(path)
+            assert data["summary"] == payload["summary"]
+            assert "trials" in data
+            assert "config" in data
+        finally:
+            os.unlink(path)
+
+    def test_missing_keys_default_to_empty(self):
+        payload = {"summary": []}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(payload, f)
+            path = Path(f.name)
+        try:
+            data = load_json(path)
+            assert data["trials"] == {}
+            assert data["config"] == {}
+            assert data["notes"] == []
+        finally:
+            os.unlink(path)
 
 
 class TestHexToRgba:
