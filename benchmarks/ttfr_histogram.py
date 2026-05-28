@@ -561,6 +561,7 @@ class RenderProbe:
         self._playwright = sync_playwright().start()
         self._browser = self._playwright.chromium.launch(headless=self._headless)
         self._page: Page = self._browser.new_page(viewport={"width": 1280, "height": 800})
+        self._page.add_init_script(self._flexviz_probe_js)
         return self
 
     def __exit__(self, *_: object) -> None:
@@ -575,10 +576,6 @@ class RenderProbe:
         n_traces: int,
     ) -> Trial:
         page = self._page
-
-        # Inject FlexViz probe for FlexViz pages only
-        if contender.name == "flexviz":
-            page.add_init_script(self._flexviz_probe_js)
 
         tracemalloc.start()
         try:
