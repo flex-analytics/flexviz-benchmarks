@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
 from report import (
-    load_summaries, load_json, _detect_dimensions, build_figure,
+    load_summaries, load_json, _detect_dimensions, build_figure, build_page,
     _hex_to_rgba, _format_size, compute_bands, TIMING_METRICS, MEMORY_METRICS,
 )
 
@@ -57,10 +57,60 @@ SAMPLE_TRIALS = {
                      "peak_python_mb": 50.0, "peak_browser_mb": 20.0},
                     {"total_ms": 110.0, "query_ms": 70.0, "transfer_ms": 12.0, "render_ms": 35.0,
                      "peak_python_mb": 55.0, "peak_browser_mb": 22.0},
-                ]
+                ],
+                "mosaic": [
+                    {"total_ms": 190.0, "query_ms": 110.0, "transfer_ms": 18.0, "render_ms": 55.0,
+                     "peak_python_mb": 95.0, "peak_browser_mb": 38.0},
+                    {"total_ms": 200.0, "query_ms": 120.0, "transfer_ms": 20.0, "render_ms": 60.0,
+                     "peak_python_mb": 100.0, "peak_browser_mb": 40.0},
+                    {"total_ms": 210.0, "query_ms": 130.0, "transfer_ms": 22.0, "render_ms": 65.0,
+                     "peak_python_mb": 105.0, "peak_browser_mb": 42.0},
+                ],
             }
         }
-    }
+    },
+    "2000": {
+        "1": {
+            "disk-parquet": {
+                "flexviz": [
+                    {"total_ms": 140.0, "query_ms": 80.0, "transfer_ms": 13.0, "render_ms": 40.0,
+                     "peak_python_mb": 75.0, "peak_browser_mb": 28.0},
+                    {"total_ms": 150.0, "query_ms": 90.0, "transfer_ms": 15.0, "render_ms": 45.0,
+                     "peak_python_mb": 80.0, "peak_browser_mb": 30.0},
+                    {"total_ms": 160.0, "query_ms": 100.0, "transfer_ms": 17.0, "render_ms": 50.0,
+                     "peak_python_mb": 85.0, "peak_browser_mb": 32.0},
+                ],
+                "mosaic": [
+                    {"total_ms": 240.0, "query_ms": 140.0, "transfer_ms": 23.0, "render_ms": 72.0,
+                     "peak_python_mb": 115.0, "peak_browser_mb": 48.0},
+                    {"total_ms": 250.0, "query_ms": 150.0, "transfer_ms": 25.0, "render_ms": 75.0,
+                     "peak_python_mb": 120.0, "peak_browser_mb": 50.0},
+                    {"total_ms": 260.0, "query_ms": 160.0, "transfer_ms": 27.0, "render_ms": 78.0,
+                     "peak_python_mb": 125.0, "peak_browser_mb": 52.0},
+                ],
+            }
+        },
+        "2": {
+            "disk-parquet": {
+                "flexviz": [
+                    {"total_ms": 190.0, "query_ms": 115.0, "transfer_ms": 19.0, "render_ms": 58.0,
+                     "peak_python_mb": 95.0, "peak_browser_mb": 38.0},
+                    {"total_ms": 200.0, "query_ms": 120.0, "transfer_ms": 20.0, "render_ms": 60.0,
+                     "peak_python_mb": 100.0, "peak_browser_mb": 40.0},
+                    {"total_ms": 210.0, "query_ms": 125.0, "transfer_ms": 21.0, "render_ms": 62.0,
+                     "peak_python_mb": 105.0, "peak_browser_mb": 42.0},
+                ],
+                "mosaic": [
+                    {"total_ms": 270.0, "query_ms": 163.0, "transfer_ms": 26.0, "render_ms": 79.0,
+                     "peak_python_mb": 125.0, "peak_browser_mb": 53.0},
+                    {"total_ms": 280.0, "query_ms": 170.0, "transfer_ms": 28.0, "render_ms": 82.0,
+                     "peak_python_mb": 130.0, "peak_browser_mb": 55.0},
+                    {"total_ms": 290.0, "query_ms": 177.0, "transfer_ms": 30.0, "render_ms": 85.0,
+                     "peak_python_mb": 135.0, "peak_browser_mb": 57.0},
+                ],
+            }
+        },
+    },
 }
 
 
@@ -222,3 +272,102 @@ class TestBuildFigure:
     def test_x_linear_sets_axis_type(self):
         fig = self._make_fig2()
         assert fig.layout.xaxis.type == "linear"
+
+    def test_bands_add_extra_traces(self):
+        bands = compute_bands(SAMPLE_TRIALS)
+        fig_no_bands = self._make_fig1(bands={})
+        fig_with_bands = self._make_fig1(bands=bands)
+        assert len(fig_with_bands.data) > len(fig_no_bands.data)
+
+    def test_band_traces_not_in_legend(self):
+        bands = compute_bands(SAMPLE_TRIALS)
+        fig = self._make_fig1(bands=bands)
+        band_traces = [t for t in fig.data if t.fill == "tonexty"]
+        assert all(not t.showlegend for t in band_traces)
+
+    def test_band_traces_have_no_hover(self):
+        bands = compute_bands(SAMPLE_TRIALS)
+        fig = self._make_fig1(bands=bands)
+        band_traces = [t for t in fig.data if t.fill == "tonexty"]
+        assert all(t.hoverinfo == "skip" for t in band_traces)
+
+    def test_no_toggle_by_default(self):
+        fig = self._make_fig1()
+        assert not fig.layout.updatemenus
+
+    def test_add_toggle_creates_updatemenus(self):
+        fig = build_figure(
+            SAMPLE_SUMMARY, {},
+            x_key="rows",
+            row_filter={"n_traces": 1},
+            metrics=TIMING_METRICS,
+            show_legend=True,
+            add_toggle=True,
+            x_log=True,
+            title="Rows Scaling",
+        )
+        assert len(fig.layout.updatemenus) == 1
+        buttons = fig.layout.updatemenus[0].buttons
+        assert len(buttons) == 2
+        labels = {b.label for b in buttons}
+        assert labels == {"Log", "Linear"}
+
+
+SAMPLE_CONFIG = {
+    "sizes": [1000, 2000],
+    "n_traces": [1, 2],
+    "data_sources": ["disk-parquet"],
+    "repeats": 3,
+    "warmup": 1,
+    "seed": 42,
+    "bins": 100,
+}
+
+SAMPLE_NOTES = ["Order is seed-shuffled.", "Fresh contender per trial."]
+
+
+class TestBuildPage:
+    def _make_page(self):
+        dims = _detect_dimensions(SAMPLE_SUMMARY)
+        fig1 = build_figure(
+            SAMPLE_SUMMARY, {},
+            x_key="rows", row_filter={"n_traces": 1},
+            metrics=TIMING_METRICS, show_legend=True,
+            add_toggle=True, x_log=True, title="Rows Scaling",
+        )
+        fig2 = build_figure(
+            SAMPLE_SUMMARY, {},
+            x_key="n_traces", row_filter={"rows": 2000},
+            metrics=TIMING_METRICS, show_legend=False,
+            add_toggle=False, x_log=False, title="Traces Scaling",
+        )
+        return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, dims,
+                          fixed_n_traces=1, fixed_rows=2000)
+
+    def test_returns_string(self):
+        assert isinstance(self._make_page(), str)
+
+    def test_is_valid_html(self):
+        page = self._make_page()
+        assert page.startswith("<!DOCTYPE html>")
+        assert "<html" in page
+        assert "</html>" in page
+
+    def test_contains_metadata(self):
+        page = self._make_page()
+        assert "seed" in page
+        assert "42" in page
+
+    def test_contains_notes(self):
+        page = self._make_page()
+        assert "seed-shuffled" in page
+
+    def test_contains_separator_descriptions(self):
+        page = self._make_page()
+        assert "n_traces=1" in page or "traces=1" in page
+        assert "2,000" in page or "2000" in page
+
+    def test_contains_two_figure_divs(self):
+        page = self._make_page()
+        assert page.count('id="fig1"') == 1
+        assert page.count('id="fig2"') == 1

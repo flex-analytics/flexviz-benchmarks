@@ -219,11 +219,12 @@ def build_figure(
                     row=1, col=col,
                 )
 
-                # p25/p75 band traces
+                # p25/p75 band traces — trial fields omit "_median" vs summary fields
+                band_field = m_field.replace("_median", "")
                 p25s, p75s = [], []
                 all_have_band = True
                 for s in tool_data:
-                    bk = (s["rows"], s["n_traces"], src, tool, m_field)
+                    bk = (s["rows"], s["n_traces"], src, tool, band_field)
                     if bk in bands:
                         p25s.append(bands[bk][0])
                         p75s.append(bands[bk][1])
@@ -320,6 +321,188 @@ def build_figure(
         )
 
     return fig
+
+
+# ---------------------------------------------------------------------------
+# Page builder
+# ---------------------------------------------------------------------------
+
+_PAGE_CSS = """
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    padding: 24px;
+}
+.page { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1 { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; }
+h2 { font-size: 1.05rem; font-weight: 600; color: #1a1a2e; margin-bottom: 6px; }
+p, li { font-size: 0.88rem; color: #4a4a6a; line-height: 1.5; }
+.card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px 24px;
+    margin: 14px 0;
+}
+.meta-item label { font-size: 0.75rem; font-weight: 600; color: #8888aa; text-transform: uppercase; letter-spacing: 0.05em; display: block; }
+.meta-item span  { font-size: 0.9rem; color: #1a1a2e; }
+.notes-list { margin-top: 10px; padding-left: 18px; }
+.notes-list li { margin-bottom: 4px; }
+.separator {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.section-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 18px 22px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border-left: 4px solid #2563eb;
+}
+.section-card.secondary { border-left-color: #8888aa; }
+.chart-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+"""
+
+
+def build_page(
+    fig1: go.Figure,
+    fig2: go.Figure,
+    config: dict[str, Any],
+    notes: list[str],
+    dims: dict[str, list],
+    *,
+    fixed_n_traces: int,
+    fixed_rows: int,
+) -> str:
+    fig1_html = fig1.to_html(
+        full_html=False, div_id="fig1",
+        include_plotlyjs="cdn", config={"responsive": True},
+    )
+    fig2_html = fig2.to_html(
+        full_html=False, div_id="fig2",
+        include_plotlyjs=False, config={"responsive": True},
+    )
+
+    sizes_str = ", ".join(_format_size(s) for s in config.get("sizes", dims.get("rows", [])))
+    n_traces_str = ", ".join(str(n) for n in config.get("n_traces", dims.get("n_traces", [])))
+    sources_str = ", ".join(config.get("data_sources", dims.get("sources", [])))
+    tools_str = ", ".join(sorted(dims["tools"]))
+    repeats = config.get("repeats", "—")
+    warmup = config.get("warmup", "—")
+    seed = config.get("seed", "—")
+
+    extra_meta = ""
+    if "bins" in config:
+        extra_meta += f'<div class="meta-item"><label>Bins</label><span>{config["bins"]}</span></div>'
+    if "n_points" in config:
+        extra_meta += f'<div class="meta-item"><label>Points/trace</label><span>{config["n_points"]}</span></div>'
+
+    notes_html = ""
+    if notes:
+        items = "".join(f"<li>{n}</li>" for n in notes)
+        notes_html = f'<ul class="notes-list">{items}</ul>'
+
+    fixed_rows_fmt = f"{fixed_rows:,}"
+    plural_s = "s" if fixed_n_traces != 1 else ""
+
+    resize_and_link_js = f"""
+<script>
+(function() {{
+    // Responsive resize for both figures
+    ['fig1', 'fig2'].forEach(function(id) {{
+        var gd = document.getElementById(id);
+        if (!gd) return;
+        gd.style.width = '100%';
+        function resize() {{ Plotly.relayout(gd, {{width: gd.parentElement.offsetWidth}}); }}
+        window.addEventListener('resize', resize);
+        resize();
+    }});
+
+    // Mirror legend visibility from fig1 to fig2
+    var gd1 = document.getElementById('fig1');
+    var gd2 = document.getElementById('fig2');
+    if (gd1 && gd2) {{
+        gd1.on('plotly_restyle', function(eventData) {{
+            if (!eventData || !('visible' in eventData[0])) return;
+            var lgMap = {{}};
+            gd1.data.forEach(function(t) {{
+                if (t.legendgroup) lgMap[t.legendgroup] = t.visible;
+            }});
+            var newVis = gd2.data.map(function(t) {{
+                return (t.legendgroup && t.legendgroup in lgMap)
+                    ? lgMap[t.legendgroup]
+                    : t.visible;
+            }});
+            Plotly.restyle(gd2, {{visible: newVis}});
+        }});
+    }}
+}})();
+</script>
+"""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Benchmark Report</title>
+  <style>{_PAGE_CSS}</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="card">
+    <h1>Benchmark Results</h1>
+    <div class="meta-grid">
+      <div class="meta-item"><label>Tools</label><span>{tools_str}</span></div>
+      <div class="meta-item"><label>Sizes</label><span>{sizes_str}</span></div>
+      <div class="meta-item"><label>N Traces</label><span>{n_traces_str}</span></div>
+      <div class="meta-item"><label>Data Sources</label><span>{sources_str}</span></div>
+      <div class="meta-item"><label>Repeats</label><span>{repeats}</span></div>
+      <div class="meta-item"><label>Warmup</label><span>{warmup}</span></div>
+      <div class="meta-item"><label>Seed</label><span>{seed}</span></div>
+      {extra_meta}
+    </div>
+    {notes_html}
+  </div>
+
+  <div class="section-card">
+    <h2>Rows Scaling &mdash; n_traces={fixed_n_traces}</h2>
+    <p>How render time and memory grow as dataset size increases, with the number of traces fixed at {fixed_n_traces}. Use the Log / Linear toggle to switch the x-axis scale.</p>
+  </div>
+
+  <div class="chart-card">{fig1_html}</div>
+
+  <div class="separator">
+    <div class="section-card">
+      <h2>&#8593; Rows Scaling</h2>
+      <p>X-axis: number of rows (dataset size). Each tool is measured at sizes {sizes_str} with {fixed_n_traces} trace{plural_s}. Shows how tools scale with data volume.</p>
+    </div>
+    <div class="section-card secondary">
+      <h2>&#8595; Traces Scaling</h2>
+      <p>X-axis: number of traces. Each tool is measured at {fixed_rows_fmt} rows with n_traces in [{n_traces_str}]. Shows how tools scale with chart complexity.</p>
+    </div>
+  </div>
+
+  <div class="chart-card">{fig2_html}</div>
+
+</div>
+{resize_and_link_js}
+</body>
+</html>"""
 
 
 # ---------------------------------------------------------------------------
