@@ -19,21 +19,6 @@ from plotly.subplots import make_subplots
 # Constants
 # ---------------------------------------------------------------------------
 
-# Sets the graph-div to 100 % width and re-renders the figure whenever the
-# window resizes. Plotly's built-in config.responsive only works when it can
-# observe the *container* changing size; without this the div keeps its
-# initial pixel width and the gaps between subplots appear to grow.
-_RESIZE_JS = (
-    "(function(){"
-    "var gd=document.querySelector('.plotly-graph-div');"
-    "if(!gd)return;"
-    "gd.style.width='100%';"
-    "function r(){Plotly.relayout(gd,{width:gd.parentElement.offsetWidth});}"
-    "window.addEventListener('resize',r);"
-    "r();"
-    "})();"
-)
-
 TIMING_METRICS: list[tuple[str, str]] = [
     ("total_median_ms", "total"),
     ("query_median_ms", "query"),
@@ -538,15 +523,43 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    summaries = load_summaries(args.json_file)
+    data = load_json(args.json_file)
+    summaries = data["summary"]
+    trials_json = data["trials"]
+    config = data["config"]
+    notes = data["notes"]
+
     dims = _detect_dimensions(summaries)
+    bands = compute_bands(trials_json)
 
     fixed_n_traces = args.fixed_n_traces if args.fixed_n_traces is not None else dims["n_traces"][0]
     fixed_rows = args.fixed_rows if args.fixed_rows is not None else dims["rows"][-1]
 
-    fig = build_figure(
-        summaries,
-        include_memory=not args.no_memory,
+    metrics = TIMING_METRICS + (MEMORY_METRICS if not args.no_memory else [])
+
+    fig1 = build_figure(
+        summaries, bands,
+        x_key="rows",
+        row_filter={"n_traces": fixed_n_traces},
+        metrics=metrics,
+        show_legend=True,
+        add_toggle=True,
+        x_log=True,
+        title="Rows Scaling",
+    )
+    fig2 = build_figure(
+        summaries, bands,
+        x_key="n_traces",
+        row_filter={"rows": fixed_rows},
+        metrics=metrics,
+        show_legend=False,
+        add_toggle=False,
+        x_log=False,
+        title="Traces Scaling",
+    )
+
+    page_html = build_page(
+        fig1, fig2, config, notes, dims,
         fixed_n_traces=fixed_n_traces,
         fixed_rows=fixed_rows,
     )
@@ -554,17 +567,12 @@ def main() -> None:
     out_dir = args.out_dir if args.out_dir else args.json_file.parent
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{args.json_file.stem}_report.html"
-
-    fig.write_html(
-        str(out_path),
-        include_plotlyjs="cdn",
-        config={"responsive": True},
-        post_script=_RESIZE_JS,
-    )
+    out_path.write_text(page_html)
     print(f"Report saved: {out_path}")
 
     if args.show:
-        fig.show()
+        import webbrowser
+        webbrowser.open(out_path.resolve().as_uri())
 
 
 if __name__ == "__main__":
