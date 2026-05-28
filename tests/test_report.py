@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
-from report import load_summaries, _detect_dimensions, build_figure
+from report import load_summaries, _detect_dimensions, build_figure, _hex_to_rgba, _format_size
 
 
 SAMPLE_SUMMARY = [
@@ -35,6 +35,30 @@ SAMPLE_SUMMARY = [
         "peak_python_median_mb": 100.0, "peak_browser_median_mb": 40.0,
     },
 ]
+
+
+class TestHexToRgba:
+    def test_known_color(self):
+        assert _hex_to_rgba("#2563eb", 0.2) == "rgba(37, 99, 235, 0.2)"
+
+    def test_full_opacity(self):
+        assert _hex_to_rgba("#dc2626", 1.0) == "rgba(220, 38, 38, 1.0)"
+
+    def test_alpha_formatting(self):
+        assert _hex_to_rgba("#000000", 0.15) == "rgba(0, 0, 0, 0.15)"
+
+
+class TestFormatSize:
+    def test_millions(self):
+        assert _format_size(1_000_000) == "1M"
+        assert _format_size(10_000_000) == "10M"
+
+    def test_thousands(self):
+        assert _format_size(500_000) == "500K"
+        assert _format_size(1_000) == "1K"
+
+    def test_small(self):
+        assert _format_size(100) == "100"
 
 
 class TestDetectDimensions:
