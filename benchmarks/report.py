@@ -99,6 +99,32 @@ def load_summaries(path: Path) -> list[dict[str, Any]]:
     return load_json(path)["summary"]
 
 
+def compute_bands(trials_json: dict) -> dict[tuple, tuple[float, float]]:
+    """Return {(rows, n_traces, source, tool, metric): (p25, p75)} from raw trials."""
+    import statistics as _stats
+
+    _METRICS = (
+        "total_ms", "query_ms", "transfer_ms", "render_ms",
+        "peak_python_mb", "peak_browser_mb",
+    )
+    bands: dict[tuple, tuple[float, float]] = {}
+
+    for rows_str, n_traces_map in trials_json.items():
+        rows = int(rows_str)
+        for n_traces_str, source_map in n_traces_map.items():
+            n_traces = int(n_traces_str)
+            for source, tool_map in source_map.items():
+                for tool, trial_list in tool_map.items():
+                    for metric in _METRICS:
+                        values = [t[metric] for t in trial_list if t.get(metric) is not None]
+                        if len(values) < 2:
+                            continue
+                        qs = _stats.quantiles(values, n=4)
+                        bands[(rows, n_traces, source, tool, metric)] = (qs[0], qs[2])
+
+    return bands
+
+
 def _detect_dimensions(summaries: list[dict[str, Any]]) -> dict[str, list]:
     return {
         "rows": sorted({s["rows"] for s in summaries}),

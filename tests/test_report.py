@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
-from report import load_summaries, load_json, _detect_dimensions, build_figure, _hex_to_rgba, _format_size
+from report import load_summaries, load_json, _detect_dimensions, build_figure, _hex_to_rgba, _format_size, compute_bands
 
 
 SAMPLE_SUMMARY = [
@@ -41,6 +41,56 @@ SAMPLE_SUMMARY = [
      "query_median_ms": 170.0, "transfer_median_ms": 28.0, "render_median_ms": 82.0,
      "peak_python_median_mb": 130.0, "peak_browser_median_mb": 55.0},
 ]
+
+
+SAMPLE_TRIALS = {
+    "1000": {
+        "1": {
+            "disk-parquet": {
+                "flexviz": [
+                    {"total_ms": 90.0, "query_ms": 50.0, "transfer_ms": 8.0, "render_ms": 25.0,
+                     "peak_python_mb": 45.0, "peak_browser_mb": 18.0},
+                    {"total_ms": 100.0, "query_ms": 60.0, "transfer_ms": 10.0, "render_ms": 30.0,
+                     "peak_python_mb": 50.0, "peak_browser_mb": 20.0},
+                    {"total_ms": 110.0, "query_ms": 70.0, "transfer_ms": 12.0, "render_ms": 35.0,
+                     "peak_python_mb": 55.0, "peak_browser_mb": 22.0},
+                ]
+            }
+        }
+    }
+}
+
+
+class TestComputeBands:
+    def test_key_format(self):
+        bands = compute_bands(SAMPLE_TRIALS)
+        assert (1000, 1, "disk-parquet", "flexviz", "total_ms") in bands
+
+    def test_p25_below_median_p75_above(self):
+        bands = compute_bands(SAMPLE_TRIALS)
+        p25, p75 = bands[(1000, 1, "disk-parquet", "flexviz", "total_ms")]
+        assert p25 < 100.0
+        assert p75 > 100.0
+        assert p25 < p75
+
+    def test_all_metrics_present(self):
+        bands = compute_bands(SAMPLE_TRIALS)
+        for metric in ("total_ms", "query_ms", "transfer_ms", "render_ms",
+                       "peak_python_mb", "peak_browser_mb"):
+            assert (1000, 1, "disk-parquet", "flexviz", metric) in bands
+
+    def test_nullable_metric_with_all_none_omitted(self):
+        trials_with_none = {
+            "1000": {"1": {"disk-parquet": {"flexviz": [
+                {"total_ms": 100.0, "query_ms": None, "transfer_ms": None,
+                 "render_ms": None, "peak_python_mb": 50.0, "peak_browser_mb": 20.0},
+                {"total_ms": 110.0, "query_ms": None, "transfer_ms": None,
+                 "render_ms": None, "peak_python_mb": 55.0, "peak_browser_mb": 22.0},
+            ]}}}
+        }
+        bands = compute_bands(trials_with_none)
+        assert (1000, 1, "disk-parquet", "flexviz", "query_ms") not in bands
+        assert (1000, 1, "disk-parquet", "flexviz", "total_ms") in bands
 
 
 class TestLoadJson:
