@@ -8,7 +8,10 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
-from report import load_summaries, load_json, _detect_dimensions, build_figure, _hex_to_rgba, _format_size, compute_bands
+from report import (
+    load_summaries, load_json, _detect_dimensions, build_figure,
+    _hex_to_rgba, _format_size, compute_bands, TIMING_METRICS, MEMORY_METRICS,
+)
 
 
 SAMPLE_SUMMARY = [
@@ -160,16 +163,62 @@ class TestDetectDimensions:
 
 
 class TestBuildFigure:
+    def _make_fig1(self, summaries=None, bands=None):
+        return build_figure(
+            summaries or SAMPLE_SUMMARY,
+            bands or {},
+            x_key="rows",
+            row_filter={"n_traces": 1},
+            metrics=TIMING_METRICS,
+            show_legend=True,
+            add_toggle=False,
+            x_log=True,
+            title="Rows Scaling",
+        )
+
+    def _make_fig2(self, summaries=None, bands=None):
+        return build_figure(
+            summaries or SAMPLE_SUMMARY,
+            bands or {},
+            x_key="n_traces",
+            row_filter={"rows": 2000},
+            metrics=TIMING_METRICS,
+            show_legend=False,
+            add_toggle=False,
+            x_log=False,
+            title="Traces Scaling",
+        )
+
     def test_returns_plotly_figure(self):
         import plotly.graph_objects as go
-        fig = build_figure(SAMPLE_SUMMARY, include_memory=True)
-        assert isinstance(fig, go.Figure)
+        assert isinstance(self._make_fig1(), go.Figure)
 
-    def test_figure_has_subplots(self):
-        fig = build_figure(SAMPLE_SUMMARY, include_memory=True)
+    def test_has_traces(self):
+        fig = self._make_fig1()
         assert len(fig.data) > 0
 
-    def test_no_memory_excludes_memory_rows(self):
-        fig_with    = build_figure(SAMPLE_SUMMARY, include_memory=True)
-        fig_without = build_figure(SAMPLE_SUMMARY, include_memory=False)
-        assert len(fig_with.data) > len(fig_without.data)
+    def test_no_memory_fewer_traces(self):
+        fig_timing = self._make_fig1()
+        fig_memory = build_figure(
+            SAMPLE_SUMMARY, {},
+            x_key="rows",
+            row_filter={"n_traces": 1},
+            metrics=TIMING_METRICS + MEMORY_METRICS,
+            show_legend=True,
+            add_toggle=False,
+            x_log=True,
+            title="Rows Scaling",
+        )
+        assert len(fig_memory.data) > len(fig_timing.data)
+
+    def test_fig2_no_legend(self):
+        fig = self._make_fig2()
+        assert all(not t.showlegend for t in fig.data)
+
+    def test_x_log_sets_axis_type(self):
+        fig = self._make_fig1()
+        assert fig.layout.xaxis.type == "log"
+
+    def test_x_linear_sets_axis_type(self):
+        fig = self._make_fig2()
+        assert fig.layout.xaxis.type == "linear"

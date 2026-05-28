@@ -150,155 +150,174 @@ def _filter(summaries, *, rows=None, n_traces=None):
 
 def build_figure(
     summaries: list[dict[str, Any]],
+    bands: dict,
     *,
-    include_memory: bool = True,
-    fixed_n_traces: int | None = None,
-    fixed_rows: int | None = None,
+    x_key: str,
+    row_filter: dict,
+    metrics: list[tuple[str, str]],
+    show_legend: bool = True,
+    add_toggle: bool = False,
+    x_log: bool = False,
+    title: str = "",
 ) -> go.Figure:
     dims = _detect_dimensions(summaries)
-    fixed_n_traces = fixed_n_traces if fixed_n_traces is not None else dims["n_traces"][0]
-    fixed_rows = fixed_rows if fixed_rows is not None else dims["rows"][-1]
-
-    metrics = TIMING_METRICS + (MEMORY_METRICS if include_memory else [])
-    n_timing = len(TIMING_METRICS)
-    n_memory = len(MEMORY_METRICS) if include_memory else 0
     sources = dims["sources"]
     tools = dims["tools"]
     n_cols = len(metrics)
+    n_timing = sum(1 for f, _ in metrics if "_ms" in f)
 
-    col_titles = [m_label for _, m_label in metrics]
-    # Show metric names only on row 1; row 2 gets empty strings
-    subplot_titles_list = col_titles + [""] * n_cols
-
+    col_titles = [label for _, label in metrics]
     fig = make_subplots(
-        rows=2,
+        rows=1,
         cols=n_cols,
-        subplot_titles=subplot_titles_list,
+        subplot_titles=col_titles,
         shared_yaxes=False,
-        vertical_spacing=0.18,
         horizontal_spacing=0.03,
     )
 
-    def _add_traces(row: int, x_key: str, row_filter: dict) -> None:
-        data_filtered = _filter(summaries, **row_filter)
-        shown_in_legend: set[str] = set()
-        for col, (m_field, _) in enumerate(metrics, start=1):
-            for src in sources:
-                src_data = [s for s in data_filtered if s["source"] == src]
-                for tool in tools:
-                    tool_data = sorted(
-                        [s for s in src_data if s["tool"] == tool],
-                        key=lambda s: s[x_key],
-                    )
-                    if not tool_data:
-                        continue
-                    legend_key = f"{tool}__{src}"
-                    show_legend = legend_key not in shown_in_legend and row == 1 and col == 1
-                    if show_legend:
-                        shown_in_legend.add(legend_key)
-                    points = [(s[x_key], s.get(m_field), s) for s in tool_data]
-                    xs = [x for x, y, _ in points]
-                    ys = [y for x, y, _ in points]
-                    hover = [
-                        f"{tool} / {src}<br>{x_key}={x}<br>{m_field}={y:.2f}<br>n={s['trials']}"
-                        if y is not None
-                        else ""
-                        for x, y, s in points
-                    ]
+    data_filtered = _filter(summaries, **row_filter)
+    shown_in_legend: set[str] = set()
+
+    for col, (m_field, _) in enumerate(metrics, start=1):
+        for src in sources:
+            src_data = [s for s in data_filtered if s["source"] == src]
+            for tool in tools:
+                tool_data = sorted(
+                    [s for s in src_data if s["tool"] == tool],
+                    key=lambda s: s[x_key],
+                )
+                if not tool_data:
+                    continue
+                legend_key = f"{tool}__{src}"
+                first_occurrence = legend_key not in shown_in_legend
+                if first_occurrence:
+                    shown_in_legend.add(legend_key)
+                show_this = show_legend and first_occurrence and col == 1
+
+                xs = [s[x_key] for s in tool_data]
+                ys = [s.get(m_field) for s in tool_data]
+                hover = [
+                    f"{tool} / {src}<br>{x_key}={x}<br>{m_field}={y:.2f}<br>n={s['trials']}"
+                    if y is not None else ""
+                    for x, y, s in zip(xs, ys, tool_data)
+                ]
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=xs, y=ys,
+                        mode="lines+markers",
+                        name=f"{tool} · {src}",
+                        legendgroup=legend_key,
+                        showlegend=show_this,
+                        line=dict(color=TOOL_COLOR.get(tool), width=1.5,
+                                  dash=SOURCE_DASH.get(src, "solid")),
+                        marker=dict(symbol=TOOL_MARKER.get(tool, "circle"),
+                                    color=TOOL_COLOR.get(tool), size=6),
+                        hovertext=hover,
+                        hoverinfo="text",
+                    ),
+                    row=1, col=col,
+                )
+
+                # p25/p75 band traces
+                p25s, p75s = [], []
+                all_have_band = True
+                for s in tool_data:
+                    bk = (s["rows"], s["n_traces"], src, tool, m_field)
+                    if bk in bands:
+                        p25s.append(bands[bk][0])
+                        p75s.append(bands[bk][1])
+                    else:
+                        all_have_band = False
+                        break
+
+                if all_have_band and p25s:
+                    fill_color = _hex_to_rgba(TOOL_COLOR.get(tool, "#888888"), 0.15)
                     fig.add_trace(
                         go.Scatter(
-                            x=xs,
-                            y=ys,
-                            mode="lines+markers",
-                            name=f"{tool} · {src}",
+                            x=xs, y=p25s,
+                            mode="lines",
+                            name=f"{tool} · {src} p25",
                             legendgroup=legend_key,
-                            showlegend=show_legend,
-                            line=dict(
-                                color=TOOL_COLOR.get(tool),
-                                width=1.5,
-                                dash=SOURCE_DASH.get(src, "solid"),
-                            ),
-                            marker=dict(
-                                symbol=TOOL_MARKER.get(tool, "circle"),
-                                color=TOOL_COLOR.get(tool),
-                                size=6,
-                            ),
-                            hovertext=hover,
-                            hoverinfo="text",
+                            showlegend=False,
+                            line=dict(width=0),
+                            hoverinfo="skip",
                         ),
-                        row=row,
-                        col=col,
+                        row=1, col=col,
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=xs, y=p75s,
+                            mode="lines",
+                            fill="tonexty",
+                            fillcolor=fill_color,
+                            name=f"{tool} · {src} p75",
+                            legendgroup=legend_key,
+                            showlegend=False,
+                            line=dict(width=0),
+                            hoverinfo="skip",
+                        ),
+                        row=1, col=col,
                     )
 
-    _add_traces(1, "rows", {"n_traces": fixed_n_traces})
-    _add_traces(2, "n_traces", {"rows": fixed_rows})
+    def _axis_key(col: int) -> str:
+        return "yaxis" if col == 1 else f"yaxis{col}"
 
-    # Helpers to get axis names by (row, col) position.
-    # make_subplots numbers axes sequentially: row 1 left→right, then row 2, etc.
-    def _axis_key(row: int, col: int) -> str:
-        idx = (row - 1) * n_cols + col
-        return "yaxis" if idx == 1 else f"yaxis{idx}"
+    def _y_ref(col: int) -> str:
+        return "y" if col == 1 else f"y{col}"
 
-    def _y_ref(row: int, col: int) -> str:
-        idx = (row - 1) * n_cols + col
-        return "y" if idx == 1 else f"y{idx}"
+    ref_timing = _y_ref(1)
+    for col in range(2, n_timing + 1):
+        fig.update_layout(**{_axis_key(col): dict(matches=ref_timing)})
+        fig.update_yaxes(showticklabels=False, row=1, col=col)
 
-    # Share y-axis range within the timing group and the memory group per row.
-    # Non-reference subplots hide their tick labels so only the leftmost axis reads.
-    for row_idx in [1, 2]:
-        ref_timing = _y_ref(row_idx, 1)
-        for col in range(2, n_timing + 1):
-            fig.update_layout(**{_axis_key(row_idx, col): dict(matches=ref_timing)})
-            fig.update_yaxes(showticklabels=False, row=row_idx, col=col)
+    n_memory = n_cols - n_timing
+    if n_memory > 1:
+        ref_mem = _y_ref(n_timing + 1)
+        for col in range(n_timing + 2, n_cols + 1):
+            fig.update_layout(**{_axis_key(col): dict(matches=ref_mem)})
+            fig.update_yaxes(showticklabels=False, row=1, col=col)
 
-        if n_memory > 1:
-            ref_mem = _y_ref(row_idx, n_timing + 1)
-            for col in range(n_timing + 2, n_cols + 1):
-                fig.update_layout(**{_axis_key(row_idx, col): dict(matches=ref_mem)})
-                fig.update_yaxes(showticklabels=False, row=row_idx, col=col)
+    fig.update_yaxes(title_text="Time (ms)", row=1, col=1)
+    if n_memory > 0:
+        fig.update_yaxes(title_text="Peak memory (MB)", row=1, col=n_timing + 1)
 
-    # Y-axis unit labels on the reference (leftmost) column of each metric group
-    for row_idx in [1, 2]:
-        fig.update_yaxes(title_text="Time (ms)", row=row_idx, col=1)
-        if n_memory > 0:
-            fig.update_yaxes(title_text="Peak memory (MB)", row=row_idx, col=n_timing + 1)
-
-    # Row suptitles: rotated annotations on the far left, one per row
-    v_spacing = 0.18
-    subplot_h = (1 - v_spacing) / 2  # paper-coord height of each row ≈ 0.41
-    row1_center = 1.0 - subplot_h / 2  # ≈ 0.795
-    row2_center = subplot_h / 2        # ≈ 0.205
-
-    for title, y_pos in [
-        (f"Rows scaling  (n_traces={fixed_n_traces})", row1_center),
-        (f"Traces scaling  (rows={fixed_rows:,})", row2_center),
-    ]:
-        fig.add_annotation(
-            text=f"<b>{title}</b>",
-            x=-0.06,
-            y=y_pos,
-            xref="paper",
-            yref="paper",
-            showarrow=False,
-            textangle=-90,
-            font=dict(size=13),
-            xanchor="center",
-            yanchor="middle",
-        )
+    x_type = "log" if x_log else "linear"
+    for col in range(1, n_cols + 1):
+        fig.update_xaxes(type=x_type, row=1, col=col)
 
     fig.update_layout(
-        height=300 * 2 + 100,
+        height=320,
         autosize=True,
-        title_text="Benchmark Results",
-        legend=dict(orientation="h", yanchor="top", y=-0.08, xanchor="center", x=0.5),
-        margin=dict(b=80, l=120),
+        title_text=f"<b>{title}</b>" if title else "",
+        legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="center", x=0.5),
+        margin=dict(t=60, b=20, l=80, r=20),
         template="plotly_white",
     )
-
-    for col in range(1, n_cols + 1):
-        fig.update_xaxes(type="log", row=1, col=col)
-
     fig.update_yaxes(automargin=True)
+
+    if add_toggle:
+        def _xaxis_name(c: int) -> str:
+            return "xaxis" if c == 1 else f"xaxis{c}"
+
+        log_args = {f"{_xaxis_name(c)}.type": "log" for c in range(1, n_cols + 1)}
+        linear_args = {f"{_xaxis_name(c)}.type": "linear" for c in range(1, n_cols + 1)}
+
+        fig.update_layout(
+            updatemenus=[dict(
+                type="buttons",
+                direction="right",
+                x=1.0,
+                xanchor="right",
+                y=1.15,
+                yanchor="top",
+                showactive=True,
+                buttons=[
+                    dict(label="Log", method="relayout", args=[log_args]),
+                    dict(label="Linear", method="relayout", args=[linear_args]),
+                ],
+            )]
+        )
 
     return fig
 
