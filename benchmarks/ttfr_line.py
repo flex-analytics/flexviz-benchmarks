@@ -11,15 +11,15 @@ from typing import Any
 import numpy as np
 import polars as pl
 
-from config import DATA_SOURCES, N_TRACES, SIZES
+from config import CONTENDERS, DATA_SOURCES, N_POINTS, N_TRACES, REPEATS, SEED, SIZES, WARMUP
 from ttfr_core import (
     DataSource,
     DiskSource,
     FORMAT_SUFFIX,
     MemorySource,
     Trial,
-    WebContender,
     ensure_wide_disk_datasets,
+    parse_contenders_arg,
     parse_n_traces_arg,
     parse_sizes_arg,
     parse_sources_arg,
@@ -66,7 +66,9 @@ def prepare_line_data_source(
     elif source_name == "in-memory":
         return MemorySource(frame=_generate_line_frame(rows, max_n_traces, seed), name="in-memory")
     else:
-        raise ValueError(f"Unknown data source: {source_name!r}. Valid: {list(FORMAT_SUFFIX)} + ['in-memory']")
+        raise ValueError(
+            f"Unknown data source: {source_name!r}. Valid: {list(FORMAT_SUFFIX)} + ['in-memory']"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -111,10 +113,12 @@ class FlexVizContender:
 
         # Wait until server is accepting connections.
         import time as _time  # noqa: PLC0415
+
         deadline = _time.monotonic() + 10.0
         while _time.monotonic() < deadline:
             try:
                 import socket as _socket  # noqa: PLC0415
+
                 with _socket.create_connection(("127.0.0.1", port), timeout=0.2):
                     break
             except OSError:
@@ -157,9 +161,11 @@ class FlexVizContender:
         spec = fig.to_spec(source=source_name)
 
         from flexviz.spec import DashboardSpec as _DashboardSpec  # noqa: PLC0415
+
         dash_spec = _DashboardSpec(figures=[spec.figure], state=spec.state)
 
         import requests  # noqa: PLC0415
+
         resp = requests.post(
             f"{server_url}/share",
             json={"spec": dash_spec.model_dump(), "server_url": server_url},
@@ -190,6 +196,11 @@ import http.server
 import subprocess
 import tempfile
 import threading as _threading
+
+
+class _QuietHTTPHandler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *args: object) -> None:
+        pass
 
 
 class MosaicContender:
@@ -251,12 +262,9 @@ class MosaicContender:
         )
 
         # Read probe template and substitute placeholders
-        probe_template = (
-            Path(__file__).parent / "probes" / "mosaic_probe.html"
-        ).read_text()
+        probe_template = (Path(__file__).parent / "probes" / "mosaic_probe.html").read_text()
         html = (
-            probe_template
-            .replace("{{WS_URL}}", f"ws://127.0.0.1:{self._mosaic_port}/")
+            probe_template.replace("{{WS_URL}}", f"ws://127.0.0.1:{self._mosaic_port}/")
             .replace("{{FILE_PATH}}", file_path.replace("\\", "/"))
             .replace("{{CHART_TYPE}}", "line")
             .replace("{{N_TRACES}}", str(n_traces))
@@ -268,10 +276,9 @@ class MosaicContender:
         probe_path = Path(tmpdir) / "index.html"
         probe_path.write_text(html)
 
-        handler = http.server.SimpleHTTPRequestHandler
         self._http_server = http.server.HTTPServer(
             ("127.0.0.1", self._http_port),
-            lambda *a, **kw: handler(*a, directory=tmpdir, **kw),
+            lambda *a, **kw: _QuietHTTPHandler(*a, directory=tmpdir, **kw),
         )
         t = _threading.Thread(target=self._http_server.serve_forever, daemon=True)
         t.start()
@@ -279,6 +286,7 @@ class MosaicContender:
         # Wait for mosaic-sql to be ready
         import time as _time  # noqa: PLC0415
         import socket as _socket  # noqa: PLC0415
+
         deadline = _time.monotonic() + 15.0
         while _time.monotonic() < deadline:
             try:
@@ -339,14 +347,27 @@ window.__benchPayloadBytes = {payload_bytes};
 """
 
 _COLORS = [
-    "#3b82f6","#ef4444","#22c55e","#f59e0b","#8b5cf6",
-    "#06b6d4","#ec4899","#84cc16","#f97316","#6366f1",
+    "#3b82f6",
+    "#ef4444",
+    "#22c55e",
+    "#f59e0b",
+    "#8b5cf6",
+    "#06b6d4",
+    "#ec4899",
+    "#84cc16",
+    "#f97316",
+    "#6366f1",
 ]
 
 
 def _line_to_svg_polyline(
-    x_values: list[float], y_values: list[float], trace_idx: int,
-    panel_x: float, panel_w: float, height: int = 400, pad: int = 12,
+    x_values: list[float],
+    y_values: list[float],
+    trace_idx: int,
+    panel_x: float,
+    panel_w: float,
+    height: int = 400,
+    pad: int = 12,
 ) -> str:
     if not y_values:
         return ""
@@ -361,7 +382,9 @@ def _line_to_svg_polyline(
         px = panel_x + (i / max(n - 1, 1)) * panel_w
         py = height - pad - ((yv - y_min) / (y_max - y_min)) * inner_h
         points.append(f"{px:.2f},{py:.2f}")
-    return f'<polyline points="{" ".join(points)}" fill="none" stroke="{color}" stroke-width="1.5"/>'
+    return (
+        f'<polyline points="{" ".join(points)}" fill="none" stroke="{color}" stroke-width="1.5"/>'
+    )
 
 
 class VaexContender:
@@ -436,9 +459,7 @@ class VaexContender:
         (Path(tmpdir) / "index.html").write_text(html)
         self._http_server = http.server.HTTPServer(
             ("127.0.0.1", self._http_port),
-            lambda *a, **kw: http.server.SimpleHTTPRequestHandler(
-                *a, directory=tmpdir, **kw
-            ),
+            lambda *a, **kw: _QuietHTTPHandler(*a, directory=tmpdir, **kw),
         )
         t2 = _threading.Thread(target=self._http_server.serve_forever, daemon=True)
         t2.start()
@@ -518,9 +539,7 @@ class PyGWalkerContender:
         (Path(tmpdir) / "index.html").write_text(html, encoding="utf-8")
         self._http_server = http.server.HTTPServer(
             ("127.0.0.1", self._http_port),
-            lambda *a, **kw: http.server.SimpleHTTPRequestHandler(
-                *a, directory=tmpdir, **kw
-            ),
+            lambda *a, **kw: _QuietHTTPHandler(*a, directory=tmpdir, **kw),
         )
         t2 = _threading.Thread(target=self._http_server.serve_forever, daemon=True)
         t2.start()
@@ -551,9 +570,7 @@ class RenderProbe:
 
     def __init__(self, *, headless: bool = True, flexviz_repo: Path) -> None:
         self._headless = headless
-        self._flexviz_probe_js = (
-            Path(__file__).parent / "probes" / "flexviz_probe.js"
-        ).read_text()
+        self._flexviz_probe_js = (Path(__file__).parent / "probes" / "flexviz_probe.js").read_text()
         self._flexviz_repo = flexviz_repo
 
     def __enter__(self) -> "RenderProbe":
@@ -596,9 +613,9 @@ class RenderProbe:
         # otherwise fall back to the tracemalloc window.
         python_mb = max(contender.peak_python_mb, extra_python_mb)
 
-        q  = float(timings.get("query_ms", 0.0))
+        q = float(timings.get("query_ms", 0.0))
         tr = float(timings.get("transfer_ms", 0.0))
-        r  = float(timings.get("render_ms", 0.0))
+        r = float(timings.get("render_ms", 0.0))
         return Trial(
             query_ms=q,
             transfer_ms=tr,
@@ -618,63 +635,90 @@ class RenderProbe:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--sizes", type=str, default=",".join(str(s) for s in SIZES),
+        "--sizes",
+        type=str,
+        default=",".join(str(s) for s in SIZES),
         help="Comma-separated row counts",
     )
     parser.add_argument(
-        "--n-traces", type=str, default=",".join(str(n) for n in N_TRACES),
+        "--n-traces",
+        type=str,
+        default=",".join(str(n) for n in N_TRACES),
         help="Comma-separated trace counts",
     )
     parser.add_argument(
-        "--data-sources", type=str, default=",".join(DATA_SOURCES),
+        "--data-sources",
+        type=str,
+        default=",".join(DATA_SOURCES),
         help="Comma-separated source types: disk-parquet,disk-csv,disk-ipc,in-memory",
     )
     parser.add_argument(
-        "--dataset-base", type=str,
+        "--dataset-base",
+        type=str,
         default="data/ttfr_line_{rows}",
         help="Path template with {rows} placeholder (no extension)",
     )
-    parser.add_argument("--n-points", type=int, default=500)
-    parser.add_argument("--repeats", type=int, default=7)
-    parser.add_argument("--warmup", type=int, default=2)
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--contenders",
+        type=str,
+        default=",".join(CONTENDERS),
+        help="Comma-separated contender names: flexviz,mosaic,vaex,pygwalker",
+    )
+    parser.add_argument("--n-points", type=int, default=N_POINTS)
+    parser.add_argument("--repeats", type=int, default=REPEATS)
+    parser.add_argument("--warmup", type=int, default=WARMUP)
+    parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--shuffle-order", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument(
         "--fresh-contender-per-trial",
-        action=argparse.BooleanOptionalAction, default=False,
+        action=argparse.BooleanOptionalAction,
+        default=False,
         help="Re-create contenders for each trial (slower; use for isolation)",
     )
     parser.add_argument("--regenerate-datasets", action="store_true")
     parser.add_argument(
-        "--flexviz-repo", type=Path, default=Path("../flexviz"),
+        "--flexviz-repo",
+        type=Path,
+        default=Path("../flexviz"),
         help="Path to local FlexViz repo",
     )
     parser.add_argument(
-        "--no-headless", action="store_true",
+        "--no-headless",
+        action="store_true",
         help="Run browser in visible (non-headless) mode",
     )
     parser.add_argument(
-        "--json-out", type=Path, default=Path("results/ttfr_line.json"),
+        "--json-out",
+        type=Path,
+        default=Path("results/ttfr_line.json"),
     )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    sizes         = parse_sizes_arg(args.sizes)
-    trace_counts  = parse_n_traces_arg(args.n_traces)
-    data_sources  = parse_sources_arg(args.data_sources)
-    max_n_traces  = max(trace_counts)
+    sizes = parse_sizes_arg(args.sizes)
+    trace_counts = parse_n_traces_arg(args.n_traces)
+    data_sources = parse_sources_arg(args.data_sources)
+    max_n_traces = max(trace_counts)
 
-    contenders = [
-        ("flexviz",   lambda: FlexVizContender(args.flexviz_repo)),
-        ("mosaic",    MosaicContender),
-        ("vaex",      VaexContender),
-        ("pygwalker", PyGWalkerContender),
-    ]
+    _contender_registry: dict = {
+        "flexviz": lambda: FlexVizContender(args.flexviz_repo),
+        "mosaic": MosaicContender,
+        "vaex": VaexContender,
+        "pygwalker": PyGWalkerContender,
+    }
+    contender_names = parse_contenders_arg(args.contenders)
+    unknown = [n for n in contender_names if n not in _contender_registry]
+    if unknown:
+        raise ValueError(f"Unknown contenders: {unknown}. Valid: {list(_contender_registry)}")
+    contenders = [(name, _contender_registry[name]) for name in contender_names]
 
     all_trials: dict = {}
     summaries: list = []
+
+    n_blocks = len(sizes) * len(trace_counts) * len(data_sources)
+    block_idx = 0
 
     with RenderProbe(headless=not args.no_headless, flexviz_repo=args.flexviz_repo) as probe:
         for rows in sizes:
@@ -682,9 +726,30 @@ def main() -> None:
             for n_traces in trace_counts:
                 all_trials[rows][n_traces] = {}
                 for source_name in data_sources:
+                    block_idx += 1
+                    print(
+                        f"\n[{block_idx}/{n_blocks}]  rows={rows:,}  traces={n_traces}"
+                        f"  source={source_name}",
+                        flush=True,
+                    )
+
+                    def _progress(
+                        phase: str,
+                        r: int,
+                        total: int,
+                        name: str,
+                        elapsed: float,
+                    ) -> None:
+                        label = f"{phase} {r}/{total}"
+                        print(f"  {label:<12}  {name:<12}  {elapsed:6.1f}s", flush=True)
+
                     data = prepare_line_data_source(
-                        source_name, rows, max_n_traces,
-                        args.seed, args.dataset_base, args.regenerate_datasets,
+                        source_name,
+                        rows,
+                        max_n_traces,
+                        args.seed,
+                        args.dataset_base,
+                        args.regenerate_datasets,
                     )
                     trials_map = run_repeated_trials(
                         contenders,
@@ -697,6 +762,7 @@ def main() -> None:
                         seed_offset=rows + n_traces,
                         shuffle_order=args.shuffle_order,
                         fresh_contender_per_trial=args.fresh_contender_per_trial,
+                        progress=_progress,
                     )
                     all_trials[rows][n_traces][source_name] = trials_map
                     for tool, tool_trials in trials_map.items():
@@ -708,12 +774,17 @@ def main() -> None:
 
     report = {
         "config": {
-            "sizes": sizes, "n_traces": trace_counts, "data_sources": data_sources,
-            "n_points": args.n_points, "repeats": args.repeats, "warmup": args.warmup,
-            "seed": args.seed, "dataset_base": args.dataset_base,
+            "sizes": sizes,
+            "n_traces": trace_counts,
+            "data_sources": data_sources,
+            "n_points": args.n_points,
+            "repeats": args.repeats,
+            "warmup": args.warmup,
+            "seed": args.seed,
+            "dataset_base": args.dataset_base,
         },
         "summary": [asdict(s) for s in summaries],
-        "trials":  raw_trials_to_json(all_trials),
+        "trials": raw_trials_to_json(all_trials),
     }
     args.json_out.parent.mkdir(parents=True, exist_ok=True)
     args.json_out.write_text(json.dumps(report, indent=2), encoding="utf-8")

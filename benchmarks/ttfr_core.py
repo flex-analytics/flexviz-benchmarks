@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import random
 import statistics
+import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -156,6 +157,13 @@ def parse_sources_arg(raw: str) -> list[str]:
     return parts
 
 
+def parse_contenders_arg(raw: str) -> list[str]:
+    parts = [s.strip() for s in raw.split(",") if s.strip()]
+    if not parts:
+        raise ValueError("contenders cannot be empty")
+    return parts
+
+
 def dataset_path_for_rows(template: str, rows: int) -> Path:
     if "{rows}" not in template:
         raise ValueError("dataset template must include '{rows}' placeholder")
@@ -196,6 +204,7 @@ def run_repeated_trials(
     seed_offset: int = 0,
     shuffle_order: bool = True,
     fresh_contender_per_trial: bool = True,
+    progress: Callable[[str, int, int, str, float], None] | None = None,
 ) -> dict[str, list[Trial]]:
     contenders = list(contenders)
     trial_map: dict[str, list[Trial]] = {name: [] for name, _ in contenders}
@@ -211,18 +220,24 @@ def run_repeated_trials(
         return contender
 
     for name, factory in contenders:
-        for _ in range(warmup):
+        for i in range(warmup):
             contender = get_contender(name, factory)
+            t0 = time.perf_counter()
             run_trial(contender)
+            if progress:
+                progress("warmup", i + 1, warmup, name, time.perf_counter() - t0)
 
     rng = random.Random(seed + seed_offset)
-    for _ in range(repeats):
+    for rep_idx in range(repeats):
         order = list(contenders)
         if shuffle_order:
             rng.shuffle(order)
         for name, factory in order:
             contender = get_contender(name, factory)
+            t0 = time.perf_counter()
             trial_map[name].append(run_trial(contender))
+            if progress:
+                progress("repeat", rep_idx + 1, repeats, name, time.perf_counter() - t0)
 
     return trial_map
 
