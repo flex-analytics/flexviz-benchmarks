@@ -277,7 +277,7 @@ def build_figure(
         autosize=True,
         title_text=f"<b>{title}</b>" if title else "",
         legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="center", x=0.5),
-        margin=dict(t=60, b=20, l=80, r=20),
+        margin=dict(t=80, b=20, l=80, r=20),
         template="plotly_white",
     )
     fig.update_yaxes(automargin=True)
@@ -295,9 +295,14 @@ def build_figure(
                 direction="right",
                 x=1.0,
                 xanchor="right",
-                y=1.15,
-                yanchor="top",
+                y=1.24,
+                yanchor="bottom",
                 showactive=True,
+                bgcolor="rgba(255, 255, 255, 0.95)",
+                bordercolor="#d1d5db",
+                borderwidth=1,
+                font=dict(size=11, color="#1f2937"),
+                pad=dict(r=6, t=4, b=4, l=6),
                 buttons=[
                     dict(label="Log", method="relayout", args=[log_args]),
                     dict(label="Linear", method="relayout", args=[linear_args]),
@@ -320,7 +325,7 @@ body {
     color: #1a1a2e;
     padding: 24px;
 }
-.page { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.page { max-width: none; width: 100%; margin: 0; display: flex; flex-direction: column; gap: 20px; }
 h1 { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; }
 h2 { font-size: 1.05rem; font-weight: 600; color: #1a1a2e; margin-bottom: 6px; }
 p, li { font-size: 0.88rem; color: #4a4a6a; line-height: 1.5; }
