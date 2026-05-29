@@ -376,3 +376,36 @@ class TestBuildPage:
         page = self._make_page()
         assert page.count('id="fig1"') == 1
         assert page.count('id="fig2"') == 1
+
+
+class TestBuildPageMethodologyCard:
+    def _make_page(self):
+        dims = _detect_dimensions(SAMPLE_SUMMARY)
+        fig1 = build_figure(
+            SAMPLE_SUMMARY, {},
+            x_key="rows", row_filter={"n_traces": 1},
+            metrics=TIMING_METRICS, show_legend=True,
+            add_toggle=True, x_log=True, title="Rows Scaling",
+        )
+        fig2 = build_figure(
+            SAMPLE_SUMMARY, {},
+            x_key="n_traces", row_filter={"rows": 2000},
+            metrics=TIMING_METRICS, show_legend=False,
+            add_toggle=False, x_log=False, title="Traces Scaling",
+        )
+        return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, dims,
+                          fixed_n_traces=1, fixed_rows=2000)
+
+    def test_methodology_card_present(self):
+        assert "Tools &amp; Methodology" in self._make_page()
+
+    def test_all_tools_described(self):
+        page = self._make_page()
+        for tool in ("FlexViz", "Mosaic", "Vaex", "PyGWalker"):
+            assert tool in page
+
+    def test_measurability_table_present(self):
+        page = self._make_page()
+        assert "peak_backend_mb" in page
+        assert "transfer_ms" in page
+        assert "WebSocket" in page

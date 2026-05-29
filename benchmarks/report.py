@@ -364,7 +364,156 @@ p, li { font-size: 0.88rem; color: #4a4a6a; line-height: 1.5; }
     padding: 16px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
+.tool-desc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin: 12px 0;
+}
+.tool-desc-item h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+}
+.measure-section h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin: 16px 0 6px;
+}
+.measure-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin: 8px 0;
+}
+.measure-table th, .measure-table td {
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+}
+.measure-table th {
+    font-weight: 600;
+    color: #8888aa;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+}
+.measure-table .yes { color: #15803d; }
+.measure-table .no  { color: #9ca3af; }
+code {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 0.85em;
+    background: #f3f4f6;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+.footnote { font-size: 0.78rem; color: #8888aa; margin-top: 8px; }
 """
+
+_METHODOLOGY_HTML = """\
+<div class="card">
+  <h2>Tools &amp; Methodology</h2>
+
+  <div class="tool-desc-grid">
+    <div class="tool-desc-item">
+      <h3>FlexViz</h3>
+      <p><em>Server-rendered.</em> A Python FastAPI server receives a dashboard spec,
+      runs the query server-side with Polars, and returns a Plotly JSON update over
+      HTTP (<code>/update</code>). The browser renders the result using
+      <code>Plotly.react</code>. Timing is split via
+      <code>PerformanceResourceTiming</code>.</p>
+    </div>
+    <div class="tool-desc-item">
+      <h3>Mosaic</h3>
+      <p><em>Browser-rendered with server DuckDB.</em> A Node.js DuckDB WebSocket
+      server handles SQL aggregation queries. The browser uses Mosaic&rsquo;s
+      <code>socketConnector</code> to fetch results and renders with Observable Plot.
+      WebSocket traffic is invisible to <code>PerformanceResourceTiming</code>, so
+      the query/transfer/render breakdown cannot be measured.</p>
+    </div>
+    <div class="tool-desc-item">
+      <h3>Vaex</h3>
+      <p><em>HTML artifact.</em> Python generates a static SVG chart using Vaex,
+      embeds it in a self-contained HTML file served locally. There is no
+      client-server round-trip; <code>query_ms</code> reflects Python rendering
+      time and <code>transfer_ms</code> is not applicable.</p>
+    </div>
+    <div class="tool-desc-item">
+      <h3>PyGWalker</h3>
+      <p><em>HTML artifact.</em> Python serialises the full dataset as JSON into a
+      self-contained HTML file containing a React (Graphic Walker) widget.
+      <code>query_ms</code> reflects Python serialisation time;
+      <code>transfer_ms</code> is not applicable.</p>
+    </div>
+  </div>
+
+  <div class="measure-section">
+    <h3>Measurement Coverage</h3>
+    <table class="measure-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>FlexViz</th>
+          <th>Mosaic</th>
+          <th>Vaex</th>
+          <th>PyGWalker</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>total_ms</code></td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+        </tr>
+        <tr>
+          <td><code>query_ms</code></td>
+          <td class="yes">&#10003; server-side Polars query</td>
+          <td class="no">&#8212; WebSocket (not in ResourceTiming)</td>
+          <td class="yes">&#10003; Python SVG generation</td>
+          <td class="yes">&#10003; Python HTML generation</td>
+        </tr>
+        <tr>
+          <td><code>transfer_ms</code></td>
+          <td class="yes">&#10003; HTTP body receive</td>
+          <td class="no">&#8212; WebSocket</td>
+          <td class="no">&#8212; no transfer phase</td>
+          <td class="no">&#8212; no transfer phase</td>
+        </tr>
+        <tr>
+          <td><code>render_ms</code></td>
+          <td class="yes">&#10003; <code>Plotly.react</code> duration</td>
+          <td class="no">&#8212; WebSocket</td>
+          <td class="yes">&#10003; browser page load</td>
+          <td class="yes">&#10003; browser page load</td>
+        </tr>
+        <tr>
+          <td><code>peak_backend_mb</code></td>
+          <td class="yes">&#10003; Python process (tracemalloc;<br>covers server query thread)</td>
+          <td class="yes">&#10003; Node.js/DuckDB process RSS<br>(psutil; sampled post-render)</td>
+          <td class="yes">&#10003; Python process (tracemalloc;<br>covers SVG generation)</td>
+          <td class="yes">&#10003; Python process (tracemalloc;<br>covers HTML generation)</td>
+        </tr>
+        <tr>
+          <td><code>peak_browser_mb</code></td>
+          <td class="yes">&#10003; JS heap delta<br>(Plotly.js render)</td>
+          <td class="yes">&#10003; JS heap delta<br>(Mosaic render)</td>
+          <td class="yes">&#10003; JS heap delta<br>(SVG DOM)</td>
+          <td class="yes">&#10003; JS heap delta<br>(React widget)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="footnote">
+      tracemalloc tracks CPython heap allocations only &mdash; C-extension buffers
+      (Polars, Arrow) are not counted. Values are understated in absolute terms but
+      comparable across runs.
+    </p>
+  </div>
+</div>"""
 
 
 def build_page(
@@ -468,6 +617,8 @@ def build_page(
     </div>
     {notes_html}
   </div>
+
+  {_METHODOLOGY_HTML}
 
   <div class="section-card">
     <h2>Rows Scaling &mdash; n_traces={fixed_n_traces}</h2>
