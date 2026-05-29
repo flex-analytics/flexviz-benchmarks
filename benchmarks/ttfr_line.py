@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import sys
 import time
-import psutil
 import tracemalloc
 from pathlib import Path
 from typing import Any
 
+import psutil
 import numpy as np
 import polars as pl
 
