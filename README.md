@@ -7,7 +7,7 @@ Benchmarking workspace to compare FlexViz against other tools.
 Edit `benchmarks/config.py` to change defaults shared across all benchmark scripts:
 
 - `SIZES` — row counts in the size matrix (default: 1M, 2M, 10M, 50M)
-- `DATA_SOURCES` — data source types to benchmark (default: `["disk", "memory"]`)
+- `DATA_SOURCES` — data source types to benchmark (default: `["in-memory", "disk-parquet"]`)
 
 These values are also overridable per run via `--sizes` and `--data-sources` CLI flags.
 
@@ -20,7 +20,7 @@ Both benchmark scripts use the same timing model and repeat strategy:
   - `transfer_ms` (encode + decode)
   - `render_ms`
   - `total_ms = query_ms + transfer_ms + render_ms`
-- Data source matrix via `--data-sources` (`disk`, `memory`)
+- Data source matrix via `--data-sources` (`in-memory`, `disk-parquet`, `disk-csv`, `disk-ipc`)
 - Multi-size matrix support via `--sizes`
 - Multiple reruns via `--repeats` (+ `--warmup`)
 - Seeded order shuffling via `--seed` + `--shuffle-order`
@@ -30,8 +30,10 @@ Both benchmark scripts use the same timing model and repeat strategy:
 
 | Name | Description |
 |------|-------------|
-| `disk` | Parquet file generated on disk under `data/` |
-| `memory` | Dataset generated and held as a Polars DataFrame in RAM |
+| `disk-parquet` | Parquet file generated on disk under `data/` |
+| `disk-csv` | CSV file generated from the same wide dataset |
+| `disk-ipc` | Arrow IPC file generated from the same wide dataset |
+| `in-memory` | Dataset generated and held as a Polars DataFrame, then registered before timing |
 
 ## Setup
 
@@ -64,7 +66,9 @@ uv run python benchmarks/ttfr_histogram.py --flexviz-repo ../flexviz
 Useful flags:
 
 - `--sizes 1000000,2000000,10000000,50000000`
-- `--data-sources disk,memory`
+- `--data-sources in-memory,disk-parquet`
+- `--contenders flexviz,mosaic,vaex,graphic-walker,pygwalker`
+- `--visual-validation-dir results/validation`
 - `--bins 100`
 - `--repeats 10`
 - `--warmup 3`
@@ -90,7 +94,9 @@ uv run python benchmarks/ttfr_line.py --flexviz-repo ../flexviz
 Useful flags:
 
 - `--sizes 1000000,2000000,10000000,50000000`
-- `--data-sources disk,memory`
+- `--data-sources in-memory,disk-parquet`
+- `--contenders flexviz,mosaic,vaex,graphic-walker,pygwalker`
+- `--visual-validation-dir results/validation`
 - `--n-points 5000`
 - `--repeats 10`
 - `--warmup 3`
@@ -101,6 +107,7 @@ Useful flags:
 
 ## Notes
 
-- Mosaic here is represented via DuckDB query + Arrow IPC transfer (not full vgplot runtime orchestration).
-- Shared SVG probes keep render timing method consistent across tools.
+- Mosaic uses the Python DuckDB server path and vgplot runtime.
+- PyGWalker and Graphic Walker use PyGWalker kernel-side DuckDB computation and render the computed chart payload.
+- Shared SVG probes keep render timing method consistent for non-runtime tools.
 - No local benchmark can fully control OS page cache; use repeats and seeded shuffled order for more stable comparisons.

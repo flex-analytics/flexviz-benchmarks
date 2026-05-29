@@ -2,21 +2,30 @@
 
 from __future__ import annotations
 
+import argparse
+import http.server
+import json
+import multiprocessing as mp
+import socket
 import sys
+import tempfile
+import threading as _threading
 import time
 import tracemalloc
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-import psutil
 import numpy as np
 import polars as pl
-
+import psutil
 from config import CONTENDERS, DATA_SOURCES, N_POINTS, N_TRACES, REPEATS, SEED, SIZES, WARMUP
+from mosaic_duckdb_server import run_mosaic_duckdb_server
+from playwright.sync_api import Page, sync_playwright
 from ttfr_core import (
+    FORMAT_SUFFIX,
     DataSource,
     DiskSource,
-    FORMAT_SUFFIX,
     MemorySource,
     Trial,
     ensure_wide_disk_datasets,
@@ -29,7 +38,7 @@ from ttfr_core import (
     run_repeated_trials,
     summarize_trials,
 )
-
+from walker_utils import inject_html_benchmarks, line_vega_spec, render_kernel_walker_html
 
 # ---------------------------------------------------------------------------
 # Data generation
@@ -75,10 +84,6 @@ def prepare_line_data_source(
 # ---------------------------------------------------------------------------
 # FlexViz contender
 # ---------------------------------------------------------------------------
-
-import socket
-import threading
-
 
 def _free_port() -> int:
     with socket.socket() as s:
@@ -185,77 +190,66 @@ class FlexVizContender:
 # Mosaic contender
 # ---------------------------------------------------------------------------
 
-import http.server
-import subprocess
-import tempfile
-import threading as _threading
-
-
 class _QuietHTTPHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *args: object) -> None:
         pass
 
 
 class MosaicContender:
-    """Starts mosaic-sql (Node.js DuckDB server) and serves the probe page."""
+    """Starts the Python Mosaic DuckDB server and serves the probe page."""
 
     name = "mosaic"
 
     def __init__(self) -> None:
-        self._mosaic_proc: subprocess.Popen | None = None
+        self._mosaic_proc: mp.Process | None = None
         self._http_server: http.server.HTTPServer | None = None
         self._http_port: int = 0
         self._mosaic_port: int = 0
         self._url: str = ""
         self._tmpdir: tempfile.TemporaryDirectory | None = None
 
+    def _start_mosaic_server(self, data: DataSource, n_traces: int) -> str:
+        if self._tmpdir is None:
+            self._tmpdir = tempfile.TemporaryDirectory()
+        cache_dir = str(Path(self._tmpdir.name) / "mosaic-cache")
+
+        frame = None
+        disk_path = None
+        if isinstance(data, MemorySource):
+            cols = ["x"] + [f"y{t + 1}" for t in range(n_traces)]
+            frame = data.frame.select(cols)
+            load_sql = "SELECT 1"
+        else:
+            disk_path = str(data.path.resolve())
+            escaped = disk_path.replace("'", "''")
+            load_sql = f"CREATE OR REPLACE VIEW bench AS SELECT * FROM '{escaped}'"
+
+        start_method = "fork" if "fork" in mp.get_all_start_methods() else "spawn"
+        ctx = mp.get_context(start_method)
+        self._mosaic_proc = ctx.Process(
+            target=run_mosaic_duckdb_server,
+            kwargs={
+                "port": self._mosaic_port,
+                "frame": frame,
+                "disk_path": disk_path,
+                "cache_dir": cache_dir,
+            },
+            daemon=True,
+        )
+        self._mosaic_proc.start()
+        return load_sql
+
     def setup(self, data: DataSource, n_points: int, n_traces: int) -> None:
         self._mosaic_port = _free_port()
         self._http_port = _free_port()
 
-        # Start mosaic-sql server
-        if isinstance(data, DiskSource):
-            file_path = str(data.path.resolve())
-        else:
-            # Write in-memory frame to a temporary parquet file
-            self._tmpdir = tempfile.TemporaryDirectory()
-            tmp_path = Path(self._tmpdir.name) / "bench.parquet"
-            data.frame.write_parquet(tmp_path)
-            file_path = str(tmp_path)
-
-        # Locate or install @uwdata/mosaic-duckdb, then start a WebSocket server.
-        mosaic_node_dir = Path.home() / ".cache" / "flexviz-bench" / "mosaic-node"
-        mosaic_node_dir.mkdir(parents=True, exist_ok=True)
-        mosaic_pkg = mosaic_node_dir / "node_modules" / "@uwdata" / "mosaic-duckdb"
-        if not mosaic_pkg.exists():
-            subprocess.run(
-                ["npm", "install", "@uwdata/mosaic-duckdb"],
-                cwd=str(mosaic_node_dir),
-                capture_output=True,
-                check=True,
-            )
-
-        if self._tmpdir is None:
-            self._tmpdir = tempfile.TemporaryDirectory()
-        # Script must live in the same dir as node_modules so Node resolves it.
-        node_script_path = mosaic_node_dir / "mosaic_server.mjs"
-        node_script_path.write_text(
-            f"import {{DuckDB, dataServer}} from '@uwdata/mosaic-duckdb';\n"
-            f"dataServer(new DuckDB(':memory:'), "
-            f"{{rest:true, socket:true, port:{self._mosaic_port}}});\n"
-        )
-        self._mosaic_proc = subprocess.Popen(
-            ["node", str(node_script_path)],
-            cwd=str(mosaic_node_dir),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        load_sql = self._start_mosaic_server(data, n_traces)
 
         # Read probe template and substitute placeholders
         probe_template = (Path(__file__).parent / "probes" / "mosaic_probe.html").read_text()
         html = (
             probe_template.replace("{{WS_URL}}", f"ws://127.0.0.1:{self._mosaic_port}/")
-            .replace("{{FILE_PATH}}", file_path.replace("\\", "/"))
+            .replace("{{LOAD_SQL_JSON}}", json.dumps(load_sql))
             .replace("{{CHART_TYPE}}", "line")
             .replace("{{N_TRACES}}", str(n_traces))
             .replace("{{BINS_OR_NPOINTS}}", str(n_points))
@@ -274,16 +268,13 @@ class MosaicContender:
         t.start()
 
         # Wait for mosaic-sql to be ready
-        import time as _time  # noqa: PLC0415
-        import socket as _socket  # noqa: PLC0415
-
-        deadline = _time.monotonic() + 15.0
-        while _time.monotonic() < deadline:
+        deadline = time.monotonic() + 15.0
+        while time.monotonic() < deadline:
             try:
-                with _socket.create_connection(("127.0.0.1", self._mosaic_port), 0.3):
+                with socket.create_connection(("127.0.0.1", self._mosaic_port), 0.3):
                     break
             except OSError:
-                _time.sleep(0.1)
+                time.sleep(0.1)
         else:
             raise RuntimeError("mosaic-sql did not start within 15 s")
 
@@ -298,6 +289,10 @@ class MosaicContender:
             self._http_server = None
         if self._mosaic_proc:
             self._mosaic_proc.terminate()
+            self._mosaic_proc.join(timeout=5)
+            if self._mosaic_proc.is_alive():
+                self._mosaic_proc.kill()
+                self._mosaic_proc.join(timeout=5)
             self._mosaic_proc = None
         if self._tmpdir:
             self._tmpdir.cleanup()
@@ -459,9 +454,10 @@ class VaexContender:
 
 
 class PyGWalkerContender:
-    """Generates a PyGWalker (Graphic Walker) HTML artifact and serves it."""
+    """Generates a PyGWalker kernel-computation page and serves it."""
 
     name = "pygwalker"
+    _walker_mode = "pygwalker"
 
     def __init__(self) -> None:
         self._http_server: http.server.HTTPServer | None = None
@@ -470,11 +466,9 @@ class PyGWalkerContender:
 
     def setup(self, data: DataSource, n_points: int, n_traces: int) -> None:
         try:
-            import pygwalker as pyg  # noqa: PLC0415
+            import pygwalker  # noqa: F401, PLC0415
         except ImportError as exc:
             raise RuntimeError("pygwalker not installed") from exc
-
-        t0 = time.perf_counter()
 
         if isinstance(data, DiskSource):
             if data.path.suffix == ".parquet":
@@ -490,22 +484,17 @@ class PyGWalkerContender:
         cols = ["x"] + [f"y{t + 1}" for t in range(n_traces)]
         df_subset = df.select(cols)
 
-        # pyg.to_html() generates a self-contained HTML string
-        html_content: str = pyg.to_html(df_subset)
-
-        query_ms = (time.perf_counter() - t0) * 1000.0
-
-        bench_utils_js = (Path(__file__).parent / "probes" / "bench_utils.js").read_text()
-        bench_injection = (
-            f"<script>window.__benchQueryMs = {query_ms:.3f};"
-            f"window.__benchPayloadBytes = {len(html_content.encode())};</script>"
-            f"<script>{bench_utils_js}</script>"
+        spec = line_vega_spec(n_traces, n_points)
+        html_content, query_ms = render_kernel_walker_html(
+            df=df_subset,
+            spec=spec,
+            mode=self._walker_mode,
         )
-        # Inject before </body>
-        if "</body>" in html_content:
-            html = html_content.replace("</body>", bench_injection + "</body>", 1)
-        else:
-            html = html_content + bench_injection
+        html = inject_html_benchmarks(
+            html_content,
+            query_ms=query_ms,
+            payload_bytes=len(html_content.encode()),
+        )
 
         self._http_port = _free_port()
         tmpdir = tempfile.mkdtemp()
@@ -527,26 +516,33 @@ class PyGWalkerContender:
             self._http_server = None
 
 
+class GraphicWalkerContender(PyGWalkerContender):
+    """Generates a direct Graphic Walker renderer page backed by kernel computation."""
+
+    name = "graphic-walker"
+    _walker_mode = "graphic-walker"
+
+
 # ---------------------------------------------------------------------------
 # RenderProbe — shared Playwright browser session
 # ---------------------------------------------------------------------------
 
-import argparse
-import json
-from dataclasses import asdict
-
-from playwright.sync_api import Page, sync_playwright
-
-
 class RenderProbe:
     """Shared Playwright Chromium session for the full benchmark run."""
 
-    def __init__(self, *, headless: bool = True, flexviz_repo: Path) -> None:
+    def __init__(
+        self,
+        *,
+        headless: bool = True,
+        flexviz_repo: Path,
+        visual_validation_dir: Path | None = None,
+    ) -> None:
         self._headless = headless
         self._flexviz_probe_js = (Path(__file__).parent / "probes" / "flexviz_probe.js").read_text()
         self._flexviz_repo = flexviz_repo
+        self._visual_validation_dir = visual_validation_dir
 
-    def __enter__(self) -> "RenderProbe":
+    def __enter__(self) -> RenderProbe:
         self._playwright = sync_playwright().start()
         self._browser = self._playwright.chromium.launch(
             headless=self._headless,
@@ -559,6 +555,27 @@ class RenderProbe:
     def __exit__(self, *_: object) -> None:
         self._browser.close()
         self._playwright.stop()
+
+    def _validate_visual_output(self, page: Page, contender: Any, data: DataSource, n_traces: int) -> None:
+        if self._visual_validation_dir is None:
+            return
+
+        self._visual_validation_dir.mkdir(parents=True, exist_ok=True)
+        screenshot_name = f"line_{contender.name}_{data.name}_{n_traces}traces.png".replace("/", "_")
+        page.screenshot(path=str(self._visual_validation_dir / screenshot_name), full_page=True)
+        mark_count = page.evaluate(
+            """() => {
+                const selector = 'svg,canvas,path,rect,polyline,circle';
+                const count = (doc) => doc ? doc.querySelectorAll(selector).length : 0;
+                let total = count(document);
+                for (const iframe of document.querySelectorAll('iframe')) {
+                    try { total += count(iframe.contentDocument); } catch (e) {}
+                }
+                return total;
+            }"""
+        )
+        if mark_count <= 0:
+            raise RuntimeError(f"{contender.name} rendered no detectable line chart marks")
 
     def run_trial(
         self,
@@ -579,6 +596,7 @@ class RenderProbe:
                 timeout=30_000,
             )
             timings: dict = page.evaluate("() => window.__benchTimings")
+            self._validate_visual_output(page, contender, data, n_traces)
             mosaic_proc = getattr(contender, "_mosaic_proc", None)
             if mosaic_proc is not None:
                 try:
@@ -677,7 +695,23 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("results/ttfr_line.json"),
     )
+    parser.add_argument(
+        "--visual-validation-dir",
+        type=Path,
+        default=None,
+        help="Optional directory for per-trial screenshots and non-empty chart checks",
+    )
     return parser.parse_args()
+
+
+def build_contender_registry(flexviz_repo: Path) -> dict[str, Any]:
+    return {
+        "flexviz": lambda: FlexVizContender(flexviz_repo),
+        "mosaic": MosaicContender,
+        "vaex": VaexContender,
+        "pygwalker": PyGWalkerContender,
+        "graphic-walker": GraphicWalkerContender,
+    }
 
 
 def main() -> None:
@@ -687,12 +721,7 @@ def main() -> None:
     data_sources = parse_sources_arg(args.data_sources)
     max_n_traces = max(trace_counts)
 
-    _contender_registry: dict = {
-        "flexviz": lambda: FlexVizContender(args.flexviz_repo),
-        "mosaic": MosaicContender,
-        "vaex": VaexContender,
-        "pygwalker": PyGWalkerContender,
-    }
+    _contender_registry = build_contender_registry(args.flexviz_repo)
     contender_names = parse_contenders_arg(args.contenders)
     unknown = [n for n in contender_names if n not in _contender_registry]
     if unknown:
@@ -705,7 +734,11 @@ def main() -> None:
     n_blocks = len(sizes) * len(trace_counts) * len(data_sources)
     block_idx = 0
 
-    with RenderProbe(headless=not args.no_headless, flexviz_repo=args.flexviz_repo) as probe:
+    with RenderProbe(
+        headless=not args.no_headless,
+        flexviz_repo=args.flexviz_repo,
+        visual_validation_dir=args.visual_validation_dir,
+    ) as probe:
         for rows in sizes:
             all_trials[rows] = {}
             for n_traces in trace_counts:
@@ -767,6 +800,7 @@ def main() -> None:
             "warmup": args.warmup,
             "seed": args.seed,
             "dataset_base": args.dataset_base,
+            "visual_validation_dir": str(args.visual_validation_dir) if args.visual_validation_dir else None,
         },
         "summary": [asdict(s) for s in summaries],
         "trials": raw_trials_to_json(all_trials),

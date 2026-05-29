@@ -9,7 +9,7 @@
 <script type="module">
 // ---- Injected by Python ----
 const WS_URL        = "{{WS_URL}}";        // e.g. "ws://localhost:3000/"
-const FILE_PATH     = "{{FILE_PATH}}";     // absolute path to .parquet/.csv/.arrow
+const LOAD_SQL      = {{LOAD_SQL_JSON}};   // creates/confirms relation `bench`
 const CHART_TYPE    = "{{CHART_TYPE}}";    // "histogram" | "line"
 const N_TRACES      = {{N_TRACES}};        // integer
 const BINS_OR_NPTS  = {{BINS_OR_NPOINTS}}; // integer
@@ -21,10 +21,7 @@ const heapBefore = (performance.memory || {}).usedJSHeapSize || 0;
 
 vg.coordinator().databaseConnector(vg.socketConnector(WS_URL));
 
-// Load the file as a DuckDB view named 'bench'
-await vg.coordinator().exec(
-  `CREATE OR REPLACE VIEW bench AS SELECT * FROM '${FILE_PATH}'`
-);
+await vg.coordinator().exec(LOAD_SQL);
 
 const t_queryStart = performance.now();
 

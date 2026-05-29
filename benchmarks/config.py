@@ -12,7 +12,7 @@ N_TRACES: list[int] = [1, 2, 5, 10]
 DATA_SOURCES: list[str] = ["in-memory", "disk-parquet", "disk-csv", "disk-ipc"][:2]
 
 # Tools to include in each benchmark run.
-CONTENDERS: list[str] = ["flexviz", "mosaic", "vaex"]  # , "pygwalker"]
+CONTENDERS: list[str] = ["flexviz", "mosaic", "vaex", "graphic-walker"]
 
 # Trial execution settings.
 WARMUP: int = 2
