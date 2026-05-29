@@ -27,7 +27,7 @@ TIMING_METRICS: list[tuple[str, str]] = [
 ]
 
 MEMORY_METRICS: list[tuple[str, str]] = [
-    ("peak_python_median_mb", "Python peak"),
+    ("peak_backend_median_mb", "backend peak"),
     ("peak_browser_median_mb", "browser peak"),
 ]
 
@@ -90,7 +90,7 @@ def compute_bands(trials_json: dict) -> dict[tuple, tuple[float, float]]:
 
     _METRICS = (
         "total_ms", "query_ms", "transfer_ms", "render_ms",
-        "peak_python_mb", "peak_browser_mb",
+        "peak_backend_mb", "peak_browser_mb",
     )
     bands: dict[tuple, tuple[float, float]] = {}
 
