@@ -78,7 +78,6 @@ class WebContender(Protocol):
     """Each benchmarked tool implements this lifecycle."""
 
     name: str
-    peak_python_mb: float  # set by setup(); read by run_web_trial()
 
     def setup(self, data: DataSource, **kwargs: Any) -> None:
         """Start server / generate page; register data source."""
@@ -105,7 +104,7 @@ class Trial:
     render_ms: float | None     # None when not measurable
     total_ms: float
     payload_bytes: int | None   # None when not measurable
-    peak_python_mb: float = 0.0
+    peak_backend_mb: float = 0.0
     peak_browser_mb: float = 0.0
 
 
@@ -123,7 +122,7 @@ class Summary:
     transfer_median_ms: float | None
     render_median_ms: float | None
     payload_bytes_median: int | None
-    peak_python_median_mb: float
+    peak_backend_median_mb: float
     peak_browser_median_mb: float
 
 
@@ -274,7 +273,7 @@ def summarize_trials(
         transfer_median_ms=_median_or_none([t.transfer_ms for t in trials]),
         render_median_ms=_median_or_none([t.render_ms for t in trials]),
         payload_bytes_median=round(statistics.median(payload_non_null)) if payload_non_null else None,
-        peak_python_median_mb=statistics.median(t.peak_python_mb for t in trials),
+        peak_backend_median_mb=statistics.median(t.peak_backend_mb for t in trials),
         peak_browser_median_mb=statistics.median(t.peak_browser_mb for t in trials),
     )
 
