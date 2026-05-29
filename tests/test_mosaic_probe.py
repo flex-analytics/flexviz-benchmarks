@@ -12,3 +12,16 @@ def test_mosaic_probe_configures_vgplot_connector():
     assert "await coordinator().exec(" not in template
     assert "await plot.value.update();" in template
     assert "plot.addEventListener('ready'" not in template
+
+
+class TestBenchUtils:
+    def _content(self):
+        return (
+            Path(__file__).parent.parent / "benchmarks" / "probes" / "bench_utils.js"
+        ).read_text()
+
+    def test_transfer_ms_is_null(self):
+        assert "transfer_ms:     null," in self._content()
+
+    def test_transfer_ms_not_zero(self):
+        assert "transfer_ms:     0," not in self._content()
