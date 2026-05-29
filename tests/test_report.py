@@ -129,7 +129,7 @@ class TestComputeBands:
     def test_uses_peak_backend_mb_key(self):
         bands = compute_bands(SAMPLE_TRIALS)
         assert (1000, 1, "disk-parquet", "flexviz", "peak_backend_mb") in bands
-        assert (1000, 1, "disk-parquet", "flexviz", "peak_backend_mb") not in bands
+        assert (1000, 1, "disk-parquet", "flexviz", "peak_python_mb") not in bands
 
     def test_all_metrics_present(self):
         bands = compute_bands(SAMPLE_TRIALS)
