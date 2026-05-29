@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 import time
+import psutil
 import tracemalloc
 from pathlib import Path
 from typing import Any
@@ -89,7 +90,6 @@ class FlexVizContender:
     """Starts the FlexViz FastAPI server, registers a line figure."""
 
     name = "flexviz"
-    peak_python_mb: float = 0.0
 
     _port: int = 0
 
@@ -137,8 +137,6 @@ class FlexVizContender:
         if repo_str not in sys.path:
             sys.path.insert(0, repo_str)
 
-        tracemalloc.start()
-
         from flexviz.figure import Figure, _register_source_if_needed  # noqa: PLC0415
 
         if isinstance(data, DiskSource):
@@ -174,11 +172,6 @@ class FlexVizContender:
         resp.raise_for_status()
         view_url = resp.json()["url"] + "&renderer=plotly"
 
-        _, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        tracemalloc.clear_traces()
-        self.peak_python_mb = peak / 1024 / 1024
-
         self._url = view_url
 
     def get_url(self) -> str:
@@ -207,7 +200,6 @@ class MosaicContender:
     """Starts mosaic-sql (Node.js DuckDB server) and serves the probe page."""
 
     name = "mosaic"
-    peak_python_mb: float = 0.0
 
     def __init__(self) -> None:
         self._mosaic_proc: subprocess.Popen | None = None
@@ -218,8 +210,6 @@ class MosaicContender:
         self._tmpdir: tempfile.TemporaryDirectory | None = None
 
     def setup(self, data: DataSource, n_points: int, n_traces: int) -> None:
-        tracemalloc.start()
-
         self._mosaic_port = _free_port()
         self._http_port = _free_port()
 
@@ -296,11 +286,6 @@ class MosaicContender:
                 _time.sleep(0.1)
         else:
             raise RuntimeError("mosaic-sql did not start within 15 s")
-
-        _, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        tracemalloc.clear_traces()
-        self.peak_python_mb = peak / 1024 / 1024
 
         self._url = f"http://127.0.0.1:{self._http_port}/"
 
@@ -391,7 +376,6 @@ class VaexContender:
     """Uses df.mean(..., binby=...) for line computation; renders inline SVG."""
 
     name = "vaex"
-    peak_python_mb: float = 0.0
 
     def __init__(self) -> None:
         self._http_server: http.server.HTTPServer | None = None
@@ -404,7 +388,6 @@ class VaexContender:
         except ImportError as exc:
             raise RuntimeError("vaex not installed") from exc
 
-        tracemalloc.start()
         t0 = time.perf_counter()
 
         if isinstance(data, DiskSource):
@@ -441,10 +424,6 @@ class VaexContender:
             df.close()
 
         query_ms = (time.perf_counter() - t0) * 1000.0
-        _, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        tracemalloc.clear_traces()
-        self.peak_python_mb = peak / 1024 / 1024
 
         bench_utils_js = (Path(__file__).parent / "probes" / "bench_utils.js").read_text()
         html = _VAEX_PROBE_TEMPLATE.format(
@@ -483,7 +462,6 @@ class PyGWalkerContender:
     """Generates a PyGWalker (Graphic Walker) HTML artifact and serves it."""
 
     name = "pygwalker"
-    peak_python_mb: float = 0.0
 
     def __init__(self) -> None:
         self._http_server: http.server.HTTPServer | None = None
@@ -496,7 +474,6 @@ class PyGWalkerContender:
         except ImportError as exc:
             raise RuntimeError("pygwalker not installed") from exc
 
-        tracemalloc.start()
         t0 = time.perf_counter()
 
         if isinstance(data, DiskSource):
@@ -517,10 +494,6 @@ class PyGWalkerContender:
         html_content: str = pyg.to_html(df_subset)
 
         query_ms = (time.perf_counter() - t0) * 1000.0
-        _, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        tracemalloc.clear_traces()
-        self.peak_python_mb = peak / 1024 / 1024
 
         bench_utils_js = (Path(__file__).parent / "probes" / "bench_utils.js").read_text()
         bench_injection = (
@@ -575,7 +548,10 @@ class RenderProbe:
 
     def __enter__(self) -> "RenderProbe":
         self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(headless=self._headless)
+        self._browser = self._playwright.chromium.launch(
+            headless=self._headless,
+            args=["--enable-precise-memory-info"],
+        )
         self._page: Page = self._browser.new_page(viewport={"width": 1280, "height": 800})
         self._page.add_init_script(self._flexviz_probe_js)
         return self
@@ -592,6 +568,7 @@ class RenderProbe:
         n_traces: int,
     ) -> Trial:
         page = self._page
+        mosaic_rss_mb = 0.0
 
         tracemalloc.start()
         try:
@@ -602,16 +579,18 @@ class RenderProbe:
                 timeout=30_000,
             )
             timings: dict = page.evaluate("() => window.__benchTimings")
+            mosaic_proc = getattr(contender, "_mosaic_proc", None)
+            if mosaic_proc is not None:
+                try:
+                    mosaic_rss_mb = psutil.Process(mosaic_proc.pid).memory_info().rss / 1024 / 1024
+                except Exception:
+                    pass
         finally:
             _, peak = tracemalloc.get_traced_memory()
             tracemalloc.stop()
             tracemalloc.clear_traces()
-            extra_python_mb = peak / 1024 / 1024
+            backend_mb = max(peak / 1024 / 1024, mosaic_rss_mb)
             contender.teardown()
-
-        # Use contender's own peak_python_mb if it pre-measured (Vaex, PyGWalker);
-        # otherwise fall back to the tracemalloc window.
-        python_mb = max(contender.peak_python_mb, extra_python_mb)
 
         raw_q = timings.get("query_ms")
         raw_tr = timings.get("transfer_ms")
@@ -628,7 +607,7 @@ class RenderProbe:
             render_ms=r,
             total_ms=total,
             payload_bytes=int(raw_payload) if raw_payload is not None else None,
-            peak_python_mb=python_mb,
+            peak_backend_mb=backend_mb,
             peak_browser_mb=float(timings.get("peak_browser_mb", 0.0)),
         )
 
