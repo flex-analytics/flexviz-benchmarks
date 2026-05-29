@@ -19,30 +19,30 @@ SAMPLE_SUMMARY = [
     {"rows": 1000, "n_traces": 1, "tool": "flexviz", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 100.0, "total_mean_ms": 100.0, "total_stdev_ms": 5.0,
      "query_median_ms": 60.0, "transfer_median_ms": 10.0, "render_median_ms": 30.0,
-     "peak_python_median_mb": 50.0, "peak_browser_median_mb": 20.0},
+     "peak_backend_median_mb": 50.0, "peak_browser_median_mb": 20.0},
     {"rows": 2000, "n_traces": 1, "tool": "flexviz", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 150.0, "total_mean_ms": 150.0, "total_stdev_ms": 8.0,
      "query_median_ms": 90.0, "transfer_median_ms": 15.0, "render_median_ms": 45.0,
-     "peak_python_median_mb": 80.0, "peak_browser_median_mb": 30.0},
+     "peak_backend_median_mb": 80.0, "peak_browser_median_mb": 30.0},
     # flexviz — traces scaling
     {"rows": 2000, "n_traces": 2, "tool": "flexviz", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 200.0, "total_mean_ms": 200.0, "total_stdev_ms": 10.0,
      "query_median_ms": 120.0, "transfer_median_ms": 20.0, "render_median_ms": 60.0,
-     "peak_python_median_mb": 100.0, "peak_browser_median_mb": 40.0},
+     "peak_backend_median_mb": 100.0, "peak_browser_median_mb": 40.0},
     # mosaic — rows scaling
     {"rows": 1000, "n_traces": 1, "tool": "mosaic", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 200.0, "total_mean_ms": 200.0, "total_stdev_ms": 10.0,
      "query_median_ms": 120.0, "transfer_median_ms": 20.0, "render_median_ms": 60.0,
-     "peak_python_median_mb": 100.0, "peak_browser_median_mb": 40.0},
+     "peak_backend_median_mb": 100.0, "peak_browser_median_mb": 40.0},
     {"rows": 2000, "n_traces": 1, "tool": "mosaic", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 250.0, "total_mean_ms": 250.0, "total_stdev_ms": 12.0,
      "query_median_ms": 150.0, "transfer_median_ms": 25.0, "render_median_ms": 75.0,
-     "peak_python_median_mb": 120.0, "peak_browser_median_mb": 50.0},
+     "peak_backend_median_mb": 120.0, "peak_browser_median_mb": 50.0},
     # mosaic — traces scaling
     {"rows": 2000, "n_traces": 2, "tool": "mosaic", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 280.0, "total_mean_ms": 280.0, "total_stdev_ms": 14.0,
      "query_median_ms": 170.0, "transfer_median_ms": 28.0, "render_median_ms": 82.0,
-     "peak_python_median_mb": 130.0, "peak_browser_median_mb": 55.0},
+     "peak_backend_median_mb": 130.0, "peak_browser_median_mb": 55.0},
 ]
 
 
@@ -52,19 +52,19 @@ SAMPLE_TRIALS = {
             "disk-parquet": {
                 "flexviz": [
                     {"total_ms": 90.0, "query_ms": 50.0, "transfer_ms": 8.0, "render_ms": 25.0,
-                     "peak_python_mb": 45.0, "peak_browser_mb": 18.0},
+                     "peak_backend_mb": 45.0, "peak_browser_mb": 18.0},
                     {"total_ms": 100.0, "query_ms": 60.0, "transfer_ms": 10.0, "render_ms": 30.0,
-                     "peak_python_mb": 50.0, "peak_browser_mb": 20.0},
+                     "peak_backend_mb": 50.0, "peak_browser_mb": 20.0},
                     {"total_ms": 110.0, "query_ms": 70.0, "transfer_ms": 12.0, "render_ms": 35.0,
-                     "peak_python_mb": 55.0, "peak_browser_mb": 22.0},
+                     "peak_backend_mb": 55.0, "peak_browser_mb": 22.0},
                 ],
                 "mosaic": [
                     {"total_ms": 190.0, "query_ms": 110.0, "transfer_ms": 18.0, "render_ms": 55.0,
-                     "peak_python_mb": 95.0, "peak_browser_mb": 38.0},
+                     "peak_backend_mb": 95.0, "peak_browser_mb": 38.0},
                     {"total_ms": 200.0, "query_ms": 120.0, "transfer_ms": 20.0, "render_ms": 60.0,
-                     "peak_python_mb": 100.0, "peak_browser_mb": 40.0},
+                     "peak_backend_mb": 100.0, "peak_browser_mb": 40.0},
                     {"total_ms": 210.0, "query_ms": 130.0, "transfer_ms": 22.0, "render_ms": 65.0,
-                     "peak_python_mb": 105.0, "peak_browser_mb": 42.0},
+                     "peak_backend_mb": 105.0, "peak_browser_mb": 42.0},
                 ],
             }
         }
@@ -74,19 +74,19 @@ SAMPLE_TRIALS = {
             "disk-parquet": {
                 "flexviz": [
                     {"total_ms": 140.0, "query_ms": 80.0, "transfer_ms": 13.0, "render_ms": 40.0,
-                     "peak_python_mb": 75.0, "peak_browser_mb": 28.0},
+                     "peak_backend_mb": 75.0, "peak_browser_mb": 28.0},
                     {"total_ms": 150.0, "query_ms": 90.0, "transfer_ms": 15.0, "render_ms": 45.0,
-                     "peak_python_mb": 80.0, "peak_browser_mb": 30.0},
+                     "peak_backend_mb": 80.0, "peak_browser_mb": 30.0},
                     {"total_ms": 160.0, "query_ms": 100.0, "transfer_ms": 17.0, "render_ms": 50.0,
-                     "peak_python_mb": 85.0, "peak_browser_mb": 32.0},
+                     "peak_backend_mb": 85.0, "peak_browser_mb": 32.0},
                 ],
                 "mosaic": [
                     {"total_ms": 240.0, "query_ms": 140.0, "transfer_ms": 23.0, "render_ms": 72.0,
-                     "peak_python_mb": 115.0, "peak_browser_mb": 48.0},
+                     "peak_backend_mb": 115.0, "peak_browser_mb": 48.0},
                     {"total_ms": 250.0, "query_ms": 150.0, "transfer_ms": 25.0, "render_ms": 75.0,
-                     "peak_python_mb": 120.0, "peak_browser_mb": 50.0},
+                     "peak_backend_mb": 120.0, "peak_browser_mb": 50.0},
                     {"total_ms": 260.0, "query_ms": 160.0, "transfer_ms": 27.0, "render_ms": 78.0,
-                     "peak_python_mb": 125.0, "peak_browser_mb": 52.0},
+                     "peak_backend_mb": 125.0, "peak_browser_mb": 52.0},
                 ],
             }
         },
@@ -94,19 +94,19 @@ SAMPLE_TRIALS = {
             "disk-parquet": {
                 "flexviz": [
                     {"total_ms": 190.0, "query_ms": 115.0, "transfer_ms": 19.0, "render_ms": 58.0,
-                     "peak_python_mb": 95.0, "peak_browser_mb": 38.0},
+                     "peak_backend_mb": 95.0, "peak_browser_mb": 38.0},
                     {"total_ms": 200.0, "query_ms": 120.0, "transfer_ms": 20.0, "render_ms": 60.0,
-                     "peak_python_mb": 100.0, "peak_browser_mb": 40.0},
+                     "peak_backend_mb": 100.0, "peak_browser_mb": 40.0},
                     {"total_ms": 210.0, "query_ms": 125.0, "transfer_ms": 21.0, "render_ms": 62.0,
-                     "peak_python_mb": 105.0, "peak_browser_mb": 42.0},
+                     "peak_backend_mb": 105.0, "peak_browser_mb": 42.0},
                 ],
                 "mosaic": [
                     {"total_ms": 270.0, "query_ms": 163.0, "transfer_ms": 26.0, "render_ms": 79.0,
-                     "peak_python_mb": 125.0, "peak_browser_mb": 53.0},
+                     "peak_backend_mb": 125.0, "peak_browser_mb": 53.0},
                     {"total_ms": 280.0, "query_ms": 170.0, "transfer_ms": 28.0, "render_ms": 82.0,
-                     "peak_python_mb": 130.0, "peak_browser_mb": 55.0},
+                     "peak_backend_mb": 130.0, "peak_browser_mb": 55.0},
                     {"total_ms": 290.0, "query_ms": 177.0, "transfer_ms": 30.0, "render_ms": 85.0,
-                     "peak_python_mb": 135.0, "peak_browser_mb": 57.0},
+                     "peak_backend_mb": 135.0, "peak_browser_mb": 57.0},
                 ],
             }
         },
@@ -126,19 +126,24 @@ class TestComputeBands:
         assert p75 > 100.0
         assert p25 < p75
 
+    def test_uses_peak_backend_mb_key(self):
+        bands = compute_bands(SAMPLE_TRIALS)
+        assert (1000, 1, "disk-parquet", "flexviz", "peak_backend_mb") in bands
+        assert (1000, 1, "disk-parquet", "flexviz", "peak_backend_mb") not in bands
+
     def test_all_metrics_present(self):
         bands = compute_bands(SAMPLE_TRIALS)
         for metric in ("total_ms", "query_ms", "transfer_ms", "render_ms",
-                       "peak_python_mb", "peak_browser_mb"):
+                       "peak_backend_mb", "peak_browser_mb"):
             assert (1000, 1, "disk-parquet", "flexviz", metric) in bands
 
     def test_nullable_metric_with_all_none_omitted(self):
         trials_with_none = {
             "1000": {"1": {"disk-parquet": {"flexviz": [
                 {"total_ms": 100.0, "query_ms": None, "transfer_ms": None,
-                 "render_ms": None, "peak_python_mb": 50.0, "peak_browser_mb": 20.0},
+                 "render_ms": None, "peak_backend_mb": 50.0, "peak_browser_mb": 20.0},
                 {"total_ms": 110.0, "query_ms": None, "transfer_ms": None,
-                 "render_ms": None, "peak_python_mb": 55.0, "peak_browser_mb": 22.0},
+                 "render_ms": None, "peak_backend_mb": 55.0, "peak_browser_mb": 22.0},
             ]}}}
         }
         bands = compute_bands(trials_with_none)
