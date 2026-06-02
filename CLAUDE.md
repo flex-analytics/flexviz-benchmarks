@@ -31,9 +31,14 @@ uv run python benchmarks/ttfr_histogram.py --flexviz-repo ../flexviz
 
 # Line benchmark
 uv run python benchmarks/ttfr_line.py --flexviz-repo ../flexviz
+
+# Or via Makefile (runs the script then report.py)
+make bench-histogram ARGS="--sizes 1000000 --repeats 3"
+make bench-line REPORT_ARGS="--show"
+make bench                            # both
 ```
 
-Both scripts share these flags: `--sizes`, `--n-traces`, `--data-sources`, `--repeats`, `--warmup`, `--seed`, `--shuffle-order`, `--fresh-contender-per-trial`, `--regenerate-datasets`, `--json-out`. Histogram also takes `--bins`; line takes `--n-points`.
+Both scripts share these flags: `--sizes`, `--n-traces`, `--data-sources`, `--contenders`, `--repeats`, `--warmup`, `--seed`, `--shuffle-order`, `--fresh-contender-per-trial`, `--regenerate-datasets`, `--visual-validation-dir`, `--json-out`. Histogram also takes `--bins`; line takes `--n-points`.
 
 ## Plotting results
 
@@ -47,10 +52,13 @@ Flags: `--no-memory`, `--fixed-n-traces`, `--fixed-rows`, `--out-dir` (default: 
 
 **`benchmarks/config.py`** is the single file for shared defaults across all benchmark scripts:
 - `SIZES` — row counts in the size matrix
-- `N_TRACES` — trace counts per chart (default: 1, 2, 5, 10)
+- `N_TRACES` — trace counts per chart
 - `DATA_SOURCES` — data source types (`"disk-parquet"`, `"disk-csv"`, `"disk-ipc"`, `"in-memory"`; future: `"db"`)
+- `CONTENDERS` — tools to run (`"flexviz"`, `"mosaic"`, `"vaex"`, `"pygwalker"`, `"graphic-walker"`)
+- `WARMUP`, `REPEATS`, `SEED` — trial execution settings
+- `BINS` (histogram), `N_POINTS` (line) — chart-specific defaults
 
-All three can be overridden per run with `--sizes`, `--n-traces`, and `--data-sources` CLI flags.
+Each of these can be overridden per run via the matching CLI flag (`--sizes`, `--n-traces`, `--data-sources`, `--contenders`, etc.).
 
 ## Architecture
 
@@ -64,9 +72,11 @@ All three can be overridden per run with `--sizes`, `--n-traces`, and `--data-so
 1. `_generate_*_frame(rows, max_n_traces, seed)` — generates a wide DataFrame for all trace columns
 2. `prepare_*_data_source(source_name, rows, ...)` — returns the appropriate `DataSource`
 3. A `WebContender` protocol with `setup(data, ...)`, `get_url()`, `teardown()` methods
-4. Four concrete contenders: `FlexVizContender`, `MosaicContender`, `VaexContender`, `PyGWalkerContender`
+4. Five concrete contenders: `FlexVizContender`, `MosaicContender`, `VaexContender`, `PyGWalkerContender`, and `GraphicWalkerContender` (subclasses `PyGWalkerContender`). The `--contenders` flag / `CONTENDERS` config selects which run.
 5. `RenderProbe` — context manager that launches headless Chromium via Playwright, navigates to each contender's URL, and reads `window.__benchTimings`
 6. Results are written as JSON to `results/` with two top-level keys: `"summary"` (list of `Summary` dicts, used by `report.py`) and `"trials"` (raw nested trial data)
+
+**Browser probes** live in `benchmarks/probes/`: `flexviz_probe.js` (init script injected by `RenderProbe`), `bench_utils.js` (shared timing helpers), and `mosaic_probe.html` (Mosaic probe page template). The Walker contenders build their probe pages via shared helpers in `benchmarks/walker_utils.py`.
 
 **Timing model** — each `Trial` splits time into three phases (measured browser-side):
 - `query_ms`: server processing time (from `PerformanceResourceTiming`) or Python-side time for HTML-artifact tools
@@ -76,4 +86,4 @@ All three can be overridden per run with `--sizes`, `--n-traces`, and `--data-so
 
 **FlexViz dependency** is a local editable install from `../flexviz` (see `pyproject.toml`). The `FlexVizContender` adds the repo path to `sys.path` at runtime and imports from `flexviz.*`.
 
-**Mosaic contender** uses `@uwdata/mosaic-duckdb` (Node.js DuckDB server) with `mosaic_probe.html` served via Python HTTP server.
+**Mosaic contender** runs a Python Mosaic-compatible DuckDB server (`benchmarks/mosaic_duckdb_server.py`, built on `socketify` + `duckdb`, with `diskcache`) in a background process, and serves `probes/mosaic_probe.html` via a Python HTTP server.

@@ -1,7 +1,7 @@
 SIZES: list[int] = [1_000_000, 2_000_000, 10_000_000, 50_000_000]
 
 # Trace counts per chart.
-N_TRACES: list[int] = [1, 2, 5, 10]
+N_TRACES: list[int] = [1, 2, 5]#, 10]
 
 # Data source types included in each benchmark run.
 # "disk-parquet"  — wide Parquet file on disk.
@@ -12,7 +12,7 @@ N_TRACES: list[int] = [1, 2, 5, 10]
 DATA_SOURCES: list[str] = ["in-memory", "disk-parquet", "disk-csv", "disk-ipc"][:2]
 
 # Tools to include in each benchmark run.
-CONTENDERS: list[str] = ["flexviz", "mosaic", "vaex", "graphic-walker"]
+CONTENDERS: list[str] = ["flexviz", "graphic-walker"]
 
 # Trial execution settings.
 WARMUP: int = 2

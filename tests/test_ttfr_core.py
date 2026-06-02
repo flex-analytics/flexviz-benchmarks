@@ -1,13 +1,87 @@
+import os
+import time
 from pathlib import Path
 
+import numpy as np
+import polars as pl
 import pytest
 from ttfr_core import (
+    PeakRSSSampler,
     Summary,
     Trial,
     parse_n_traces_arg,
     raw_trials_to_json,
     summarize_trials,
+    write_parquet_in_chunks,
 )
+
+
+class TestPeakRSSSampler:
+    def test_captures_native_allocation(self):
+        """RSS sampling must see native (non-Python-heap) allocations that
+        tracemalloc misses — this is the whole point of the fix."""
+        sampler = PeakRSSSampler(interval_s=0.01)
+        with sampler:
+            # numpy's buffer is allocated by malloc, outside tracemalloc's view.
+            arr = np.ones(20_000_000, dtype=np.float64)  # ~160 MB resident
+            _ = float(arr.sum())  # touch pages so they become resident
+            time.sleep(0.06)  # let the background sampler fire several times
+            assert arr[0] == 1.0  # keep `arr` alive across the sampling window
+        assert sampler.peak_mb > 80.0  # captured most of the ~160 MB
+
+    def test_peak_is_delta_not_absolute(self):
+        """Reported peak is above a baseline, not the process's whole RSS."""
+        with PeakRSSSampler(interval_s=0.01) as sampler:
+            time.sleep(0.03)
+        # No large allocation happened, so the delta is small even though the
+        # process itself is resident in hundreds of MB.
+        assert sampler.peak_mb < 50.0
+
+    def test_dead_backend_pid_does_not_crash(self):
+        """A backend subprocess that never started / already exited is tolerated."""
+        sampler = PeakRSSSampler(interval_s=0.01)
+        with sampler:
+            # 1 is init/launchd — not ours; pick an almost-certainly-free pid too.
+            sampler.set_backend_pid(2_000_000_000)
+            time.sleep(0.03)
+        assert sampler.peak_mb >= 0.0
+
+    def test_backend_pid_none_is_noop(self):
+        sampler = PeakRSSSampler(interval_s=0.01)
+        with sampler:
+            sampler.set_backend_pid(None)
+            time.sleep(0.02)
+        assert sampler.peak_mb >= 0.0
+        assert os.getpid()  # sanity
+
+
+class TestWriteParquetInChunks:
+    def test_roundtrip_matches_columns(self, tmp_path):
+        cols = {
+            "x": np.arange(25, dtype=np.float64),
+            "y1": np.arange(25, dtype=np.float64) * 2.0,
+        }
+        out = tmp_path / "chunked.parquet"
+        write_parquet_in_chunks(out, cols, chunk_rows=10)
+        df = pl.read_parquet(out)
+        assert df.columns == ["x", "y1"]
+        assert len(df) == 25
+        assert df["x"].to_list() == cols["x"].tolist()
+        assert df["y1"].to_list() == cols["y1"].tolist()
+
+    def test_writes_multiple_row_groups(self, tmp_path):
+        import pyarrow.parquet as pq
+
+        cols = {"x": np.arange(100, dtype=np.float64)}
+        out = tmp_path / "chunked.parquet"
+        write_parquet_in_chunks(out, cols, chunk_rows=25)
+        # 100 rows / 25-row chunks => 4 row groups, proving streaming write.
+        assert pq.ParquetFile(out).num_row_groups == 4
+
+    def test_creates_parent_dir(self, tmp_path):
+        out = tmp_path / "nested" / "dir" / "f.parquet"
+        write_parquet_in_chunks(out, {"x": np.arange(3, dtype=np.float64)}, chunk_rows=10)
+        assert out.exists()
 
 
 class TestParseNTracesArg:
