@@ -43,8 +43,14 @@ and measurement bugs, deduplicate, and add **Perspective** and **HoloViews+Datas
   No naive Plotly/Bokeh baseline.
 - **TTFR clock:** browser-side end-to-end, from the request that triggers each tool's
   pipeline to chart-painted. No Python/browser clock reconciliation.
-- **Data precondition:** data pre-loaded into each backend's native store before
-  timing; measure per-chart query+render only.
+- **Data precondition (source-type dependent):**
+  - *in-memory source* → data resident in the engine's native store before timing;
+    timed window = query + render only.
+  - *disk source* → the engine holds **only a handle to the file** (lazy scan / SQL
+    view / unopened path), not parsed data. The timed window **includes
+    read-from-disk + decompress/parse + query + render**, re-read each trial with no
+    cross-trial result cache. Pre-loading a disk source would make it a second
+    in-memory run, which we explicitly avoid.
 - **JS assets:** vendored + pinned, served locally (no live CDN in the hot path).
 - **Render validation:** always-on, per-engine render-complete signal; trial fails
   if the signal is not reached.
@@ -116,6 +122,36 @@ vendored engine):
 engine's downsample method is documented and output point/bar counts are asserted
 equal, so we compare the same picture, not different algorithms.
 
+### Disk vs in-memory semantics (per tool)
+
+The disk path must scan/load from the file *inside* the timed window; the in-memory
+path starts from a resident native store. No tool may materialize a disk source into
+engine memory before timing.
+
+| Tool | Disk handle (not materialized) | In-memory native store | Timed-window scan (disk) |
+|---|---|---|---|
+| FlexViz | `pl.scan_parquet/csv/ipc` (lazy); never `.collect()` pre-timing | lazy over resident frame | Polars scans file on server at `/update` |
+| Mosaic | `CREATE VIEW … FROM 'file'` (view, not TABLE) | `CREATE TABLE` native | DuckDB parallel file scan at query time |
+| Vaex | `vaex.open(path)` (lazy/mmap) | `vaex.from_arrays` | binning scans file/mmap at query time |
+| Datashader | read file → df *inside* the timed call | df resident | read + `Canvas` aggregate |
+| Graphic Walker | server reads file → Arrow → ship to browser | Arrow resident server-side | server read + transfer + in-browser compute |
+| Perspective | server reads file → Arrow → ship → `Table` | Arrow resident server-side | server read + transfer + WASM `Table` build |
+
+**Client-side engines (Graphic Walker, Perspective) cannot do out-of-core.** Their
+"disk" path is unavoidably "server reads everything and ships it to the browser" —
+an honest, important differentiator that the report surfaces rather than hides.
+Perspective in particular has *only* an in-memory WASM/C++ `Table`, ingests Arrow
+(not Parquet), and always fully materializes; its disk cost is rebuilt per trial.
+
+**No cross-trial caching on the disk path.** Mosaic `diskcache` is disabled (it
+currently turns repeats 2…N into silent cache hits — a pre-existing bug), any FlexViz
+server memo is bypassed, and Perspective/GW Tables are rebuilt per disk trial, so
+each trial genuinely re-scans.
+
+**Page-cache policy:** warm OS page cache (file content read fresh into the engine
+each trial; the engine's own memory starts cold). Reproducible, matches the prior
+1B methodology. A cold-cache mode (`sudo purge`) can be added later for raw-IO numbers.
+
 ### Render-complete signals
 
 - FlexViz: Plotly `afterplot` (existing hook).
@@ -131,10 +167,12 @@ equal, so we compare the same picture, not different algorithms.
   plus `spawn` not `fork` on macOS so Mosaic's child has no shared frame.
 - **Browser memory = renderer-process-tree USS peak** (captures Perspective WASM +
   canvas), replacing JS-heap-only. JS heap kept as a secondary column.
-- **Consistent baseline:** all tools pre-load data before timing, so the dataset
-  footprint sits in every tool's baseline uniformly → the in-memory-vs-disk baseline
-  inconsistency disappears. Additionally report **resident-footprint-after-preload**
-  (RAM each engine needs to hold the data) as its own metric.
+- **Baseline is uniform across tools within a source type** (what tool-vs-tool
+  comparison needs): for in-memory sources the dataset sits in every tool's baseline;
+  for disk sources it is loaded inside the timed window so its load memory is captured
+  for every tool. The in-memory-vs-disk difference *within* a tool is a real,
+  meaningful axis, not a bug. Additionally report **resident-footprint** (RAM each
+  engine holds the data in for the in-memory case) as its own metric.
 - Sample interval ≈5 ms + final reading; backend pid registered before preload;
   documented caveat that sub-5ms spikes can be missed.
 
