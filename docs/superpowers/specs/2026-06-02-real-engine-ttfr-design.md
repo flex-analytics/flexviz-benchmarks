@@ -1,7 +1,8 @@
 # Real-engine TTFR benchmark harness — design
 
 Date: 2026-06-02
-Status: approved (design); pending implementation plan
+Status: design approved; spikes run (Mosaic-wasm ✅, Perspective+server ✅, Graphic
+Walker ⚠️ blocked); pending GW roster decision, then implementation plan
 
 ## Motivation
 
@@ -319,13 +320,21 @@ is a small **build step**, not a curl:
 - The bundles + manifest are committed so a normal run needs no network; `npm`/esbuild
   is only required when re-vendoring.
 
-Engines to vendor (esbuild bundles): vgplot, **DuckDB-WASM** (large WASM + worker, for
-Mosaic-wasm), `@finos/perspective` + `@finos/perspective-viewer` +
-`perspective-viewer-d3fc` (WASM + worker), `@kanaries/graphic-walker` + React.
+Engines to vendor (esbuild bundles), with spike-confirmed gotchas:
+- **vgplot** + **DuckDB-WASM** (Mosaic-wasm) — must instantiate a local `AsyncDuckDB`
+  from vendored `duckdb-eh.wasm` + worker and pass it as `wasmConnector({ duckdb })`;
+  the default connector fetches wasm from jsdelivr (confirmed). ~35 MB wasm vendored.
+- **`@finos/perspective` + `-viewer` + `-viewer-d3fc`** (WASM + worker) — vendor the
+  **exact version matching `perspective-python`** from npm (the matching `cdn/` build is
+  not always on jsdelivr). Serve `.wasm` as `application/wasm`.
+- **`@kanaries/graphic-walker` + React** — bundles to 6.9 MB; **also fetches
+  `leaflet.css` from unpkg**, which the vendor step must inline/stub so the no-CDN test
+  passes. (Blocked on the GW render investigation above.)
 
-New Python deps: `datashader`, `holoviews`, `Pillow`, **`perspective-python`** (for the
-Perspective server-mode variant); `matplotlib` promoted from dev. Node/npm is a
-dev-only prerequisite for (re)vendoring, not for running benchmarks.
+New Python deps: `datashader`, `holoviews`, `Pillow`, **`perspective-python`** + a
+websocket server (**`tornado`**, per the spike) for the Perspective server variant;
+`matplotlib` promoted from dev. Node/npm is a dev-only prerequisite for (re)vendoring,
+not for running benchmarks.
 
 ## Testing
 
@@ -355,18 +364,39 @@ result, not the source:
   promoted to a test.
 - **No-CDN test** (see Vendoring) and a `--self-test` smoke target wired into CI.
 
+## Spike results (2026-06-02 — all three run)
+
+Throwaway probes: npm-installed pinned engines, esbuild-bundled, served over a local
+HTTP server, rendered headless via Playwright, asserting marks + reading back data.
+
+1. **DuckDB-WASM (Mosaic-wasm) — ✅ fully de-risked, offline.** `vg.wasmConnector({
+   duckdb })` with a locally-instantiated `AsyncDuckDB` (vendored `duckdb-eh.wasm` +
+   worker) rendered a vgplot line with **0 external requests** in ~650 ms. mosaic-core
+   bundles its own duckdb-wasm and defaults to a jsdelivr fetch, so the offline path
+   *must* pass a custom `duckdb` instance built from local bundles (confirmed working).
+2. **Perspective — ✅ fully de-risked, including server mode.** Client/WASM viewer
+   rendered (2015 marks) and **read-back of the view data works** (good for the oracle).
+   Server mode end-to-end (`perspective-python` `Server` + tornado websocket handler +
+   `<perspective-viewer>` opening the server-held table) rendered **2019 marks in
+   ~190 ms**. Notes baked into the plan: (a) render-complete detection **must recurse
+   nested shadow DOM** (the chart lives in the d3fc plugin's own shadow root — a naive
+   one-level mark count reports 0); (b) the JS client must **version-match
+   `perspective-python`** (4.5.1 is not on the jsdelivr `cdn/` path → vendor the exact
+   matching `@finos/perspective*` from npm, or pin both sides together); (c) server mode
+   needs a `tornado`/`aiohttp`/`starlette` dep.
+3. **Graphic Walker `PureRenderer` — ⚠️ HIGH RISK, blocked in spike.** Mounts and
+   bundles offline (6.9 MB), but rendered an **empty chart across four spec variants**
+   (local aggregated, local raw, the proven `walker_utils` export format, and the
+   `type:'remote'` computation path) — its client query engine returns zero rows
+   ("Infinite extent" Vega warning) for every hand-built spec. Driving it needs Graphic
+   Walker's exact internal `visualState`/`visualConfig`/workflow contract, which the
+   harness must reproduce (likely by capturing a real spec exported from a live Graphic
+   Walker session for our chart, then replaying it). It also pulls `leaflet.css` from
+   unpkg, which vendoring must intercept/stub. **This is the one engine not proven; it
+   needs a dedicated investigation task or a roster decision (see open question).**
+
 ## Out of scope / risks
 
-- **Three engine spikes to de-risk first, before the full plan commits to them:**
-  1. **Graphic Walker `PureRenderer`** headless in a self-contained vendored page —
-     may need a small React harness; if its in-browser compute can't match the others'
-     downsample exactly, feed it pre-aggregated data and document that. *Main risk.*
-  2. **DuckDB-WASM** (`wasmConnector`) rendering a vgplot chart from a vendored bundle
-     with no CDN — confirm the WASM + worker load and Arrow-buffer registration work
-     offline.
-  3. **Perspective server mode** (`perspective-python` virtual viewport) — confirm the
-     viewport-streaming protocol drives `<perspective-viewer>` headlessly and that we
-     can read back the rendered data for the oracle test.
 - Each client/WASM engine must satisfy the **same-picture** requirement; if an engine
   insists on raw points, feed it the pre-aggregated envelope/bins and document it.
 - `report.py` methodology card is rewritten to describe what is actually measured
