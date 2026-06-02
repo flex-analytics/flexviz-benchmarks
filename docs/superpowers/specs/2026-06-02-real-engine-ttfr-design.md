@@ -65,7 +65,10 @@ and measurement bugs, deduplicate, and add **Perspective** and **HoloViews+Datas
   pipeline to chart-painted. No Python/browser clock reconciliation.
 - **Data precondition (source-type dependent):**
   - *in-memory source* → data resident in the engine's native store before timing;
-    timed window = query + render only.
+    timed window = query + render only. "Native store" is engine-specific: a Polars
+    frame / DuckDB native table / Vaex arrays / Datashader df (server engines), a
+    WASM `Table` or DuckDB-WASM table (Perspective-wasm / Mosaic-wasm), or a
+    `rawData` row-object array (Graphic Walker — it does not ingest Arrow).
   - *disk source* → the engine holds **only a handle to the file** (lazy scan / SQL
     view / unopened path), not parsed data. The timed window **includes
     read-from-disk + decompress/parse + query + render**, re-read each trial with no
@@ -86,7 +89,7 @@ benchmarks/
   ttfr_bench.py        # single entrypoint, parameterized: --chart {histogram,line}
   core/
     harness.py         # run_repeated_trials, Trial/Summary, RenderProbe, page contract
-    memory.py          # ProcessTreeSampler (backend + browser), USS-based
+    memory.py          # ProcessTreeSampler (backend + browser), RSS-based (USS unreadable for children on macOS)
     datagen.py         # histogram/line column generation + dataset materialization
     contenders.py      # contender registry; thin per-tool config grouped by class A/B/C
   probes/
@@ -100,6 +103,14 @@ benchmarks/
 `ttfr_histogram.py` and `ttfr_line.py` are removed. Chart-specifics live in
 `datagen.py` + per-tool spec builders. Result: ~250-line driver instead of two
 800-line files.
+
+**Migration / interface:** `make bench-histogram` and `make bench-line` are updated to
+call `ttfr_bench.py --chart histogram|--chart line` (the Makefile currently invokes the
+two deleted scripts directly — `Makefile:13,18` — so it changes in the same PR). The
+existing CLI flags (`--sizes`, `--n-traces`, `--data-sources`, `--contenders`,
+`--repeats`, `--warmup`, `--seed`, `--json-out`, …) are preserved on the unified
+entrypoint so `report.py` and existing invocations keep working; the `results/*.json`
+schema is unchanged except for the added memory metric fields.
 
 ### Page contract
 
@@ -130,14 +141,15 @@ small result; in-memory + disk):
 | Mosaic-server | `CREATE TABLE` native DuckDB (in-mem) / parquet view (disk) over WS | real vgplot | fixes in-memory paradox (registered-frame→native table); remove inert `diskcache`; M4/bin already best-practice |
 | Perspective-server | `perspective-python` server table (in-mem) / reads file into table (disk) | `<perspective-viewer>` streaming **only the viewport** | new; the server-mode half of the pair |
 
-**Class B — client-compute (WASM), browser-render** (data shipped as in-RAM Arrow
-buffer; **in-memory only**, disk = N/A):
+**Class B — client-compute (WASM/JS), browser-render** (**in-memory only**, disk =
+N/A). "Pre-loaded in the native store" is engine-specific; the wire format is just
+transport, and each engine's store is materialized *before* the timed window:
 
-| Tool | Browser engine | Data into browser | Notes |
+| Tool | Browser engine | Wire → native in-browser store (built pre-timing) | Notes |
 |---|---|---|---|
-| Mosaic-wasm | vgplot + **DuckDB-WASM** (`wasmConnector`) | Arrow buffer → WASM table | WASM half of the Mosaic pair |
-| Perspective-wasm | `<perspective-viewer>` + `perspective-viewer-d3fc`, client `Table` | Arrow buffer → WASM `Table` | WASM half of the Perspective pair |
-| Graphic Walker | `@kanaries/graphic-walker` `PureRenderer` | Arrow buffer + vis-spec | replaces hand-SVG; drops PyGWalker dup |
+| Mosaic-wasm | vgplot + **DuckDB-WASM** (`wasmConnector`) | Arrow IPC → registered DuckDB-WASM table | WASM half of the Mosaic pair |
+| Perspective-wasm | `<perspective-viewer>` + `perspective-viewer-d3fc` | Arrow IPC → WASM `Table` | WASM half of the Perspective pair |
+| Graphic Walker | `@kanaries/graphic-walker` `PureRenderer` | columnar/`rawData` **row objects** (GW does not ingest Arrow) → JS array + `fields`/vis-spec | replaces hand-SVG; drops PyGWalker dup |
 
 **Class C — server-rasterize, browser-displays-image** (request-triggered `/render.png`;
 clock = request→`img.decode()`; in-memory + disk):
@@ -219,53 +231,73 @@ same browser-side end-to-end clock.
 
 ### Render-complete signals
 
-- FlexViz: Plotly `afterplot` (existing hook).
-- Mosaic-server / Mosaic-wasm: `await plot.value.update()` (vgplot, both connectors).
-- Graphic Walker: canvas/SVG non-blank pixel poll after `PureRenderer` mount.
-- Perspective-server / Perspective-wasm: `perspective-view-update` event +
-  `await viewer.flush()`.
-- Rasterizers: `await img.decode()` + one `requestAnimationFrame`.
+A render signal alone does not prove a frame was painted — Plotly's `afterplot`,
+vgplot's `plot.value.update()`, and Perspective's events can all fire before the next
+compositor frame. So **every** engine applies the same paint-proof policy: after its
+engine-specific ready signal, mark `t_first_paint` only after a **double
+`requestAnimationFrame`** (the second rAF callback runs after a paint).
+
+- FlexViz: Plotly `afterplot` (existing hook) → double-rAF.
+- Mosaic-server / Mosaic-wasm: `await plot.value.update()` (vgplot, both connectors) →
+  double-rAF.
+- Graphic Walker: `PureRenderer` mount + canvas/SVG non-blank pixel poll → double-rAF.
+- Perspective-server / Perspective-wasm: prefer the **`viewer.restore(config)` /
+  `viewer.load(table)` promise** (per the viewer API these resolve after the first
+  frame), corroborated by a `perspective-view-update` event → double-rAF.
+- Rasterizers: `await img.decode()` → double-rAF.
 
 ### Memory measurement (`PeakRSSSampler` → `ProcessTreeSampler`)
 
-**Metric:** USS (`psutil.memory_full_info().uss`), not summed RSS, so shared pages
-are never double-counted; plus `spawn` not `fork` on macOS so the Mosaic child shares
-no frame with the parent. Sampler polls each group's whole process tree at ≈5 ms,
-plus a final reading; documented caveat that sub-5 ms spikes can be missed.
+**Metric: RSS, not USS — verified constraint.** On macOS `psutil.memory_full_info()`
+(USS) raises `AccessDenied` for any process that is not *self* (SIP / `task_for_pid`),
+so USS is unreadable for the Mosaic DuckDB child and the entire Chromium tree —
+exactly the out-of-process things we must measure. `memory_info().rss` *is* readable
+for descendants (verified). We therefore use **RSS everywhere** for cross-tool
+consistency, with two mitigations: (a) `spawn` not `fork` on macOS so the Mosaic child
+shares no data frame with the parent; (b) every reported number is a **peak-minus-
+baseline delta**, so the roughly-constant shared system/framework pages (counted once
+per process when summing a tree) cancel out. Documented caveat: RSS over-counts shared
+pages in absolute terms, and sub-5 ms spikes between samples can be missed. Sampler
+polls each group's whole tree at ≈5 ms plus a final reading.
 
-**Concrete process mapping (the hard part):**
-- *Backend group* = the contender's server process tree. The pid is captured and
-  registered with the sampler **before** preload (so startup/load peaks are counted):
-  FlexViz runs in-process (sample our own tree); Mosaic is the spawned DuckDB child
-  (`proc.pid`); rasterizers run in-process. Root pid + `children(recursive=True)`.
-- *Browser group* = the Chromium process tree rooted at `browser.process().pid`
-  (Playwright exposes it). We sum USS over the root **and all children** — renderer,
-  GPU, network, and utility processes — because Chromium is multi-process and
-  site-isolation may spawn several renderers. Shared GPU/network/utility processes are
-  roughly constant, so **peak-minus-baseline cancels them out**; what remains is the
-  per-trial render delta (including Perspective's WASM heap and canvas buffers, which
-  the old JS-heap number missed entirely).
-- *Isolation:* one browser is reused for the whole run (launch cost is large), but
-  each trial gets a **fresh `BrowserContext` + page**, closed at trial end, so renderer
-  state does not accumulate across trials. Baseline is taken on the freshly-created,
-  pre-trigger page; peak is tracked across the timed window.
-- *Launch flags:* keep `--enable-precise-memory-info` (for the secondary JS-heap
-  column via CDP `Performance.getMetrics` → `JSHeapUsedSize`); do **not** force
-  `--single-process` (it distorts memory). GPU process kept (headless-new default).
-- *WASM/resident-table baselining:* for in-memory sources a client engine builds its
-  `Table` during preload → it sits in the browser baseline (consistent with §data
-  precondition); for disk sources the `Table` is built inside the window → captured.
+**Three explicit metrics** (the previous single "peak" conflated them):
+- `resident_footprint_mb` — RAM the engine holds the *in-memory* dataset in. Measured
+  as post-preload, pre-trigger tree RSS minus a clean process baseline. (in-memory
+  sources only; the "how big is the engine's copy" number.)
+- `preload_peak_mb` — peak tree RSS during preload/load minus the clean baseline
+  (transient cost of building the store; backend pid registered *before* preload so
+  this is captured).
+- `timed_peak_delta_mb` — peak tree RSS during the timed render window minus the
+  pre-trigger baseline (the incremental memory of producing+rendering the chart). This
+  is the headline render-memory number, comparable across tools.
 
-**Baseline is uniform across tools within a source type** (what tool-vs-tool
-comparison needs): in-memory data sits in every tool's baseline; disk data is loaded
-inside the window for every tool. The in-memory-vs-disk difference *within* a tool is
-a real, meaningful axis. Additionally report **resident-footprint** (RAM each engine
-holds the in-memory dataset in) as its own metric — measured as the post-preload,
-pre-trigger USS minus a clean process baseline.
+**Concrete process discovery (supported APIs only):**
+- *Backend group* — FlexViz and the rasterizers run in-process → sample our own tree.
+  Mosaic's DuckDB server is the `multiprocessing` child → its `proc.pid`. Root pid +
+  `children(recursive=True)`, RSS summed.
+- *Browser group* — **`browser.process()` does not exist in Python Playwright**
+  (verified `hasattr → False`); the private `_impl_obj`/`_proc` transport is rejected
+  as unstable. Instead we launch via `launch_persistent_context(user_data_dir=<unique
+  tag>, …)` and **discover the Chromium root by scanning our process descendants for
+  the one whose `cmdline()` contains the unique `user_data_dir`** (verified to uniquely
+  identify it), then sum RSS over that root + `children(recursive=True)` — renderer,
+  GPU, network, utility. A unit test asserts exactly one root matches the tag.
+- *Isolation:* one persistent context is reused (launch cost is large); each trial gets
+  a fresh page closed at trial end so renderer state does not accumulate. Baseline is
+  taken on the freshly-created, pre-trigger page; peak tracked across the timed window.
+- *Launch flags:* keep `--enable-precise-memory-info` for a *secondary* JS-heap column
+  (CDP `Performance.getMetrics` → `JSHeapUsedSize`); do **not** force `--single-process`
+  (distorts memory). RSS of the renderer tree — unlike JS heap — captures Perspective's
+  WASM heap and canvas buffers.
 
-*Known limitation:* USS sampling of a shared reused browser attributes only the
-per-trial delta, not absolute renderer footprint; acceptable because the comparison
-of interest is incremental render cost. Documented in the report.
+**Baseline uniformity** holds within a source type (in-memory data sits in every tool's
+baseline; disk data is loaded inside the window for every tool), so tool-vs-tool render
+deltas are comparable; the in-memory-vs-disk difference within a tool is a real axis.
+
+*Known limitation:* RSS sampling of a shared reused browser attributes only the
+per-trial delta, not absolute renderer footprint, and over-counts shared framework
+pages in absolute terms (cancelled by the delta); acceptable because the comparison of
+interest is incremental render cost. Documented in the report.
 
 ### Vendoring & reproducibility
 
@@ -302,8 +334,9 @@ The existing tests inspect *strings* (`kernel_computation=True` in
 Walker-duplicate bugs. The new suite is **behavioral** — it renders and inspects the
 result, not the source:
 
-- **Unit:** datagen determinism, spec builders, contract parsing, sampler USS math
-  (mock psutil), MIME/manifest checks.
+- **Unit:** datagen determinism, spec builders, contract parsing, sampler RSS math +
+  baseline/delta accounting (mock psutil), the browser-root process-tag discovery
+  (assert exactly one root matches the `user_data_dir` tag), MIME/manifest checks.
 - **Real-engine markers (per contender):** after a render, assert the page actually
   loaded the real library — e.g. a `<perspective-viewer>` element with a populated
   shadow DOM, a Graphic Walker canvas/SVG produced by its renderer, a Plotly
