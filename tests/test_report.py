@@ -1,18 +1,26 @@
 # tests/test_report.py
 import json
 import os
+import sys
 import tempfile
-import pytest
 from pathlib import Path
 
-import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
 from report import (
-    load_summaries, load_json, _detect_dimensions, build_figure, build_page,
-    _hex_to_rgba, _format_size, compute_bands, TIMING_METRICS, MEMORY_METRICS,
+    MEMORY_METRICS,
+    TIMING_METRICS,
+    _detect_dimensions,
+    _format_size,
+    _hex_to_rgba,
+    build_browser_memory_table,
+    build_figure,
+    build_page,
+    build_timing_table,
+    compute_bands,
+    load_json,
+    main,
 )
-
 
 SAMPLE_SUMMARY = [
     # flexviz — rows scaling
@@ -317,6 +325,97 @@ class TestBuildFigure:
         labels = {b.label for b in buttons}
         assert labels == {"Log", "Linear"}
 
+    def test_transfer_and_render_are_not_visualized_by_default(self):
+        fig = build_figure(
+            SAMPLE_SUMMARY, {},
+            x_key="rows",
+            row_filter={"n_traces": 1},
+            metrics=TIMING_METRICS + MEMORY_METRICS,
+            show_legend=True,
+            add_toggle=False,
+            x_log=True,
+            title="Rows Scaling",
+        )
+        subplot_titles = [annotation.text for annotation in fig.layout.annotations]
+        assert "total" in subplot_titles
+        assert "query" in subplot_titles
+        assert "transfer" not in subplot_titles
+        assert "render" not in subplot_titles
+
+    def test_graphic_walker_uses_explicit_tool_style(self):
+        summaries = [
+            {
+                "rows": 1000,
+                "n_traces": 1,
+                "tool": "graphic-walker",
+                "source": "disk-parquet",
+                "trials": 3,
+                "total_median_ms": 100.0,
+                "query_median_ms": 60.0,
+                "transfer_median_ms": None,
+                "render_median_ms": 40.0,
+                "peak_backend_median_mb": 10.0,
+                "peak_browser_median_mb": 5.0,
+            },
+            {
+                "rows": 2000,
+                "n_traces": 1,
+                "tool": "graphic-walker",
+                "source": "disk-parquet",
+                "trials": 3,
+                "total_median_ms": 150.0,
+                "query_median_ms": 90.0,
+                "transfer_median_ms": None,
+                "render_median_ms": 60.0,
+                "peak_backend_median_mb": 12.0,
+                "peak_browser_median_mb": 6.0,
+            },
+        ]
+        trials = {
+            "1000": {
+                "1": {
+                    "disk-parquet": {
+                        "graphic-walker": [
+                            {"total_ms": 90.0, "query_ms": 50.0, "transfer_ms": None,
+                             "render_ms": 35.0, "peak_backend_mb": 9.0, "peak_browser_mb": 4.0},
+                            {"total_ms": 100.0, "query_ms": 60.0, "transfer_ms": None,
+                             "render_ms": 40.0, "peak_backend_mb": 10.0, "peak_browser_mb": 5.0},
+                        ]
+                    }
+                }
+            },
+            "2000": {
+                "1": {
+                    "disk-parquet": {
+                        "graphic-walker": [
+                            {"total_ms": 140.0, "query_ms": 80.0, "transfer_ms": None,
+                             "render_ms": 55.0, "peak_backend_mb": 11.0, "peak_browser_mb": 5.5},
+                            {"total_ms": 150.0, "query_ms": 90.0, "transfer_ms": None,
+                             "render_ms": 60.0, "peak_backend_mb": 12.0, "peak_browser_mb": 6.0},
+                        ]
+                    }
+                }
+            },
+        }
+        fig = build_figure(
+            summaries,
+            compute_bands(trials),
+            x_key="rows",
+            row_filter={"n_traces": 1},
+            metrics=TIMING_METRICS,
+            show_legend=True,
+            add_toggle=False,
+            x_log=True,
+            title="Rows Scaling",
+        )
+
+        main_trace = next(t for t in fig.data if t.name == "graphic-walker · disk-parquet")
+        band_trace = next(t for t in fig.data if t.name == "graphic-walker · disk-parquet p75")
+        assert main_trace.line.color == "#d97706"
+        assert main_trace.marker.color == "#d97706"
+        assert main_trace.marker.symbol == "diamond"
+        assert band_trace.fillcolor == "rgba(217, 119, 6, 0.15)"
+
 
 SAMPLE_CONFIG = {
     "sizes": [1000, 2000],
@@ -347,7 +446,7 @@ class TestBuildPage:
             add_toggle=False, x_log=False, title="Traces Scaling",
         )
         return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, dims,
-                          fixed_n_traces=1, fixed_rows=2000)
+                          fixed_n_traces=1, fixed_rows=2000, summaries=SAMPLE_SUMMARY)
 
     def test_returns_string(self):
         assert isinstance(self._make_page(), str)
@@ -377,6 +476,109 @@ class TestBuildPage:
         assert page.count('id="fig1"') == 1
         assert page.count('id="fig2"') == 1
 
+    def test_contains_transfer_render_tables(self):
+        page = self._make_page()
+        assert page.count('class="timing-detail-table"') == 2
+        assert "Transfer &amp; render median timings (ms)" in page
+        assert ">Transfer</th>" in page
+        assert ">Render</th>" in page
+        assert "15.00" in page
+        assert "45.00" in page
+
+    def test_contains_browser_memory_tables(self):
+        page = self._make_page()
+        assert page.count('class="memory-detail-table"') == 2
+        assert "Browser peak memory (MB)" in page
+        assert ">Browser peak</th>" in page
+
+
+class TestBrowserMemoryTable:
+    def test_memory_metrics_excludes_browser(self):
+        fields = [field for field, _ in MEMORY_METRICS]
+        assert "peak_backend_median_mb" in fields
+        assert "peak_browser_median_mb" not in fields
+
+    def test_browser_peak_not_visualized_in_figure(self):
+        fig = build_figure(
+            SAMPLE_SUMMARY, {},
+            x_key="rows", row_filter={"n_traces": 1},
+            metrics=TIMING_METRICS + MEMORY_METRICS,
+            show_legend=True, add_toggle=False, x_log=True, title="Rows Scaling",
+        )
+        subplot_titles = [a.text for a in fig.layout.annotations]
+        assert "backend peak" in subplot_titles
+        assert "browser peak" not in subplot_titles
+
+    def test_table_has_browser_values(self):
+        table = build_browser_memory_table(
+            SAMPLE_SUMMARY, x_key="rows", row_filter={"n_traces": 1},
+        )
+        compact = "".join(table.split())
+        assert 'class="memory-detail-table"' in compact
+        assert '<thclass="metric">Browserpeak</th>' in compact
+        # flexviz browser peaks: 20.0 MB @1000 rows, 30.0 MB @2000 rows
+        assert (
+            "<td>flexviz</td><td>disk-parquet</td>"
+            '<tdclass="metric">20.00</td>'
+            '<tdclass="metric">30.00</td>'
+        ) in compact
+
+    def test_empty_when_no_data(self):
+        assert build_browser_memory_table(
+            SAMPLE_SUMMARY, x_key="rows", row_filter={"n_traces": 99},
+        ) == ""
+
+
+class TestBuildTimingTable:
+    def test_groups_dimension_values_as_columns(self):
+        table = build_timing_table(
+            SAMPLE_SUMMARY,
+            x_key="rows",
+            row_filter={"n_traces": 1},
+        )
+        compact = "".join(table.split())
+
+        assert '<thclass="dimension"colspan="2">1,000rows</th>' in compact
+        assert '<thclass="dimension"colspan="2">2,000rows</th>' in compact
+        assert compact.count('<thclass="metric">Transfer</th>') == 2
+        assert compact.count('<thclass="metric">Render</th>') == 2
+        assert (
+            "<td>flexviz</td>"
+            "<td>disk-parquet</td>"
+            '<tdclass="metric">10.00</td>'
+            '<tdclass="metric">30.00</td>'
+            '<tdclass="metric">15.00</td>'
+            '<tdclass="metric">45.00</td>'
+        ) in compact
+
+
+class TestMain:
+    def test_generated_report_shows_legend_on_both_plots(self, monkeypatch, tmp_path):
+        json_path = tmp_path / "sample.json"
+        json_path.write_text(
+            json.dumps(
+                {
+                    "summary": SAMPLE_SUMMARY,
+                    "trials": SAMPLE_TRIALS,
+                    "config": SAMPLE_CONFIG,
+                    "notes": SAMPLE_NOTES,
+                }
+            )
+        )
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["report.py", str(json_path), "--out-dir", str(tmp_path)],
+        )
+
+        main()
+
+        html = (tmp_path / "sample_report.html").read_text()
+        fig1_html = html.split('id="fig1"', 1)[1].split('id="fig2"', 1)[0]
+        fig2_html = html.split('id="fig2"', 1)[1]
+        assert '"showlegend":true' in fig1_html
+        assert '"showlegend":true' in fig2_html
+
 
 class TestBuildPageMethodologyCard:
     def _make_page(self):
@@ -394,18 +596,22 @@ class TestBuildPageMethodologyCard:
             add_toggle=False, x_log=False, title="Traces Scaling",
         )
         return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, dims,
-                          fixed_n_traces=1, fixed_rows=2000)
+                          fixed_n_traces=1, fixed_rows=2000, summaries=SAMPLE_SUMMARY)
 
     def test_methodology_card_present(self):
         assert "Tools &amp; Methodology" in self._make_page()
 
     def test_all_tools_described(self):
         page = self._make_page()
-        for tool in ("FlexViz", "Mosaic", "Vaex", "PyGWalker"):
+        for tool in ("FlexViz", "Mosaic", "Vaex", "Graphic Walker"):
             assert tool in page
+        assert "PyGWalker</h3>" not in page
+        assert "<th>PyGWalker</th>" not in page
 
     def test_measurability_table_present(self):
         page = self._make_page()
         assert "peak_backend_mb" in page
         assert "transfer_ms" in page
         assert "WebSocket" in page
+        assert "Graphic Walker kernel computation" in page
+        assert "SVG DOM" in page

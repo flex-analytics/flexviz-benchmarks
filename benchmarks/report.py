@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from html import escape
 from pathlib import Path
 from typing import Any
 
@@ -22,13 +23,22 @@ from plotly.subplots import make_subplots
 TIMING_METRICS: list[tuple[str, str]] = [
     ("total_median_ms", "total"),
     ("query_median_ms", "query"),
-    ("transfer_median_ms", "transfer"),
-    ("render_median_ms", "render"),
 ]
 
+# Detail metrics rendered as tables rather than chart columns.
+# (field, short column header)
+DETAIL_TIMING_METRICS: list[tuple[str, str]] = [
+    ("transfer_median_ms", "Transfer"),
+    ("render_median_ms", "Render"),
+]
+BROWSER_MEMORY_METRICS: list[tuple[str, str]] = [
+    ("peak_browser_median_mb", "Browser peak"),
+]
+
+# Browser peak memory is reported in a separate table (see build_browser_memory_table),
+# so only backend peak is visualized as a chart column.
 MEMORY_METRICS: list[tuple[str, str]] = [
     ("peak_backend_median_mb", "backend peak"),
-    ("peak_browser_median_mb", "browser peak"),
 ]
 
 TOOL_COLOR: dict[str, str] = {
@@ -36,12 +46,14 @@ TOOL_COLOR: dict[str, str] = {
     "mosaic": "#dc2626",
     "vaex": "#16a34a",
     "pygwalker": "#d97706",
+    "graphic-walker": "#d97706",
 }
 TOOL_MARKER: dict[str, str] = {
     "flexviz": "circle",
     "mosaic": "square",
     "vaex": "triangle-up",
     "pygwalker": "diamond",
+    "graphic-walker": "diamond",
 }
 SOURCE_DASH: dict[str, str] = {
     "disk-parquet": "solid",
@@ -63,6 +75,27 @@ def _format_size(n: int) -> str:
     if n >= 1_000:
         return f"{n // 1_000}K"
     return str(n)
+
+
+def _format_ms(value: Any) -> str:
+    if value is None:
+        return "&mdash;"
+    return f"{float(value):.2f}"
+
+
+def _format_dimension_value(x_key: str, value: Any) -> str:
+    if x_key == "rows" and isinstance(value, int):
+        return f"{value:,}"
+    return str(value)
+
+
+def _format_timing_dimension_header(x_key: str, value: Any) -> str:
+    if x_key == "rows":
+        return f"{_format_dimension_value(x_key, value)} rows"
+    if x_key == "n_traces":
+        suffix = "trace" if value == 1 else "traces"
+        return f"{value} {suffix}"
+    return _format_dimension_value(x_key, value)
 
 
 # ---------------------------------------------------------------------------
@@ -403,6 +436,50 @@ p, li { font-size: 0.88rem; color: #4a4a6a; line-height: 1.5; }
 }
 .measure-table .yes { color: #15803d; }
 .measure-table .no  { color: #9ca3af; }
+.timing-detail {
+    border-top: 1px solid #e5e7eb;
+    margin-top: 12px;
+    padding-top: 12px;
+}
+.timing-detail h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 8px;
+}
+.timing-table-scroll { overflow-x: auto; }
+.timing-detail-table,
+.memory-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+.timing-detail-table th,
+.timing-detail-table td,
+.memory-detail-table th,
+.memory-detail-table td {
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid #edf0f3;
+    white-space: nowrap;
+}
+.timing-detail-table th,
+.memory-detail-table th {
+    font-weight: 600;
+    color: #8888aa;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+}
+.timing-detail-table th.dimension,
+.memory-detail-table th.dimension {
+    text-align: center;
+    color: #4a4a6a;
+}
+.timing-detail-table th[rowspan],
+.memory-detail-table th[rowspan] { vertical-align: bottom; }
+.timing-detail-table .metric,
+.memory-detail-table .metric { text-align: right; font-variant-numeric: tabular-nums; }
 code {
     font-family: "SFMono-Regular", Consolas, monospace;
     font-size: 0.85em;
@@ -442,10 +519,11 @@ _METHODOLOGY_HTML = """\
       time and <code>transfer_ms</code> is not applicable.</p>
     </div>
     <div class="tool-desc-item">
-      <h3>PyGWalker</h3>
-      <p><em>HTML artifact.</em> Python serialises the full dataset as JSON into a
-      self-contained HTML file containing a React (Graphic Walker) widget.
-      <code>query_ms</code> reflects Python serialisation time;
+      <h3>Graphic Walker</h3>
+      <p><em>Kernel-computed HTML artifact.</em> Python builds a Graphic Walker
+      visualization spec, runs kernel-side computation over the selected columns,
+      and serves the resulting SVG chart in a self-contained HTML page.
+      <code>query_ms</code> reflects Graphic Walker kernel computation and SVG generation;
       <code>transfer_ms</code> is not applicable.</p>
     </div>
   </div>
@@ -459,7 +537,7 @@ _METHODOLOGY_HTML = """\
           <th>FlexViz</th>
           <th>Mosaic</th>
           <th>Vaex</th>
-          <th>PyGWalker</th>
+          <th>Graphic Walker</th>
         </tr>
       </thead>
       <tbody>
@@ -475,7 +553,7 @@ _METHODOLOGY_HTML = """\
           <td class="yes">&#10003; server-side Polars query</td>
           <td class="no">&#8212; WebSocket (not in ResourceTiming)</td>
           <td class="yes">&#10003; Python SVG generation</td>
-          <td class="yes">&#10003; Python HTML generation</td>
+          <td class="yes">&#10003; Graphic Walker kernel computation<br>and SVG generation</td>
         </tr>
         <tr>
           <td><code>transfer_ms</code></td>
@@ -489,31 +567,141 @@ _METHODOLOGY_HTML = """\
           <td class="yes">&#10003; <code>Plotly.react</code> duration</td>
           <td class="no">&#8212; WebSocket</td>
           <td class="yes">&#10003; browser page load</td>
-          <td class="yes">&#10003; browser page load</td>
+          <td class="yes">&#10003; browser page load<br>(SVG artifact)</td>
         </tr>
         <tr>
           <td><code>peak_backend_mb</code></td>
-          <td class="yes">&#10003; Python process (tracemalloc;<br>covers server query thread)</td>
-          <td class="yes">&#10003; Node.js/DuckDB process RSS<br>(psutil; sampled post-render)</td>
-          <td class="yes">&#10003; Python process (tracemalloc;<br>covers SVG generation)</td>
-          <td class="yes">&#10003; Python process (tracemalloc;<br>covers HTML generation)</td>
+          <td class="yes">&#10003; Process RSS peak (psutil sampling;<br>includes native Polars/Arrow/Rust)</td>
+          <td class="yes">&#10003; DuckDB subprocess RSS peak<br>(psutil sampling during query)</td>
+          <td class="yes">&#10003; Process RSS peak (psutil sampling;<br>covers SVG generation)</td>
+          <td class="yes">&#10003; Process RSS peak (psutil sampling;<br>covers kernel computation and SVG generation)</td>
         </tr>
         <tr>
           <td><code>peak_browser_mb</code></td>
           <td class="yes">&#10003; JS heap delta<br>(Plotly.js render)</td>
           <td class="yes">&#10003; JS heap delta<br>(Mosaic render)</td>
           <td class="yes">&#10003; JS heap delta<br>(SVG DOM)</td>
-          <td class="yes">&#10003; JS heap delta<br>(React widget)</td>
+          <td class="yes">&#10003; JS heap delta<br>(SVG DOM)</td>
         </tr>
       </tbody>
     </table>
     <p class="footnote">
-      tracemalloc tracks CPython heap allocations only &mdash; C-extension buffers
-      (Polars, Arrow) are not counted. Values are understated in absolute terms but
-      comparable across runs.
+      <code>peak_backend_mb</code> is the peak resident set size (RSS) over the
+      trial, sampled via psutil and reported above a pre-trial baseline. Unlike
+      tracemalloc, RSS includes native (Polars / Arrow / DuckDB / Rust)
+      allocations. The headless browser runs in a separate process and is excluded
+      here &mdash; its memory is reported as <code>peak_browser_mb</code> in the
+      browser-peak table below each chart.
     </p>
   </div>
 </div>"""
+
+
+def _build_metric_table(
+    summaries: list[dict[str, Any]],
+    *,
+    x_key: str,
+    row_filter: dict[str, Any],
+    metrics: list[tuple[str, str]],
+    heading: str,
+    table_class: str,
+) -> str:
+    """Render a grouped detail table.
+
+    Rows are (tool, source); column groups are the dimension values of
+    ``x_key``; within each group there is one sub-column per metric. ``metrics``
+    is a list of ``(summary_field, short_header)`` pairs.
+    """
+    data_filtered = _filter(summaries, **row_filter)
+    if not data_filtered:
+        return ""
+
+    dimension_values = sorted({summary[x_key] for summary in data_filtered})
+    row_keys = sorted({(summary["tool"], summary["source"]) for summary in data_filtered})
+    by_row_and_dimension = {
+        (summary["tool"], summary["source"], summary[x_key]): summary
+        for summary in data_filtered
+    }
+
+    dimension_headers = "".join(
+        f'<th class="dimension" colspan="{len(metrics)}">'
+        f"{escape(_format_timing_dimension_header(x_key, value))}</th>"
+        for value in dimension_values
+    )
+    metric_headers = "".join(
+        f'<th class="metric">{escape(header)}</th>'
+        for _ in dimension_values
+        for _, header in metrics
+    )
+    rows_html = ""
+    for tool, source in row_keys:
+        metric_cells = "".join(
+            f'<td class="metric">{_format_ms(summary.get(field) if summary else None)}</td>'
+            for value in dimension_values
+            for summary in [by_row_and_dimension.get((tool, source, value))]
+            for field, _ in metrics
+        )
+        rows_html += (
+            "<tr>"
+            f"<td>{escape(tool)}</td>"
+            f"<td>{escape(source)}</td>"
+            f"{metric_cells}"
+            "</tr>"
+        )
+
+    return f"""\
+<div class="timing-detail">
+  <h3>{escape(heading)}</h3>
+  <div class="timing-table-scroll">
+    <table class="{table_class}">
+      <thead>
+        <tr>
+          <th rowspan="2">Tool</th>
+          <th rowspan="2">Source</th>
+          {dimension_headers}
+        </tr>
+        <tr>
+          {metric_headers}
+        </tr>
+      </thead>
+      <tbody>
+        {rows_html}
+      </tbody>
+    </table>
+  </div>
+</div>"""
+
+
+def build_timing_table(
+    summaries: list[dict[str, Any]],
+    *,
+    x_key: str,
+    row_filter: dict[str, Any],
+) -> str:
+    return _build_metric_table(
+        summaries,
+        x_key=x_key,
+        row_filter=row_filter,
+        metrics=DETAIL_TIMING_METRICS,
+        heading="Transfer & render median timings (ms)",
+        table_class="timing-detail-table",
+    )
+
+
+def build_browser_memory_table(
+    summaries: list[dict[str, Any]],
+    *,
+    x_key: str,
+    row_filter: dict[str, Any],
+) -> str:
+    return _build_metric_table(
+        summaries,
+        x_key=x_key,
+        row_filter=row_filter,
+        metrics=BROWSER_MEMORY_METRICS,
+        heading="Browser peak memory (MB)",
+        table_class="memory-detail-table",
+    )
 
 
 def build_page(
@@ -525,6 +713,7 @@ def build_page(
     *,
     fixed_n_traces: int,
     fixed_rows: int,
+    summaries: list[dict[str, Any]] | None = None,
 ) -> str:
     fig1_html = fig1.to_html(
         full_html=False, div_id="fig1",
@@ -556,39 +745,60 @@ def build_page(
 
     fixed_rows_fmt = f"{fixed_rows:,}"
     plural_s = "s" if fixed_n_traces != 1 else ""
+    summaries = summaries or []
+    fig1_timing_table = build_timing_table(
+        summaries,
+        x_key="rows",
+        row_filter={"n_traces": fixed_n_traces},
+    )
+    fig2_timing_table = build_timing_table(
+        summaries,
+        x_key="n_traces",
+        row_filter={"rows": fixed_rows},
+    )
+    fig1_browser_table = build_browser_memory_table(
+        summaries,
+        x_key="rows",
+        row_filter={"n_traces": fixed_n_traces},
+    )
+    fig2_browser_table = build_browser_memory_table(
+        summaries,
+        x_key="n_traces",
+        row_filter={"rows": fixed_rows},
+    )
 
-    resize_and_link_js = f"""
+    resize_and_link_js = """
 <script>
-(function() {{
+(function() {
     // Responsive resize for both figures
-    ['fig1', 'fig2'].forEach(function(id) {{
+    ['fig1', 'fig2'].forEach(function(id) {
         var gd = document.getElementById(id);
         if (!gd) return;
         gd.style.width = '100%';
-        function resize() {{ Plotly.relayout(gd, {{width: gd.parentElement.offsetWidth}}); }}
+        function resize() { Plotly.relayout(gd, {width: gd.parentElement.offsetWidth}); }
         window.addEventListener('resize', resize);
         resize();
-    }});
+    });
 
     // Mirror legend visibility from fig1 to fig2
     var gd1 = document.getElementById('fig1');
     var gd2 = document.getElementById('fig2');
-    if (gd1 && gd2) {{
-        gd1.on('plotly_restyle', function(eventData) {{
+    if (gd1 && gd2) {
+        gd1.on('plotly_restyle', function(eventData) {
             if (!eventData || !('visible' in eventData[0])) return;
-            var lgMap = {{}};
-            gd1.data.forEach(function(t) {{
+            var lgMap = {};
+            gd1.data.forEach(function(t) {
                 if (t.legendgroup) lgMap[t.legendgroup] = t.visible;
-            }});
-            var newVis = gd2.data.map(function(t) {{
+            });
+            var newVis = gd2.data.map(function(t) {
                 return (t.legendgroup && t.legendgroup in lgMap)
                     ? lgMap[t.legendgroup]
                     : t.visible;
-            }});
-            Plotly.restyle(gd2, {{visible: newVis}});
-        }});
-    }}
-}})();
+            });
+            Plotly.restyle(gd2, {visible: newVis});
+        });
+    }
+})();
 </script>
 """
 
@@ -625,7 +835,7 @@ def build_page(
     <p>How render time and memory grow as dataset size increases, with the number of traces fixed at {fixed_n_traces}. Use the Log / Linear toggle to switch the x-axis scale.</p>
   </div>
 
-  <div class="chart-card">{fig1_html}</div>
+  <div class="chart-card">{fig1_html}{fig1_timing_table}{fig1_browser_table}</div>
 
   <div class="separator">
     <div class="section-card">
@@ -638,7 +848,7 @@ def build_page(
     </div>
   </div>
 
-  <div class="chart-card">{fig2_html}</div>
+  <div class="chart-card">{fig2_html}{fig2_timing_table}{fig2_browser_table}</div>
 
 </div>
 {resize_and_link_js}
@@ -708,7 +918,7 @@ def main() -> None:
         x_key="n_traces",
         row_filter={"rows": fixed_rows},
         metrics=metrics,
-        show_legend=False,
+        show_legend=True,
         add_toggle=False,
         x_log=False,
         title="Traces Scaling",
@@ -718,6 +928,7 @@ def main() -> None:
         fig1, fig2, config, notes, dims,
         fixed_n_traces=fixed_n_traces,
         fixed_rows=fixed_rows,
+        summaries=summaries,
     )
 
     out_dir = args.out_dir if args.out_dir else args.json_file.parent

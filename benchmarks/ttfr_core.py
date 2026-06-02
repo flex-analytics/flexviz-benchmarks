@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import random
 import statistics
+import threading
 import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
@@ -14,6 +15,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 import polars as pl
+import psutil
 
 # ---------------------------------------------------------------------------
 # Data source types
@@ -46,6 +48,39 @@ FORMAT_SUFFIX: dict[str, str] = {
 }
 
 
+def write_parquet_in_chunks(
+    path: Path,
+    columns: Mapping[str, Any],
+    *,
+    chunk_rows: int = 10_000_000,
+) -> None:
+    """Stream equal-length numpy arrays to a Parquet file in row chunks.
+
+    Writes one row group per chunk so very large datasets (e.g. 1B rows) can be
+    persisted without ever materializing a full Polars/Arrow table in memory.
+    """
+    import pyarrow as pa  # noqa: PLC0415
+    import pyarrow.parquet as pq  # noqa: PLC0415
+
+    if not columns:
+        raise ValueError("columns must contain at least one array")
+
+    n_rows = len(next(iter(columns.values())))
+    schema = pa.schema(
+        [(name, pa.from_numpy_dtype(arr.dtype)) for name, arr in columns.items()]
+    )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with pq.ParquetWriter(path, schema) as writer:
+        for start in range(0, n_rows, chunk_rows):
+            end = min(start + chunk_rows, n_rows)
+            batch = pa.record_batch(
+                [pa.array(arr[start:end]) for arr in columns.values()],
+                schema=schema,
+            )
+            writer.write_batch(batch)
+
+
 def ensure_wide_disk_datasets(
     base: Path,
     df_factory: Callable[[], pl.DataFrame],
@@ -67,6 +102,93 @@ def ensure_wide_disk_datasets(
     df.write_parquet(parquet)
     df.write_csv(csv)
     df.write_ipc(ipc)
+
+
+# ---------------------------------------------------------------------------
+# Memory measurement
+# ---------------------------------------------------------------------------
+
+
+class PeakRSSSampler:
+    """Tracks peak resident set size (RSS) over the lifetime of a benchmark trial.
+
+    Samples the benchmark process's RSS — and, optionally, an out-of-process
+    backend such as the Mosaic DuckDB server plus its children — on a background
+    thread, recording the high-water mark.
+
+    Why RSS and not ``tracemalloc``: the query memory of every contender is
+    dominated by *native* allocations (Polars/Arrow buffers, the FlexViz Rust
+    kernel, DuckDB) that Python's ``tracemalloc`` cannot see. tracemalloc
+    reported ~0.8 MB for a FlexViz query whose real resident footprint was
+    ~13 GB. RSS counts those native pages.
+
+    The reported value (:pyattr:`peak_mb`) is peak-minus-baseline, where the
+    baseline is RSS at ``__enter__`` (before the contender runs), so it reflects
+    the memory the trial *added* rather than the harness's own resident
+    footprint. The headless browser is a separate child process and is
+    deliberately excluded here — its memory is reported separately as
+    ``peak_browser_mb`` from the JS heap.
+    """
+
+    def __init__(self, *, interval_s: float = 0.02) -> None:
+        self._interval_s = interval_s
+        self._self_proc = psutil.Process()
+        self._backend_pid: int | None = None
+        self._baseline_bytes = 0
+        self._peak_bytes = 0
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def set_backend_pid(self, pid: int | None) -> None:
+        """Also count an out-of-process backend (e.g. the Mosaic server) and its
+        children. Safe to call after the backend starts; tolerates a dead pid."""
+        self._backend_pid = pid
+
+    def _sample_bytes(self) -> int:
+        try:
+            total = self._self_proc.memory_info().rss
+        except psutil.Error:
+            total = 0
+        pid = self._backend_pid
+        if pid is not None:
+            try:
+                proc = psutil.Process(pid)
+                total += proc.memory_info().rss
+                for child in proc.children(recursive=True):
+                    try:
+                        total += child.memory_info().rss
+                    except psutil.Error:
+                        pass
+            except psutil.Error:
+                pass  # backend not started yet or already exited
+        return total
+
+    def _loop(self) -> None:
+        while not self._stop.wait(self._interval_s):
+            rss = self._sample_bytes()
+            if rss > self._peak_bytes:
+                self._peak_bytes = rss
+
+    def __enter__(self) -> PeakRSSSampler:
+        self._baseline_bytes = self._sample_bytes()
+        self._peak_bytes = self._baseline_bytes
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
+            self._thread = None
+        rss = self._sample_bytes()  # final reading: the peak may be at the end
+        if rss > self._peak_bytes:
+            self._peak_bytes = rss
+
+    @property
+    def peak_mb(self) -> float:
+        return max(0.0, (self._peak_bytes - self._baseline_bytes) / 1024 / 1024)
 
 
 # ---------------------------------------------------------------------------

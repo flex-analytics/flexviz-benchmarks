@@ -11,14 +11,12 @@ import sys
 import tempfile
 import threading as _threading
 import time
-import tracemalloc
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import polars as pl
-import psutil
 from config import BINS, CONTENDERS, DATA_SOURCES, N_TRACES, REPEATS, SEED, SIZES, WARMUP
 from mosaic_duckdb_server import run_mosaic_duckdb_server
 from playwright.sync_api import Page, sync_playwright
@@ -27,6 +25,7 @@ from ttfr_core import (
     DataSource,
     DiskSource,
     MemorySource,
+    PeakRSSSampler,
     Trial,
     ensure_wide_disk_datasets,
     parse_contenders_arg,
@@ -582,30 +581,25 @@ class RenderProbe:
         n_traces: int,
     ) -> Trial:
         page = self._page
-        mosaic_rss_mb = 0.0
 
-        tracemalloc.start()
-        try:
-            contender.setup(data, bins=bins, n_traces=n_traces)
-            page.goto(contender.get_url(), wait_until="networkidle", timeout=60_000)
-            page.wait_for_function(
-                "() => window.__benchTimings !== undefined",
-                timeout=30_000,
-            )
-            timings: dict = page.evaluate("() => window.__benchTimings")
-            self._validate_visual_output(page, contender, data, n_traces)
-            mosaic_proc = getattr(contender, "_mosaic_proc", None)
-            if mosaic_proc is not None:
-                try:
-                    mosaic_rss_mb = psutil.Process(mosaic_proc.pid).memory_info().rss / 1024 / 1024
-                except Exception:
-                    pass
-        finally:
-            _, peak = tracemalloc.get_traced_memory()
-            tracemalloc.stop()
-            tracemalloc.clear_traces()
-            backend_mb = max(peak / 1024 / 1024, mosaic_rss_mb)
-            contender.teardown()
+        with PeakRSSSampler() as sampler:
+            try:
+                contender.setup(data, bins=bins, n_traces=n_traces)
+                # Mosaic runs in a child process; the heavy aggregation happens
+                # browser-side during goto, so register the pid before navigating.
+                mosaic_proc = getattr(contender, "_mosaic_proc", None)
+                if mosaic_proc is not None:
+                    sampler.set_backend_pid(mosaic_proc.pid)
+                page.goto(contender.get_url(), wait_until="networkidle", timeout=60_000)
+                page.wait_for_function(
+                    "() => window.__benchTimings !== undefined",
+                    timeout=30_000,
+                )
+                timings: dict = page.evaluate("() => window.__benchTimings")
+                self._validate_visual_output(page, contender, data, n_traces)
+            finally:
+                contender.teardown()
+        backend_mb = sampler.peak_mb
 
         raw_q = timings.get("query_ms")
         raw_tr = timings.get("transfer_ms")
@@ -756,7 +750,7 @@ def main() -> None:
                         elapsed: float,
                     ) -> None:
                         label = f"{phase} {r}/{total}"
-                        print(f"  {label:<12}  {name:<12}  {elapsed:6.1f}s", flush=True)
+                        print(f"  {label:<12}  {name:<16}  {elapsed:6.1f}s", flush=True)
 
                     data = prepare_histogram_data_source(
                         source_name,

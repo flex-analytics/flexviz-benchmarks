@@ -11,14 +11,12 @@ import sys
 import tempfile
 import threading as _threading
 import time
-import tracemalloc
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import polars as pl
-import psutil
 from config import CONTENDERS, DATA_SOURCES, N_POINTS, N_TRACES, REPEATS, SEED, SIZES, WARMUP
 from mosaic_duckdb_server import run_mosaic_duckdb_server
 from playwright.sync_api import Page, sync_playwright
@@ -27,6 +25,7 @@ from ttfr_core import (
     DataSource,
     DiskSource,
     MemorySource,
+    PeakRSSSampler,
     Trial,
     ensure_wide_disk_datasets,
     parse_contenders_arg,
@@ -37,6 +36,7 @@ from ttfr_core import (
     raw_trials_to_json,
     run_repeated_trials,
     summarize_trials,
+    write_parquet_in_chunks,
 )
 from walker_utils import inject_html_benchmarks, line_vega_spec, render_kernel_walker_html
 
@@ -45,16 +45,27 @@ from walker_utils import inject_html_benchmarks, line_vega_spec, render_kernel_w
 # ---------------------------------------------------------------------------
 
 
-def _generate_line_frame(rows: int, max_n_traces: int, seed: int) -> pl.DataFrame:
-    """Returns DataFrame with columns x, y1, y2, … y{max_n_traces}."""
+def _generate_line_columns(rows: int, max_n_traces: int, seed: int) -> dict[str, np.ndarray]:
+    """Returns columns x, y1, y2, … y{max_n_traces} as numpy arrays.
+
+    Kept separate from the DataFrame builder so very large datasets can be
+    streamed to disk (see ``write_parquet_in_chunks``) without paying for an
+    extra full-frame copy in RAM.
+    """
     rng = np.random.default_rng(seed + rows)
     x = np.sort(rng.uniform(0.0, 1.0, size=rows)).astype(np.float64)
     cols: dict[str, np.ndarray] = {"x": x}
     for t in range(max_n_traces):
         rng2 = np.random.default_rng(seed + rows + (t + 1) * 9999)
-        y = np.cumsum(rng2.normal(0, 1, rows)).astype(np.float64)
+        y = rng2.normal(0, 1, rows)
+        np.cumsum(y, out=y)  # in-place: avoids a second full-length allocation
         cols[f"y{t + 1}"] = y
-    return pl.DataFrame(cols)
+    return cols
+
+
+def _generate_line_frame(rows: int, max_n_traces: int, seed: int) -> pl.DataFrame:
+    """Returns DataFrame with columns x, y1, y2, … y{max_n_traces}."""
+    return pl.DataFrame(_generate_line_columns(rows, max_n_traces, seed))
 
 
 def prepare_line_data_source(
@@ -67,11 +78,20 @@ def prepare_line_data_source(
 ) -> DataSource:
     if source_name in FORMAT_SUFFIX:
         base = Path(dataset_base.format(rows=rows))
-        ensure_wide_disk_datasets(
-            base,
-            lambda: _generate_line_frame(rows, max_n_traces, seed),
-            regenerate=regenerate,
-        )
+        if source_name == "disk-parquet":
+            # Stream parquet-only: never materializes a full frame, and skips the
+            # CSV/IPC siblings — required to fit billion-row datasets in RAM.
+            parquet = base.with_suffix(".parquet")
+            if regenerate or not parquet.exists():
+                write_parquet_in_chunks(
+                    parquet, _generate_line_columns(rows, max_n_traces, seed)
+                )
+        else:
+            ensure_wide_disk_datasets(
+                base,
+                lambda: _generate_line_frame(rows, max_n_traces, seed),
+                regenerate=regenerate,
+            )
         return DiskSource(path=base.with_suffix(FORMAT_SUFFIX[source_name]), name=source_name)
     elif source_name == "in-memory":
         return MemorySource(frame=_generate_line_frame(rows, max_n_traces, seed), name="in-memory")
@@ -585,30 +605,25 @@ class RenderProbe:
         n_traces: int,
     ) -> Trial:
         page = self._page
-        mosaic_rss_mb = 0.0
 
-        tracemalloc.start()
-        try:
-            contender.setup(data, n_points=n_points, n_traces=n_traces)
-            page.goto(contender.get_url(), wait_until="networkidle", timeout=60_000)
-            page.wait_for_function(
-                "() => window.__benchTimings !== undefined",
-                timeout=30_000,
-            )
-            timings: dict = page.evaluate("() => window.__benchTimings")
-            self._validate_visual_output(page, contender, data, n_traces)
-            mosaic_proc = getattr(contender, "_mosaic_proc", None)
-            if mosaic_proc is not None:
-                try:
-                    mosaic_rss_mb = psutil.Process(mosaic_proc.pid).memory_info().rss / 1024 / 1024
-                except Exception:
-                    pass
-        finally:
-            _, peak = tracemalloc.get_traced_memory()
-            tracemalloc.stop()
-            tracemalloc.clear_traces()
-            backend_mb = max(peak / 1024 / 1024, mosaic_rss_mb)
-            contender.teardown()
+        with PeakRSSSampler() as sampler:
+            try:
+                contender.setup(data, n_points=n_points, n_traces=n_traces)
+                # Mosaic runs in a child process; the heavy aggregation happens
+                # browser-side during goto, so register the pid before navigating.
+                mosaic_proc = getattr(contender, "_mosaic_proc", None)
+                if mosaic_proc is not None:
+                    sampler.set_backend_pid(mosaic_proc.pid)
+                page.goto(contender.get_url(), wait_until="networkidle", timeout=60_000)
+                page.wait_for_function(
+                    "() => window.__benchTimings !== undefined",
+                    timeout=30_000,
+                )
+                timings: dict = page.evaluate("() => window.__benchTimings")
+                self._validate_visual_output(page, contender, data, n_traces)
+            finally:
+                contender.teardown()
+        backend_mb = sampler.peak_mb
 
         raw_q = timings.get("query_ms")
         raw_tr = timings.get("transfer_ms")
@@ -759,7 +774,7 @@ def main() -> None:
                         elapsed: float,
                     ) -> None:
                         label = f"{phase} {r}/{total}"
-                        print(f"  {label:<12}  {name:<12}  {elapsed:6.1f}s", flush=True)
+                        print(f"  {label:<12}  {name:<16}  {elapsed:6.1f}s", flush=True)
 
                     data = prepare_line_data_source(
                         source_name,
