@@ -50,9 +50,17 @@ and measurement bugs, deduplicate, and add **Perspective** and **HoloViews+Datas
 
 ## Decisions locked during brainstorming
 
-- **Roster:** FlexViz, Mosaic, Vaex, Graphic Walker, Perspective, HoloViews+Datashader.
-  Drop the duplicate PyGWalker (keep only the underlying Graphic Walker engine).
-  No naive Plotly/Bokeh baseline.
+- **Roster (8 tools):** FlexViz, **Mosaic-server**, **Mosaic-wasm**,
+  **Perspective-server**, **Perspective-wasm**, Graphic Walker, Vaex,
+  HoloViews+Datashader. The same-engine server-vs-WASM pairs (Mosaic, Perspective)
+  isolate compute-location as a single variable — the cleanest demonstration of
+  server-compute vs ship-to-browser. Drop the duplicate PyGWalker (keep only the
+  underlying Graphic Walker engine). No naive Plotly/Bokeh baseline.
+- **Client/WASM engines run in-memory only.** Graphic Walker, Mosaic-wasm, and
+  Perspective-wasm compute in the browser; their data arrives as an in-RAM Arrow
+  buffer. They have **no disk source** (marked N/A) — they cannot do out-of-core, and
+  we are not benchmarking an HTTP-file-fetch path for them. The disk axis is
+  server-engines-only.
 - **TTFR clock:** browser-side end-to-end, from the request that triggers each tool's
   pipeline to chart-painted. No Python/browser clock reconciliation.
 - **Data precondition (source-type dependent):**
@@ -80,12 +88,13 @@ benchmarks/
     harness.py         # run_repeated_trials, Trial/Summary, RenderProbe, page contract
     memory.py          # ProcessTreeSampler (backend + browser), USS-based
     datagen.py         # histogram/line column generation + dataset materialization
-    contenders.py      # thin contender registry (one class per tool)
+    contenders.py      # contender registry; thin per-tool config grouped by class A/B/C
   probes/
     contract.js        # window.__bench page contract + ready-poll helpers
-    vendor/            # pinned, locally-served JS bundles
+    vendor/            # esbuild-built, pinned, locally-served bundles + integrity manifest
+      package.json     # pinned versions; package-lock.json freezes the tree
     <tool>.html.j2     # per-engine probe templates
-  vendor_assets.py     # one-time downloader pinning exact versions into probes/vendor/
+  vendor_assets.py     # orchestrates npm ci + esbuild → probes/vendor/; writes manifest
 ```
 
 `ttfr_histogram.py` and `ttfr_line.py` are removed. Chart-specifics live in
@@ -110,21 +119,30 @@ window.__bench = {
 reads `__bench`, and runs an always-on non-blank-pixel assertion. Missing signal →
 trial fails loudly. For rasterizers, `total_ms` is image-request → `img.decode()`.
 
-### Contenders — two classes
+### Contenders — three classes (8 tools)
 
-**Browser-renderers** (backend pre-loads data → endpoint; probe loads the real
-vendored engine):
+**Class A — server-compute, browser-render** (backend computes; browser draws the
+small result; in-memory + disk):
 
-| Tool | Backend store (preloaded) | Browser engine | Fix vs today |
+| Tool | Backend store | Browser engine | Notes / fix vs today |
 |---|---|---|---|
-| FlexViz | lazy frame registered (as-is) | Plotly `Plotly.react` | unchanged (already real) |
-| Mosaic | `CREATE TABLE` native DuckDB (in-memory); parquet view (disk) | real vgplot | fixes in-memory paradox (registered-frame→native table); remove inert `diskcache`. Line/histogram already best-practice (verified M4 envelope + server-side bin) |
-| Graphic Walker | Arrow buffer + vis-spec | `@kanaries/graphic-walker` `PureRenderer` | replaces hand-SVG; drops PyGWalker dup |
-| Perspective | Arrow `Table` (WASM) | `<perspective-viewer>` + `perspective-viewer-d3fc` | new |
+| FlexViz | lazy frame (in-mem) / `pl.scan_*` (disk) | Plotly `Plotly.react` | unchanged (already real) |
+| Mosaic-server | `CREATE TABLE` native DuckDB (in-mem) / parquet view (disk) over WS | real vgplot | fixes in-memory paradox (registered-frame→native table); remove inert `diskcache`; M4/bin already best-practice |
+| Perspective-server | `perspective-python` server table (in-mem) / reads file into table (disk) | `<perspective-viewer>` streaming **only the viewport** | new; the server-mode half of the pair |
 
-**Server-rasterizers** (backend produces PNG; probe is `<img>`; clock = request→decode):
+**Class B — client-compute (WASM), browser-render** (data shipped as in-RAM Arrow
+buffer; **in-memory only**, disk = N/A):
 
-| Tool | Pipeline | Output |
+| Tool | Browser engine | Data into browser | Notes |
+|---|---|---|---|
+| Mosaic-wasm | vgplot + **DuckDB-WASM** (`wasmConnector`) | Arrow buffer → WASM table | WASM half of the Mosaic pair |
+| Perspective-wasm | `<perspective-viewer>` + `perspective-viewer-d3fc`, client `Table` | Arrow buffer → WASM `Table` | WASM half of the Perspective pair |
+| Graphic Walker | `@kanaries/graphic-walker` `PureRenderer` | Arrow buffer + vis-spec | replaces hand-SVG; drops PyGWalker dup |
+
+**Class C — server-rasterize, browser-displays-image** (request-triggered `/render.png`;
+clock = request→`img.decode()`; in-memory + disk):
+
+| Tool | Pipeline (inside the GET) | Output |
 |---|---|---|
 | Vaex | `df.count/mean(binby=…)` → matplotlib Agg | PNG |
 | HoloViews+Datashader | `datashader.Canvas.line/points` → `tf.shade` → PNG | PNG |
@@ -143,20 +161,23 @@ The disk path must scan/load from the file *inside* the timed window; the in-mem
 path starts from a resident native store. No tool may materialize a disk source into
 engine memory before timing.
 
+Only the **server engines** have a disk source; client/WASM engines are in-memory-only
+(disk = N/A).
+
 | Tool | Disk handle (not materialized) | In-memory native store | Timed-window scan (disk) |
 |---|---|---|---|
 | FlexViz | `pl.scan_parquet/csv/ipc` (lazy); never `.collect()` pre-timing | lazy over resident frame | Polars scans file on server at `/update` |
-| Mosaic | `CREATE VIEW … FROM 'file'` (view, not TABLE) | `CREATE TABLE` native | DuckDB parallel file scan at query time |
+| Mosaic-server | `CREATE VIEW … FROM 'file'` (view, not TABLE) | `CREATE TABLE` native | DuckDB parallel file scan at query time |
+| Perspective-server | read file → server `Table` *inside* the window | server `Table` resident | file read + table build + viewport stream |
 | Vaex | `vaex.open(path)` (lazy/mmap) | `vaex.from_arrays` | binning scans file/mmap at query time |
 | Datashader | read file → df *inside* the timed call | df resident | read + `Canvas` aggregate |
-| Graphic Walker | server reads file → Arrow → ship to browser | Arrow resident server-side | server read + transfer + in-browser compute |
-| Perspective | server reads file → Arrow → ship → `Table` | Arrow resident server-side | server read + transfer + WASM `Table` build |
+| Mosaic-wasm / Perspective-wasm / Graphic Walker | — (no disk source) | Arrow buffer → WASM/engine | N/A |
 
-**Client-rendered engines materialize fully; the disk path ships the whole dataset
-to the browser.** Graphic Walker (`PureRenderer`) and the *client/WASM* variants of
-Perspective and Mosaic compute in-browser, so their "disk" path is "fetch the file
-and parse it client-side" — the whole dataset lands in browser memory; there is no
-out-of-core. This is an honest, important differentiator the report surfaces.
+**Client/WASM engines materialize the whole dataset in the browser; they have no
+out-of-core path.** This is the honest differentiator the report surfaces: as rows
+grow, the server engines ship only an envelope/viewport while the client engines must
+hold everything in browser RAM. We benchmark them on the in-memory (Arrow-buffer) case
+only.
 
 *Correction vs an earlier draft of this spec:* Perspective is **not** WASM-only.
 Per the docs it offers (a) a **client/WASM** mode (browser `Table`, Arrow/CSV/JSON —
@@ -199,9 +220,10 @@ same browser-side end-to-end clock.
 ### Render-complete signals
 
 - FlexViz: Plotly `afterplot` (existing hook).
-- Mosaic: `await plot.value.update()` (existing).
+- Mosaic-server / Mosaic-wasm: `await plot.value.update()` (vgplot, both connectors).
 - Graphic Walker: canvas/SVG non-blank pixel poll after `PureRenderer` mount.
-- Perspective: `perspective-view-update` event + `await viewer.flush()`.
+- Perspective-server / Perspective-wasm: `perspective-view-update` event +
+  `await viewer.flush()`.
 - Rasterizers: `await img.decode()` + one `requestAnimationFrame`.
 
 ### Memory measurement (`PeakRSSSampler` → `ProcessTreeSampler`)
@@ -265,9 +287,13 @@ is a small **build step**, not a curl:
 - The bundles + manifest are committed so a normal run needs no network; `npm`/esbuild
   is only required when re-vendoring.
 
-New Python deps: `datashader`, `holoviews`, `Pillow`; `matplotlib` promoted from dev.
-For the Perspective server-mode variant (if chosen), `perspective-python`. Node/npm is
-a dev-only prerequisite for (re)vendoring, not for running benchmarks.
+Engines to vendor (esbuild bundles): vgplot, **DuckDB-WASM** (large WASM + worker, for
+Mosaic-wasm), `@finos/perspective` + `@finos/perspective-viewer` +
+`perspective-viewer-d3fc` (WASM + worker), `@kanaries/graphic-walker` + React.
+
+New Python deps: `datashader`, `holoviews`, `Pillow`, **`perspective-python`** (for the
+Perspective server-mode variant); `matplotlib` promoted from dev. Node/npm is a
+dev-only prerequisite for (re)vendoring, not for running benchmarks.
 
 ## Testing
 
@@ -298,13 +324,23 @@ result, not the source:
 
 ## Out of scope / risks
 
-- **Graphic Walker `PureRenderer`** may need a small React harness; if its in-browser
-  compute can't match the others' downsample exactly, feed it pre-aggregated data and
-  document that. *Spike this first — main risk.*
+- **Three engine spikes to de-risk first, before the full plan commits to them:**
+  1. **Graphic Walker `PureRenderer`** headless in a self-contained vendored page —
+     may need a small React harness; if its in-browser compute can't match the others'
+     downsample exactly, feed it pre-aggregated data and document that. *Main risk.*
+  2. **DuckDB-WASM** (`wasmConnector`) rendering a vgplot chart from a vendored bundle
+     with no CDN — confirm the WASM + worker load and Arrow-buffer registration work
+     offline.
+  3. **Perspective server mode** (`perspective-python` virtual viewport) — confirm the
+     viewport-streaming protocol drives `<perspective-viewer>` headlessly and that we
+     can read back the rendered data for the oracle test.
+- Each client/WASM engine must satisfy the **same-picture** requirement; if an engine
+  insists on raw points, feed it the pre-aggregated envelope/bins and document it.
 - `report.py` methodology card is rewritten to describe what is actually measured
   (the current card is factually wrong, e.g. claims "Graphic Walker kernel
-  computation" that never runs).
-- No 1B-row runs in this pass; keep the existing streaming dataset path.
+  computation" that never runs) and to present the server-vs-WASM pairs.
+- No 1B-row runs in this pass; keep the existing streaming dataset path. Client/WASM
+  engines will OOM well below 1B (expected; report the ceiling rather than chasing it).
 
 ## Evidence appendix (from the review)
 
