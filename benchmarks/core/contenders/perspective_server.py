@@ -10,7 +10,7 @@ import psutil
 
 from core.contenders._perspective_tornado import run_perspective_server
 from core.contenders.base import PROBES, PageServerMixin, frame_columns
-from core.contenders.perspective_wasm import restore_config
+from core.contenders.perspective_wasm import histogram_range, restore_config
 
 
 def _free_port() -> int:
@@ -79,12 +79,16 @@ class PerspectiveServerContender(PageServerMixin):
                 headers={"X-Load-Kind": "arrow"},
                 timeout=120,
             ).raise_for_status()
+        hist_range = histogram_range(frame_or_path) if chart == "histogram" else None
         html = (
             (PROBES / "perspective_server.html.j2")
             .read_text()
             .replace("{{WS_URL}}", f"ws://127.0.0.1:{self._port}/ws")
             .replace("{{BUILD_URL}}", f"{base}/build")
-            .replace("{{RESTORE_JSON}}", json.dumps(restore_config(chart, n_traces, bins)))
+            .replace(
+                "{{RESTORE_JSON}}",
+                json.dumps(restore_config(chart, n_traces, bins, hist_range)),
+            )
         )
         self._url = self.serve_page(html)
 

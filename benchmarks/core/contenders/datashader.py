@@ -42,18 +42,38 @@ class DatashaderContender(RasterContender):
         from core.oracle import histogram_counts
 
         df = self._frame()
-        cvs = ds.Canvas(plot_width=900, plot_height=400)
         if self._chart == "line":
-            imgs = [tf.shade(cvs.line(df, "x", f"y{t + 1}")) for t in range(self._n_traces)]
+            # Shared axes across traces: x is the common column; y spans all traces. Without
+            # an explicit range each trace auto-ranges to its own extent, giving mismatched
+            # image coordinates that tf.stack cannot align (xarray fills NaN -> `over` fails).
+            ys = [f"y{t + 1}" for t in range(self._n_traces)]
+            x_range = (float(df["x"].min()), float(df["x"].max()))
+            y_range = (
+                float(min(df[c].min() for c in ys)),
+                float(max(df[c].max() for c in ys)),
+            )
+            cvs = ds.Canvas(plot_width=900, plot_height=400, x_range=x_range, y_range=y_range)
+            imgs = [tf.shade(cvs.line(df, "x", c)) for c in ys]
         else:
             # Histogram: bin counts come from the SAME numpy oracle every tool matches
             # (Task 7.1), then datashader rasterizes the per-bin step line — a real
             # datashader raster whose bars line up with the oracle (Task 7.2 asserts this).
-            imgs = []
-            for t in range(self._n_traces):
-                centers, counts = histogram_counts(df[f"value{t + 1}"].to_numpy(), self._bins)
-                hd = pd.DataFrame({"x": centers, "y": counts.astype("float64")})
-                imgs.append(tf.shade(cvs.line(hd, "x", "y")))
+            series = [
+                histogram_counts(df[f"value{t + 1}"].to_numpy(), self._bins)
+                for t in range(self._n_traces)
+            ]
+            x_range = (
+                float(min(c.min() for c, _ in series)),
+                float(max(c.max() for c, _ in series)),
+            )
+            y_range = (0.0, float(max(cnt.max() for _, cnt in series)))
+            cvs = ds.Canvas(plot_width=900, plot_height=400, x_range=x_range, y_range=y_range)
+            imgs = [
+                tf.shade(
+                    cvs.line(pd.DataFrame({"x": centers, "y": counts.astype("float64")}), "x", "y")
+                )
+                for centers, counts in series
+            ]
         img = tf.stack(*imgs)
         pil = tf.set_background(img, "white").to_pil()
         buf = io.BytesIO()

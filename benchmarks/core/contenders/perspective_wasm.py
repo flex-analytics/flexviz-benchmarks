@@ -2,24 +2,44 @@ from __future__ import annotations
 
 import io
 import json
+from pathlib import Path
 
 import pyarrow.ipc as ipc
 
 from core.contenders.base import PROBES, PageServerMixin, frame_columns
 
 
-def restore_config(chart: str, n_traces: int, bins: int) -> dict:
-    cols = [f"y{t + 1}" for t in range(n_traces)] if chart == "line" else None
+def histogram_range(frame_or_path, col: str = "value1") -> tuple[float, float]:
+    """Min/max of `col` for the histogram bin edges. Cheap columnar min/max for disk
+    (axis bounds only, not a store materialization); direct for an in-memory frame."""
+    if isinstance(frame_or_path, Path):
+        import duckdb
+
+        path = str(frame_or_path).replace("'", "''")
+        lo, hi = duckdb.connect().execute(f"SELECT min({col}), max({col}) FROM '{path}'").fetchone()
+        return float(lo), float(hi)
+    s = frame_or_path[col]
+    return float(s.min()), float(s.max())
+
+
+def restore_config(chart: str, n_traces: int, bins: int, hist_range=None) -> dict:
     if chart == "line":
         # x as group-by, y columns as series -> a line per trace
+        cols = [f"y{t + 1}" for t in range(n_traces)]
         return {"plugin": "Y Line", "group_by": ["x"], "columns": cols}
-    # histogram: bucket value1 server-side is not Perspective's model; emit a bar of counts
-    val = [f"value{t + 1}" for t in range(n_traces)]
+    # histogram: Perspective has no continuous-binning model, so bucket value1 into `bins`
+    # equal-width groups via a computed expression and count each value column per bucket —
+    # a bounded `bins`-bar render (grouping by the raw float would make one group per row).
+    vals = [f"value{t + 1}" for t in range(n_traces)]
+    lo, hi = hist_range if hist_range is not None else (0.0, 1.0)
+    width = (hi - lo) / bins if hi > lo else 1.0
+    expr = f'floor(("value1" - {lo!r}) / {width!r})'
     return {
-        "plugin": "X Bar",
-        "group_by": val,
-        "columns": [val[0]],
-        "aggregates": {val[0]: "count"},
+        "plugin": "Y Bar",
+        "expressions": {"bin": expr},
+        "group_by": ["bin"],
+        "columns": vals,
+        "aggregates": {v: "count" for v in vals},
     }
 
 
@@ -38,10 +58,14 @@ class PerspectiveWasmContender(PageServerMixin):
         with ipc.new_stream(sink, table.schema) as w:
             for b in table.to_batches():
                 w.write_batch(b)
+        hist_range = histogram_range(frame_or_path) if chart == "histogram" else None
         html = (
             (PROBES / "perspective_wasm.html.j2")
             .read_text()
-            .replace("{{RESTORE_JSON}}", json.dumps(restore_config(chart, n_traces, bins)))
+            .replace(
+                "{{RESTORE_JSON}}",
+                json.dumps(restore_config(chart, n_traces, bins, hist_range)),
+            )
         )
         self._url = self.serve_page(html)
         (self._dir / "bench.arrow").write_bytes(sink.getvalue())
