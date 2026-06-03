@@ -9,6 +9,7 @@ from core.contenders.mosaic_server import MosaicServerContender  # noqa: E402
 from core.contenders.mosaic_wasm import MosaicWasmContender  # noqa: E402
 from core.contenders.perspective_wasm import PerspectiveWasmContender  # noqa: E402
 from core.contenders.perspective_server import PerspectiveServerContender  # noqa: E402
+from core.contenders.datashader import DatashaderContender  # noqa: E402
 from core.contenders.vaex import VaexContender  # noqa: E402
 from core.datagen import ensure_disk_dataset, frame_for  # noqa: E402
 from core.harness import RenderProbe  # noqa: E402
@@ -119,3 +120,18 @@ def test_vaex_renders_histogram_png():
         )
     assert trial.total_ms > 0
     assert trial.query_ms is not None  # Server-Timing -> responseStart split present
+
+
+def test_datashader_renders_line_png():
+    frame = frame_for("line", 50_000, 2, 42)
+    with RenderProbe(headless=True) as probe:
+        trial = probe.run_trial(
+            DatashaderContender(),
+            chart="line",
+            source="in-memory",
+            frame_or_path=frame,
+            n_traces=2,
+            bins=100,
+            n_points=1000,
+        )
+    assert trial.total_ms > 0
