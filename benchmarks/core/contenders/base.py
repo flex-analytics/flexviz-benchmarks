@@ -19,6 +19,7 @@ class Contender(Protocol):
     def start_backend(
         self, *, chart: str, source: str, n_traces: int, bins: int, n_points: int
     ) -> None: ...
+
     # Spawn an EMPTY out-of-process backend and set `backend_root` BEFORE preload, so
     # the memory baseline is the empty child. No-op for in-process/client contenders.
 
