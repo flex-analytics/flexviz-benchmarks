@@ -56,7 +56,6 @@ class FlexVizContender:
         server = f"http://127.0.0.1:{port}"
         sys.path.insert(0, str(self._repo.resolve()))
         import requests
-
         from flexviz.figure import Figure, _register_source_if_needed
         from flexviz.spec import DashboardSpec
 

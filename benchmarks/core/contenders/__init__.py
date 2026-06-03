@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from core.contenders.datashader import DatashaderContender
 from core.contenders.flexviz import FlexVizContender
