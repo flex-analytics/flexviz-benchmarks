@@ -14,31 +14,41 @@ Install Chromium for Playwright (first run only):
 uv run playwright install chromium
 ```
 
+Vendor the JS engine bundles (Mosaic-wasm + Perspective) — only needed when re-vendoring;
+the built `benchmarks/probes/vendor/dist/` is committed so normal runs need no network:
+```bash
+uv run python benchmarks/vendor_assets.py   # requires node/npm (dev-only)
+```
+
 ## Development
 
 ```bash
 uv run pytest                         # run all tests
-uv run pytest tests/test_ttfr_core.py::TestParseNTracesArg::test_single_value  # single test
+uv run pytest tests/core/test_oracle.py::test_histogram_counts_sum_to_rows  # single test
 make lint                             # ruff check benchmarks/
 make format                           # ruff format benchmarks/
 ```
 
+Engine render tests (`tests/test_contenders_render.py`) need the FlexViz plugin built and
+the vendored assets present; they skip cleanly when prerequisites are absent.
+
 ## Running benchmarks
 
+One unified entrypoint, parameterized by `--chart`:
 ```bash
-# Histogram benchmark
-uv run python benchmarks/ttfr_histogram.py --flexviz-repo ../flexviz
+uv run python benchmarks/ttfr_bench.py --chart histogram --flexviz-repo ../flexviz
+uv run python benchmarks/ttfr_bench.py --chart line --flexviz-repo ../flexviz
 
-# Line benchmark
-uv run python benchmarks/ttfr_line.py --flexviz-repo ../flexviz
-
-# Or via Makefile (runs the script then report.py)
+# Or via Makefile (runs the driver then report.py)
 make bench-histogram ARGS="--sizes 1000000 --repeats 3"
 make bench-line REPORT_ARGS="--show"
 make bench                            # both
 ```
 
-Both scripts share these flags: `--sizes`, `--n-traces`, `--data-sources`, `--contenders`, `--repeats`, `--warmup`, `--seed`, `--shuffle-order`, `--fresh-contender-per-trial`, `--regenerate-datasets`, `--visual-validation-dir`, `--json-out`. Histogram also takes `--bins`; line takes `--n-points`.
+Shared flags: `--chart`, `--sizes`, `--n-traces`, `--data-sources`, `--contenders`,
+`--repeats`, `--warmup`, `--seed`, `--flexviz-repo`, `--dataset-base`,
+`--regenerate-datasets`, `--no-headless`, `--json-out`. Histogram also takes `--bins`;
+line takes `--n-points`.
 
 ## Plotting results
 
@@ -53,8 +63,9 @@ Flags: `--no-memory`, `--fixed-n-traces`, `--fixed-rows`, `--out-dir` (default: 
 **`benchmarks/config.py`** is the single file for shared defaults across all benchmark scripts:
 - `SIZES` — row counts in the size matrix
 - `N_TRACES` — trace counts per chart
-- `DATA_SOURCES` — data source types (`"disk-parquet"`, `"disk-csv"`, `"disk-ipc"`, `"in-memory"`; future: `"db"`)
-- `CONTENDERS` — tools to run (`"flexviz"`, `"mosaic"`, `"vaex"`, `"pygwalker"`, `"graphic-walker"`)
+- `DATA_SOURCES` — data source types (`"in-memory"`, `"disk-parquet"`, `"disk-csv"`, `"disk-ipc"`; future: `"db"`)
+- `CONTENDERS` — the 7-tool roster: `"flexviz"`, `"mosaic-server"`, `"mosaic-wasm"`, `"perspective-server"`, `"perspective-wasm"`, `"vaex"`, `"datashader"`
+- `CLIENT_ONLY` — client/WASM tools (`"mosaic-wasm"`, `"perspective-wasm"`) that compute in the browser and run **in-memory only** (the driver skips them on disk sources)
 - `WARMUP`, `REPEATS`, `SEED` — trial execution settings
 - `BINS` (histogram), `N_POINTS` (line) — chart-specific defaults
 
@@ -62,28 +73,45 @@ Each of these can be overridden per run via the matching CLI flag (`--sizes`, `-
 
 ## Architecture
 
-**`benchmarks/ttfr_core.py`** — shared primitives used by all benchmark scripts:
-- `DiskSource(path)` / `MemorySource(frame)` dataclasses; `DataSource = DiskSource | MemorySource` union
-- `Trial` / `Summary` dataclasses hold per-trial timing and aggregate statistics
-- `run_repeated_trials()` — executes warmup + shuffled repeat loop across all contenders
-- `summarize_trials()`, `print_summary_table()`, `raw_trials_to_json()` — reporting utilities; output is nested as `rows → n_traces → source → tool`
+The harness drives the **real** rendering engines headless and clocks TTFR browser-side
+(request → paint-proven first render). One parameterized driver over a data-driven page
+contract; thin per-tool contenders.
 
-**Each benchmark script** (`ttfr_histogram.py`, `ttfr_line.py`) follows the same pattern:
-1. `_generate_*_frame(rows, max_n_traces, seed)` — generates a wide DataFrame for all trace columns
-2. `prepare_*_data_source(source_name, rows, ...)` — returns the appropriate `DataSource`
-3. A `WebContender` protocol with `setup(data, ...)`, `get_url()`, `teardown()` methods
-4. Five concrete contenders: `FlexVizContender`, `MosaicContender`, `VaexContender`, `PyGWalkerContender`, and `GraphicWalkerContender` (subclasses `PyGWalkerContender`). The `--contenders` flag / `CONTENDERS` config selects which run.
-5. `RenderProbe` — context manager that launches headless Chromium via Playwright, navigates to each contender's URL, and reads `window.__benchTimings`
-6. Results are written as JSON to `results/` with two top-level keys: `"summary"` (list of `Summary` dicts, used by `report.py`) and `"trials"` (raw nested trial data)
+**`benchmarks/ttfr_bench.py`** — the unified driver. Builds the contender registry, walks
+the `rows × n_traces × source` matrix (skipping `CLIENT_ONLY` tools on disk sources), runs
+`run_repeated_trials`, and writes JSON to `results/` with `"config"`, `"summary"` (list of
+`Summary` dicts, used by `report.py`), and `"trials"` (raw nested `rows → n_traces → source
+→ tool`).
 
-**Browser probes** live in `benchmarks/probes/`: `flexviz_probe.js` (init script injected by `RenderProbe`), `bench_utils.js` (shared timing helpers), and `mosaic_probe.html` (Mosaic probe page template). The Walker contenders build their probe pages via shared helpers in `benchmarks/walker_utils.py`.
+**`benchmarks/core/`** — shared primitives:
+- `datagen.py` — line/histogram column generation + streamed dataset materialization
+- `model.py` — `Trial` / `Summary` dataclasses + `summarize` / `trial_to_dict`
+- `memory.py` — `ProcessTreeSampler` (RSS) + cmdline-tag browser-root discovery
+- `serve.py` — `StaticServer` (wasm MIME + COOP/COEP headers)
+- `harness.py` — `RenderProbe` (tagged persistent Chromium context, per-trial RSS deltas) + `run_repeated_trials`
+- `oracle.py` — canonical numpy histogram counts + line M4 envelope (same-picture tests)
+- `contenders/` — `base.py` (`Contender` protocol + `PageServerMixin`), one module per tool, `__init__.py` registry (`build_registry`)
 
-**Timing model** — each `Trial` splits time into three phases (measured browser-side):
-- `query_ms`: server processing time (from `PerformanceResourceTiming`) or Python-side time for HTML-artifact tools
-- `transfer_ms`: body transfer time (from `PerformanceResourceTiming`); 0 for HTML-artifact tools
-- `render_ms`: time from data received to render-complete signal
-- `peak_python_mb` / `peak_browser_mb`: peak memory via `tracemalloc` and JS heap delta
+**Three contender classes** (7 tools):
+- **A — server-compute, browser-render:** `flexviz` (Polars + Plotly), `mosaic-server` (DuckDB WS server, native `CREATE TABLE` for in-memory / view for disk), `perspective-server` (`perspective-python` tornado, viewport stream).
+- **B — client-compute (WASM), browser-render, in-memory only:** `mosaic-wasm` (DuckDB-WASM), `perspective-wasm` (WASM `Table`). Data ships as an Arrow buffer; the store is built in the browser pre-timing (a `benchStored`/`__bench_go` handshake).
+- **C — server-rasterize, browser-displays-image:** `vaex` (matplotlib Agg PNG), `datashader` (`Canvas`→`tf.shade` PNG), via a request-triggered `GET /render.png` (clock = request → `img.decode()`).
 
-**FlexViz dependency** is a local editable install from `../flexviz` (see `pyproject.toml`). The `FlexVizContender` adds the repo path to `sys.path` at runtime and imports from `flexviz.*`.
+**Page contract** — `probes/contract.js` exposes `window.__benchHelpers`: a double-`rAF`
+paint proof, shadow-DOM-recursive vector mark counting, a non-blank-`<img>` check (for the
+rasterizers), and the client-store handshake. Each probe finishes a trial by calling
+`benchDone(...)`, which sets `window.__bench`. Probe pages are `*.html.j2` templates plus
+the vendored JS in `probes/vendor/dist/` (built by `vendor_assets.py`; see Setup).
 
-**Mosaic contender** runs a Python Mosaic-compatible DuckDB server (`benchmarks/mosaic_duckdb_server.py`, built on `socketify` + `duckdb`, with `diskcache`) in a background process, and serves `probes/mosaic_probe.html` via a Python HTTP server.
+**Timing model** — each `Trial` carries `total_ms`, `query_ms`, `transfer_ms`, `render_ms`,
+`payload_bytes`, and four RSS-delta memory metrics: `backend_timed_peak_mb`,
+`browser_timed_peak_mb`, `resident_footprint_mb`, `preload_peak_mb` (peak-minus-baseline on
+the sampled process tree; RSS not USS because USS is `AccessDenied` for child processes on
+macOS).
+
+**FlexViz dependency** is a local editable install from `../flexviz` (see `pyproject.toml`);
+`FlexVizContender` adds the repo path to `sys.path` and imports `flexviz.*`.
+
+**Mosaic-server** runs `benchmarks/mosaic_duckdb_server.py` (socketify + duckdb, no diskcache)
+as a spawned child, starting table-less so the empty backend can be memory-baselined before
+`POST /load` builds the store.
