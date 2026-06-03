@@ -1,38 +1,28 @@
-"""Small Mosaic-compatible DuckDB server for benchmark contenders."""
+"""Small Mosaic-compatible DuckDB server for benchmark contenders.
+
+Starts table-less (EMPTY) so the contender can register the backend process for
+memory baselining BEFORE the `bench` store is built. A one-shot `POST /load`
+control route then builds the store:
+  - in-memory (X-Load-Kind: arrow) → a NATIVE DuckDB table (the in-memory fix; a
+    registered foreign frame forces a single-threaded re-scan per query);
+  - disk (X-Load-Kind: path)       → a VIEW, so the file scan happens at query time.
+The previously-inert `diskcache` is removed (it never hit, deflated nothing).
+"""
 
 from __future__ import annotations
 
+import io
 import logging
 import time
-from functools import partial
-from pathlib import Path
 from typing import Any
 
 import duckdb
 import pyarrow as pa
+import pyarrow.ipc as ipc
 import ujson
-from diskcache import Cache
 from socketify import App, CompressOptions, OpCode
 
 logger = logging.getLogger(__name__)
-
-
-def _cache_key(sql: str, command: str) -> str:
-    import hashlib
-
-    return f"{hashlib.sha256(sql.encode('utf-8')).hexdigest()}.{command}"
-
-
-def _retrieve(cache: Cache, query: dict[str, Any], get: Any) -> Any:
-    sql = query["sql"]
-    command = query["type"]
-    key = _cache_key(sql, command)
-    result = cache.get(key)
-    if result is None:
-        result = get(sql)
-        if query.get("persist", False):
-            cache[key] = result
-    return result
 
 
 def _arrow_bytes(con: duckdb.DuckDBPyConnection, sql: str) -> bytes:
@@ -48,7 +38,7 @@ def _json_rows(con: duckdb.DuckDBPyConnection, sql: str) -> str:
     return con.query(sql).df().to_json(orient="records")
 
 
-def _handle_query(handler: Any, con: duckdb.DuckDBPyConnection, cache: Cache, query: dict[str, Any]) -> None:
+def _handle_query(handler: Any, con: duckdb.DuckDBPyConnection, query: dict[str, Any]) -> None:
     start = time.perf_counter()
     sql = query["sql"]
     command = query["type"]
@@ -57,9 +47,9 @@ def _handle_query(handler: Any, con: duckdb.DuckDBPyConnection, cache: Cache, qu
             con.execute(sql)
             handler.done()
         elif command == "arrow":
-            handler.arrow(_retrieve(cache, query, partial(_arrow_bytes, con)))
+            handler.arrow(_arrow_bytes(con, sql))
         elif command == "json":
-            handler.json(_retrieve(cache, query, partial(_json_rows, con)))
+            handler.json(_json_rows(con, sql))
         else:
             raise ValueError(f"Unknown Mosaic DuckDB command: {command}")
     except Exception as exc:
@@ -107,27 +97,25 @@ class _HTTPHandler:
         self._res.end(str(error))
 
 
-def run_mosaic_duckdb_server(
-    *,
-    port: int,
-    frame: Any | None = None,
-    disk_path: str | None = None,
-    cache_dir: str | None = None,
-) -> None:
-    """Run a Mosaic-compatible DuckDB server.
+def run_mosaic_duckdb_server(*, port: int, cache_dir: str | None = None) -> None:
+    """Run a Mosaic-compatible DuckDB server, starting EMPTY (no `bench` table).
 
-    `frame` is registered as the in-memory `bench` relation before the server
-    starts. `disk_path` is intentionally not loaded here; the browser probe
-    creates a DuckDB view so disk-backed runs continue to scan the file.
+    `cache_dir` is accepted but ignored (the inert diskcache was removed). The
+    `bench` store is built on demand via `POST /load`.
     """
-    con = duckdb.connect(":memory:")
-    if frame is not None:
-        con.register("bench", frame)
-    elif disk_path is not None:
-        path = str(Path(disk_path).resolve()).replace("'", "''")
-        con.execute(f"CREATE OR REPLACE VIEW bench AS SELECT * FROM '{path}'")
+    del cache_dir  # diskcache removed; kept for call-site compatibility
+    con = duckdb.connect(":memory:")  # starts EMPTY — no `bench` table yet
 
-    cache = Cache(cache_dir)
+    def _load(kind: str | None, body: bytes) -> None:
+        if kind == "arrow":
+            tbl = ipc.open_stream(io.BytesIO(body)).read_all()  # transient; freed after CREATE
+            con.register("_src", tbl)
+            con.execute("CREATE OR REPLACE TABLE bench AS SELECT * FROM _src")  # native columnar
+            con.unregister("_src")
+        else:  # "path" — disk source: a VIEW, so the scan happens at query time (timed window)
+            path = body.decode().replace("'", "''")
+            con.execute(f"CREATE OR REPLACE VIEW bench AS SELECT * FROM '{path}'")
+
     app = App()
     app.json_serializer(ujson)
 
@@ -138,7 +126,18 @@ def run_mosaic_duckdb_server(
         except Exception as exc:
             _SocketHandler(ws).error(exc)
             return
-        _handle_query(_SocketHandler(ws), con, cache, query)
+        _handle_query(_SocketHandler(ws), con, query)
+
+    async def load_handler(res: Any, req: Any) -> None:
+        res.write_header("Access-Control-Allow-Origin", "*")
+        kind = req.get_header("x-load-kind")  # capture header BEFORE awaiting (req is transient)
+        method = req.get_method()
+        if method == "OPTIONS":
+            res.end("")
+            return
+        data = await res.get_data()
+        _load(kind, data.getvalue())
+        res.end("ok")
 
     async def http_handler(res: Any, req: Any) -> None:
         res.write_header("Access-Control-Allow-Origin", "*")
@@ -150,9 +149,9 @@ def run_mosaic_duckdb_server(
         if method == "OPTIONS":
             handler.done()
         elif method == "GET":
-            _handle_query(handler, con, cache, ujson.loads(req.get_query("query")))
+            _handle_query(handler, con, ujson.loads(req.get_query("query")))
         elif method == "POST":
-            _handle_query(handler, con, cache, await res.get_json())
+            _handle_query(handler, con, await res.get_json())
 
     app.ws(
         "/*",
@@ -161,6 +160,7 @@ def run_mosaic_duckdb_server(
             "message": ws_message,
         },
     )
+    app.post("/load", load_handler)
     app.any("/", http_handler)
     app.listen(port, lambda config: None)
     app.run()
