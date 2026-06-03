@@ -11959,8 +11959,8 @@ var RecordBatchJSONReaderImpl = class extends RecordBatchStreamReaderImpl {
     return new JSONVectorLoader(body, header.nodes, header.buffers, this.dictionaries, this.schema.metadataVersion).visitMany(types);
   }
 };
-function shouldAutoDestroy(self, options) {
-  return options && typeof options["autoDestroy"] === "boolean" ? options["autoDestroy"] : self["autoDestroy"];
+function shouldAutoDestroy(self2, options) {
+  return options && typeof options["autoDestroy"] === "boolean" ? options["autoDestroy"] : self2["autoDestroy"];
 }
 function* readAllSync(source) {
   const reader = RecordBatchReader.from(source);
@@ -26023,8 +26023,8 @@ var RecordBatchJSONReaderImpl2 = class extends RecordBatchStreamReaderImpl2 {
     return new JSONVectorLoader2(body, header.nodes, header.buffers, this.dictionaries, this.schema.metadataVersion).visitMany(types);
   }
 };
-function shouldAutoDestroy2(self, options) {
-  return options && typeof options["autoDestroy"] === "boolean" ? options["autoDestroy"] : self["autoDestroy"];
+function shouldAutoDestroy2(self2, options) {
+  return options && typeof options["autoDestroy"] === "boolean" ? options["autoDestroy"] : self2["autoDestroy"];
 }
 function* readAllSync2(source) {
   const reader = RecordBatchReader2.from(source);
@@ -31140,21 +31140,21 @@ function get2(node, id2) {
   if (!schedule || !(schedule = schedule[id2])) throw new Error("transition not found");
   return schedule;
 }
-function create2(node, id2, self) {
+function create2(node, id2, self2) {
   var schedules = node.__transition, tween;
-  schedules[id2] = self;
-  self.timer = timer(schedule, 0, self.time);
+  schedules[id2] = self2;
+  self2.timer = timer(schedule, 0, self2.time);
   function schedule(elapsed) {
-    self.state = SCHEDULED;
-    self.timer.restart(start2, self.delay, self.time);
-    if (self.delay <= elapsed) start2(elapsed - self.delay);
+    self2.state = SCHEDULED;
+    self2.timer.restart(start2, self2.delay, self2.time);
+    if (self2.delay <= elapsed) start2(elapsed - self2.delay);
   }
   function start2(elapsed) {
     var i, j2, n, o;
-    if (self.state !== SCHEDULED) return stop();
+    if (self2.state !== SCHEDULED) return stop();
     for (i in schedules) {
       o = schedules[i];
-      if (o.name !== self.name) continue;
+      if (o.name !== self2.name) continue;
       if (o.state === STARTED) return timeout_default(start2);
       if (o.state === RUNNING) {
         o.state = ENDED;
@@ -31169,37 +31169,37 @@ function create2(node, id2, self) {
       }
     }
     timeout_default(function() {
-      if (self.state === STARTED) {
-        self.state = RUNNING;
-        self.timer.restart(tick, self.delay, self.time);
+      if (self2.state === STARTED) {
+        self2.state = RUNNING;
+        self2.timer.restart(tick, self2.delay, self2.time);
         tick(elapsed);
       }
     });
-    self.state = STARTING;
-    self.on.call("start", node, node.__data__, self.index, self.group);
-    if (self.state !== STARTING) return;
-    self.state = STARTED;
-    tween = new Array(n = self.tween.length);
+    self2.state = STARTING;
+    self2.on.call("start", node, node.__data__, self2.index, self2.group);
+    if (self2.state !== STARTING) return;
+    self2.state = STARTED;
+    tween = new Array(n = self2.tween.length);
     for (i = 0, j2 = -1; i < n; ++i) {
-      if (o = self.tween[i].value.call(node, node.__data__, self.index, self.group)) {
+      if (o = self2.tween[i].value.call(node, node.__data__, self2.index, self2.group)) {
         tween[++j2] = o;
       }
     }
     tween.length = j2 + 1;
   }
   function tick(elapsed) {
-    var t = elapsed < self.duration ? self.ease.call(null, elapsed / self.duration) : (self.timer.restart(stop), self.state = ENDING, 1), i = -1, n = tween.length;
+    var t = elapsed < self2.duration ? self2.ease.call(null, elapsed / self2.duration) : (self2.timer.restart(stop), self2.state = ENDING, 1), i = -1, n = tween.length;
     while (++i < n) {
       tween[i].call(node, t);
     }
-    if (self.state === ENDING) {
-      self.on.call("end", node, node.__data__, self.index, self.group);
+    if (self2.state === ENDING) {
+      self2.on.call("end", node, node.__data__, self2.index, self2.group);
       stop();
     }
   }
   function stop() {
-    self.state = ENDED;
-    self.timer.stop();
+    self2.state = ENDED;
+    self2.timer.stop();
     delete schedules[id2];
     for (var i in schedules) return;
     delete node.__transition;
@@ -56657,9 +56657,11 @@ function createAPIContext({
 
 // src/mosaic_wasm.js
 async function makeDuckDB(wasmUrl, workerUrl) {
-  const worker = new Worker(workerUrl);
+  const wasmAbs = new URL(wasmUrl, self.location.href).href;
+  const workerAbs = new URL(workerUrl, self.location.href).href;
+  const worker = new Worker(workerAbs);
   const db = new O(new P(ee.WARNING), worker);
-  await db.instantiate(wasmUrl);
+  await db.instantiate(wasmAbs);
   return db;
 }
 function connectorFor(db) {
