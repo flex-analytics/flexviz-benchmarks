@@ -16,6 +16,7 @@ dependencies = [
     "pyarrow>=16.0.0",
     "vaex-core>=4.19.0",
     "datashader>=0.16",
+    "dask[dataframe]>=2024.8",
     "matplotlib>=3.9",
     "pillow>=10.0",
     "perspective-python==3.1.3",
