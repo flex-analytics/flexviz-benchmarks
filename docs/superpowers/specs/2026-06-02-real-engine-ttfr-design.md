@@ -48,19 +48,24 @@ that make the current numbers misleading:
    `ttfr_line.py` (828 lines).
 
 Decision (confirmed with stakeholder): **render the real engines**, fix the config
-and measurement bugs, deduplicate, and add **Perspective** and **HoloViews+Datashader**.
+and measurement bugs, deduplicate, and add **Perspective** and **Datashader**.
+
+> **Reconciliation (implementation):** the rasterizer is built on the `datashader` API
+> directly (`Canvas` → `tf.shade` → PNG); it carries no `holoviews` dependency and is
+> named **Datashader** (not "HoloViews+Datashader") in code and reporting. References to
+> "HoloViews+Datashader" below are historical labels for the same contender.
 
 ## Decisions locked during brainstorming
 
 - **Roster (8 tools):** FlexViz, **Mosaic-server**, **Mosaic-wasm**,
   **Perspective-server**, **Perspective-wasm**, Graphic Walker, Vaex,
-  HoloViews+Datashader. The same-engine server-vs-WASM pairs (Mosaic, Perspective)
+  Datashader. The same-engine server-vs-WASM pairs (Mosaic, Perspective)
   isolate compute-location as a single variable — the cleanest demonstration of
   server-compute vs ship-to-browser. Drop the duplicate PyGWalker (keep only the
   underlying Graphic Walker engine). No naive Plotly/Bokeh baseline. **Graphic Walker is
   DEFERRED out of this implementation pass** (the spike could not drive its render
   headless). This plan therefore targets **7 tools**: FlexViz, Mosaic-server,
-  Mosaic-wasm, Perspective-server, Perspective-wasm, Vaex, HoloViews+Datashader. GW is
+  Mosaic-wasm, Perspective-server, Perspective-wasm, Vaex, Datashader. GW is
   revisited in a later pass via the captured-spec / full-component approach in Spike
   results; the harness must keep adding a contender cheap.
 - **Client/WASM engines run in-memory only.** Graphic Walker, Mosaic-wasm, and
@@ -164,7 +169,7 @@ clock = request→`img.decode()`; in-memory + disk):
 | Tool | Pipeline (inside the GET) | Output |
 |---|---|---|
 | Vaex | `df.count/mean(binby=…)` → matplotlib Agg | PNG |
-| HoloViews+Datashader | `datashader.Canvas.line/points` → `tf.shade` → PNG | PNG |
+| Datashader | `datashader.Canvas.line/points` → `tf.shade` → PNG (histogram: numpy-oracle bin counts → `cvs.line` step) | PNG |
 
 **Same-picture requirement:** every tool renders the same target — histogram =
 `bins` bars/trace; line = an envelope/aggregate at ~1000-to-width points. Each
@@ -269,18 +274,26 @@ polls each group's whole tree at ≈5 ms plus a final reading.
 
 **Three explicit metrics** (the previous single "peak" conflated them):
 - `resident_footprint_mb` — RAM the engine holds the *in-memory* dataset in. Measured
-  as post-preload, pre-trigger tree RSS minus a clean process baseline. (in-memory
-  sources only; the "how big is the engine's copy" number.)
-- `preload_peak_mb` — peak tree RSS during preload/load minus the clean baseline
-  (transient cost of building the store; backend pid registered *before* preload so
-  this is captured).
+  as post-preload, pre-trigger tree RSS minus a clean baseline of **the same group**
+  (in-memory sources only; the "how big is the engine's copy" number).
+  - *Server engines* — baseline is the **empty** backend child, sampled before the store
+    is loaded. *Client/WASM engines* — the native store lives in the **browser**, built in
+    a dedicated pre-render page phase (the page signals `__bench_stored` and blocks on
+    `__bench_go`); resident is the **browser-tree** delta across that phase, not a backend
+    delta. *In-process backends* (FlexViz, rasterizers) — our own tree.
+- `preload_peak_mb` — peak tree RSS during preload/load minus the same-group baseline
+  (transient cost of building the store; backend pid registered *before* preload — for
+  out-of-process engines the child is **spawned empty first** so the baseline is the empty
+  child and the delta is the store build, never parent-RSS − child-RSS).
 - `timed_peak_delta_mb` — peak tree RSS during the timed render window minus the
   pre-trigger baseline (the incremental memory of producing+rendering the chart). This
-  is the headline render-memory number, comparable across tools.
+  is the headline render-memory number, comparable across tools. For client/WASM engines
+  the baseline is the post-store RSS, so the store build is excluded from render memory.
 
 **Concrete process discovery (supported APIs only):**
 - *Backend group* — FlexViz and the rasterizers run in-process → sample our own tree.
-  Mosaic's DuckDB server is the `multiprocessing` child → its `proc.pid`. Root pid +
+  The Mosaic DuckDB server and the Perspective tornado server are `multiprocessing`
+  (spawn) children → their `proc.pid`, registered while empty before preload. Root pid +
   `children(recursive=True)`, RSS summed.
 - *Browser group* — **`browser.process()` does not exist in Python Playwright**
   (verified `hasattr → False`); the private `_impl_obj`/`_proc` transport is rejected
@@ -331,16 +344,18 @@ Engines to vendor (esbuild bundles), with spike-confirmed gotchas:
   from vendored `duckdb-eh.wasm` + worker and pass it as `wasmConnector({ duckdb })`;
   the default connector fetches wasm from jsdelivr (confirmed). ~35 MB wasm vendored.
 - **`@finos/perspective` + `-viewer` + `-viewer-d3fc`** (WASM + worker) — vendor the
-  **exact version matching `perspective-python`** from npm (the matching `cdn/` build is
-  not always on jsdelivr). Serve `.wasm` as `application/wasm`.
+  **exact version matching `perspective-python` patch-for-patch** (both pinned `==3.1.3`;
+  the wire protocol is patch-sensitive) from npm (the matching `cdn/` build is not always
+  on jsdelivr). The build step copies the Perspective `.wasm`/worker assets into `dist/`
+  explicitly and a no-CDN test renders Perspective offline. Serve `.wasm` as `application/wasm`.
 - **`@kanaries/graphic-walker` + React** — bundles to 6.9 MB; **also fetches
   `leaflet.css` from unpkg**, which the vendor step must inline/stub so the no-CDN test
   passes. (Blocked on the GW render investigation above.)
 
-New Python deps: `datashader`, `holoviews`, `Pillow`, **`perspective-python`** + a
-websocket server (**`tornado`**, per the spike) for the Perspective server variant;
-`matplotlib` promoted from dev. Node/npm is a dev-only prerequisite for (re)vendoring,
-not for running benchmarks.
+New Python deps: `datashader` (used directly — no `holoviews`), `Pillow`,
+**`perspective-python==3.1.3`** + a websocket server (**`tornado`**, per the spike) for
+the Perspective server variant; `matplotlib` promoted from dev. Node/npm is a dev-only
+prerequisite for (re)vendoring, not for running benchmarks.
 
 ## Testing
 

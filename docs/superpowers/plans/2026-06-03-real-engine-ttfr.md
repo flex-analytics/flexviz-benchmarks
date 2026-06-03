@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the fake-render benchmark harness with one that drives the *real* rendering engines headless, fixes the Mosaic/RSS/duplication bugs, and adds Perspective and HoloViews+Datashader — a 7-tool roster (Graphic Walker deferred).
+**Goal:** Replace the fake-render benchmark harness with one that drives the *real* rendering engines headless, fixes the Mosaic/RSS/duplication bugs, and adds Perspective and Datashader — a 7-tool roster (Graphic Walker deferred).
 
 **Architecture:** One parameterized driver (`ttfr_bench.py --chart histogram|line`) over a data-driven page contract. Thin contenders in three classes — server-compute+browser-render (FlexViz, Mosaic-server, Perspective-server), client-WASM (Mosaic-wasm, Perspective-wasm), server-rasterize (Vaex, Datashader). JS engines are vendored offline via esbuild; memory is RSS-based process-tree sampling.
 
-**Tech Stack:** Python 3.12, Polars, DuckDB, Playwright (sync), psutil, perspective-python + tornado, datashader/holoviews, matplotlib, Pillow; Node/npm + esbuild (dev-only, for vendoring); vgplot, DuckDB-WASM, @finos/perspective.
+**Tech Stack:** Python 3.12, Polars, DuckDB, Playwright (sync), psutil, perspective-python + tornado, datashader, matplotlib, Pillow; Node/npm + esbuild (dev-only, for vendoring); vgplot, DuckDB-WASM, @finos/perspective.
 
 **Spec:** `docs/superpowers/specs/2026-06-02-real-engine-ttfr-design.md` (read it first).
 
@@ -80,17 +80,16 @@ tests/
 In `[project].dependencies` add (keep existing entries):
 ```toml
     "datashader>=0.16",
-    "holoviews>=1.19",
     "matplotlib>=3.9",
     "pillow>=10.0",
-    "perspective-python>=3.1,<3.2",
+    "perspective-python==3.1.3",
     "tornado>=6.4",
 ```
-Remove `pygwalker` (no longer used). Pin `perspective-python` to the same minor the vendored JS will match (`3.1.x` — the spike's working pair). Remove `matplotlib` from `[dependency-groups].dev` (now a runtime dep).
+Remove `pygwalker` (no longer used). Pin `perspective-python` to the **exact** version the vendored JS matches (`==3.1.3` — pinning the minor only, e.g. `>=3.1,<3.2`, can still resolve a mismatched patch against the JS `3.1.3`; the Python and JS Perspective protocol must match patch-for-patch). Do **not** add `holoviews` (the Datashader contender uses the `datashader` API directly — see Task 6.3). Remove `matplotlib` from `[dependency-groups].dev` (now a runtime dep).
 
 - [ ] **Step 2: Sync and verify imports**
 
-Run: `uv sync && uv run python -c "import datashader, holoviews, perspective, tornado, matplotlib, PIL; print('ok')"`
+Run: `uv sync && uv run python -c "import datashader, perspective, tornado, matplotlib, PIL; print('ok')"`
 Expected: `ok`
 
 - [ ] **Step 3: Create empty package markers**
@@ -108,7 +107,7 @@ Expected: `ok`
 
 ```bash
 git add pyproject.toml uv.lock benchmarks/core/__init__.py benchmarks/core/contenders/__init__.py
-git commit -m "chore: add datashader/holoviews/perspective/tornado deps; scaffold core pkg"
+git commit -m "chore: add datashader/perspective/tornado deps; scaffold core pkg"
 ```
 
 ---
@@ -122,7 +121,7 @@ This phase reproduces the spike-proven offline bundles for Mosaic-wasm and Persp
 **Files:**
 - Create: `benchmarks/probes/vendor/package.json`
 
-- [ ] **Step 1: Write `package.json`** (versions proven in the spike; perspective JS must match `perspective-python` minor)
+- [ ] **Step 1: Write `package.json`** (versions proven in the spike; perspective JS must match `perspective-python` **patch-for-patch** — both pinned to `3.1.3`)
 
 ```json
 {
@@ -187,49 +186,86 @@ import '@finos/perspective-viewer';
 import '@finos/perspective-viewer-d3fc';
 export { perspective };
 ```
+Create `benchmarks/probes/vendor/src/mosaic_server_vgplot.js` (vgplot over a WS socket connector — no DuckDB-WASM; used by the Mosaic-server probe in Task 3.3):
+```js
+export * from '@uwdata/vgplot';
+```
 
 - [ ] **Step 2: Write `build.mjs`**
 
 ```js
 import { build } from 'esbuild';
-import { cpSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
+import { cpSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, '..', 'vendor');            // emit alongside (probes/vendor)
 const dist = join(out, 'dist');
+const nm = join(here, 'node_modules');
 mkdirSync(dist, { recursive: true });
 
-// 1. esbuild the two ESM entries to self-contained bundles.
+// 1. esbuild the ESM entries to self-contained bundles. `.wasm`/worker referenced via
+//    `new URL(..., import.meta.url)` (perspective-viewer's pattern) are emitted to dist.
 await build({
   entryPoints: {
     'mosaic_wasm': join(here, 'src', 'mosaic_wasm.js'),
+    'mosaic_server_vgplot': join(here, 'src', 'mosaic_server_vgplot.js'),
     'perspective': join(here, 'src', 'perspective.js'),
   },
   bundle: true, format: 'esm', outdir: dist,
   define: { 'process.env.NODE_ENV': '"production"' },
-  loader: { '.wasm': 'file' }, logLevel: 'info',
+  loader: { '.wasm': 'file' }, assetNames: '[name]', logLevel: 'info',
 });
 
-// 2. Copy DuckDB-WASM runtime assets (wasm + worker) referenced at runtime.
-const dd = join(here, 'node_modules', '@duckdb', 'duckdb-wasm', 'dist');
+// 2. Copy DuckDB-WASM runtime assets (wasm + worker) — duckdb resolves these via a
+//    runtime config object, not import.meta.url, so esbuild won't emit them.
+const dd = join(nm, '@duckdb', 'duckdb-wasm', 'dist');
 for (const f of ['duckdb-eh.wasm', 'duckdb-browser-eh.worker.js']) cpSync(join(dd, f), join(dist, f));
 
-// 3. Integrity manifest (sha256 of every emitted asset).
+// 3. Copy Perspective runtime assets (.wasm + worker) explicitly. Perspective 3.x ships
+//    a multi-MB WASM module + worker that must be hosted locally for the no-CDN guarantee.
+//    Glob both @finos/perspective and @finos/perspective-viewer dist trees so we are
+//    robust to the exact filenames/subdir across 3.1.x patch releases.
+function copyMatching(rootRel, test) {
+  const root = join(nm, rootRel);
+  if (!existsSync(root)) return [];
+  const found = [];
+  const walk = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (test(e.name)) { cpSync(p, join(dist, e.name)); found.push(e.name); }
+    }
+  };
+  walk(join(root, 'dist'));
+  return found;
+}
+const persp = [
+  ...copyMatching('@finos/perspective', (n) => n.endsWith('.wasm') || /worker.*\.js$/.test(n)),
+  ...copyMatching('@finos/perspective-viewer', (n) => n.endsWith('.wasm') || /worker.*\.js$/.test(n)),
+];
+if (persp.length === 0 && !readdirSync(dist).some((f) => f.endsWith('.wasm') && f.includes('perspective'))) {
+  throw new Error('no Perspective wasm/worker assets vendored — check @finos/perspective dist layout');
+}
+
+// 4. Integrity manifest (sha256 of every emitted asset). Fail if a wasm is suspiciously tiny.
 const manifest = {};
 for (const f of readdirSync(dist)) {
-  manifest[f] = createHash('sha256').update(readFileSync(join(dist, f))).digest('hex');
+  const buf = readFileSync(join(dist, f));
+  if (f.endsWith('.wasm') && buf.length < 1024) throw new Error(`vendored wasm too small: ${f}`);
+  manifest[f] = createHash('sha256').update(buf).digest('hex');
 }
 writeFileSync(join(out, 'manifest.json'), JSON.stringify(manifest, null, 2));
 console.log('vendored assets:', Object.keys(manifest).join(', '));
 ```
+> The Perspective copy globs the package `dist/` for `*.wasm` + `*worker*.js` rather than hard-coding names (they shift across 3.1.x patches). If a future Perspective release loads its wasm by a string path rather than `import.meta.url`, that path must point at `./dist/`; the no-CDN test (Task 1.5) is the backstop that catches any escape to a CDN.
 
 - [ ] **Step 3: Run the build**
 
 Run: `cd benchmarks/probes/vendor && node build.mjs`
-Expected: prints `vendored assets: mosaic_wasm.js, perspective.js, duckdb-eh.wasm, duckdb-browser-eh.worker.js, ...` and writes `dist/` + `manifest.json`.
+Expected: prints `vendored assets: …` including `mosaic_wasm.js, mosaic_server_vgplot.js, perspective.js, duckdb-eh.wasm, duckdb-browser-eh.worker.js`, at least one `*.wasm` for Perspective, and writes `dist/` + `manifest.json`.
 
 - [ ] **Step 4: Commit bundles + manifest**
 
@@ -364,11 +400,10 @@ git commit -m "feat(core): StaticServer with wasm MIME + COOP/COEP headers"
 **Files:**
 - Test: `tests/test_vendor_no_cdn.py`
 
-- [ ] **Step 1: Write the test** (loads the vendored mosaic-wasm bundle, asserts zero non-localhost requests + a render)
+- [ ] **Step 1: Write the test** (loads BOTH the vendored mosaic-wasm and perspective bundles, asserts zero non-localhost requests + a render for each — Perspective's multi-MB wasm is exactly what would silently fall back to a CDN if mis-vendored)
 
 ```python
 # tests/test_vendor_no_cdn.py
-import json
 from pathlib import Path
 import pytest
 from playwright.sync_api import sync_playwright
@@ -376,7 +411,7 @@ from core.serve import StaticServer
 
 VENDOR = Path(__file__).parent.parent / "benchmarks" / "probes" / "vendor"
 
-PAGE = """<!doctype html><meta charset=utf-8><div id=app style="width:600px;height:300px"></div>
+MOSAIC_PAGE = """<!doctype html><meta charset=utf-8><div id=app style="width:600px;height:300px"></div>
 <script type="module">
 import { makeDuckDB, connectorFor, vg } from './dist/mosaic_wasm.js';
 const db = await makeDuckDB('./dist/duckdb-eh.wasm', './dist/duckdb-browser-eh.worker.js');
@@ -388,29 +423,53 @@ await plot.value.update();
 requestAnimationFrame(()=>requestAnimationFrame(()=>{ window.__ok = document.querySelectorAll('svg path,canvas').length; }));
 </script>"""
 
-@pytest.mark.skipif(not (VENDOR / "dist" / "mosaic_wasm.js").exists(), reason="run vendor_assets.py first")
-def test_mosaic_wasm_renders_with_no_cdn(tmp_path):
-    (VENDOR / "_nocdn.html").write_text(PAGE)
+# Perspective: build a client Table + viewer entirely from the vendored bundle/wasm.
+PERSPECTIVE_PAGE = """<!doctype html><meta charset=utf-8>
+<perspective-viewer id=v style="width:600px;height:300px"></perspective-viewer>
+<script type="module">
+import { perspective } from './dist/perspective.js';
+function countMarks(root){let n=0;root.querySelectorAll('canvas,svg,path,rect').forEach(()=>n++);
+  root.querySelectorAll('*').forEach(el=>{if(el.shadowRoot)n+=countMarks(el.shadowRoot);});return n;}
+const worker = await perspective.worker();
+const table = await worker.table({ x:[0,1,2,3,4], y:[1.0,2.0,1.5,3.0,2.5] });
+const v = document.getElementById('v');
+await v.load(table);
+await v.restore({ plugin: 'Y Line', group_by: ['x'], columns: ['y'] });
+await v.flush();
+requestAnimationFrame(()=>requestAnimationFrame(()=>{ window.__ok = countMarks(document); }));
+</script>"""
+
+def _render_no_cdn(tmp_name: str, page_html: str) -> int:
+    (VENDOR / tmp_name).write_text(page_html)
     external = []
     try:
         with StaticServer(VENDOR) as srv, sync_playwright() as p:
             b = p.chromium.launch(headless=True)
             pg = b.new_page()
-            pg.on("request", lambda r: external.append(r.url) if not r.url.startswith(srv.url) and not r.url.startswith("blob:") else None)
-            pg.goto(f"{srv.url}/_nocdn.html", wait_until="load")
-            pg.wait_for_function("() => window.__ok !== undefined", timeout=30000)
+            pg.on("request", lambda r: external.append(r.url)
+                  if not r.url.startswith(srv.url) and not r.url.startswith("blob:") else None)
+            pg.goto(f"{srv.url}/{tmp_name}", wait_until="load")
+            pg.wait_for_function("() => window.__ok !== undefined", timeout=40000)
             marks = pg.evaluate("() => window.__ok")
             b.close()
-        assert marks > 0, "no marks rendered"
         assert external == [], f"unexpected external requests: {external}"
+        return marks
     finally:
-        (VENDOR / "_nocdn.html").unlink(missing_ok=True)
+        (VENDOR / tmp_name).unlink(missing_ok=True)
+
+@pytest.mark.skipif(not (VENDOR / "dist" / "mosaic_wasm.js").exists(), reason="run vendor_assets.py first")
+def test_mosaic_wasm_renders_with_no_cdn():
+    assert _render_no_cdn("_nocdn_mosaic.html", MOSAIC_PAGE) > 0
+
+@pytest.mark.skipif(not (VENDOR / "dist" / "perspective.js").exists(), reason="run vendor_assets.py first")
+def test_perspective_renders_with_no_cdn():
+    assert _render_no_cdn("_nocdn_perspective.html", PERSPECTIVE_PAGE) > 0
 ```
 
 - [ ] **Step 2: Run it**
 
 Run: `uv run python benchmarks/vendor_assets.py && uv run pytest tests/test_vendor_no_cdn.py -v`
-Expected: PASS (marks > 0, no external requests).
+Expected: PASS for both tools (marks > 0, no external requests). A CDN fallback for Perspective's wasm shows up here as a non-localhost request.
 
 - [ ] **Step 3: Commit**
 
@@ -434,7 +493,8 @@ git commit -m "test: vendored mosaic-wasm renders with zero CDN requests"
 ```python
 # tests/core/test_datagen.py
 import numpy as np
-from core.datagen import line_columns, histogram_columns
+import polars as pl
+from core.datagen import line_columns, histogram_columns, ensure_disk_dataset
 
 def test_line_columns_deterministic_and_shaped():
     a = line_columns(rows=1000, max_traces=3, seed=42)
@@ -449,6 +509,16 @@ def test_histogram_columns_deterministic():
     assert set(a) == {"value1", "value2"}
     assert len(a["value1"]) == 500
     assert np.array_equal(a, a) and np.array_equal(a["value1"], histogram_columns(500, 2, 7)["value1"])
+
+def test_parquet_is_streamed_in_row_groups(tmp_path):
+    # Small chunk_rows would prove multi-row-group; here we assert correctness +
+    # round-trip without materializing a full frame (the streaming path).
+    path = ensure_disk_dataset(tmp_path / "ds", "line", 25_000, 2, 42, "disk-parquet", True)
+    import pyarrow.parquet as pq
+    pf = pq.ParquetFile(path)
+    assert pf.metadata.num_rows == 25_000
+    df = pl.read_parquet(path)
+    assert df.columns == ["x", "y1", "y2"] and df.height == 25_000
 ```
 
 - [ ] **Step 2: Run it (fails)**
@@ -493,15 +563,35 @@ def frame_for(chart: str, rows: int, max_traces: int, seed: int) -> pl.DataFrame
 
 FORMAT_SUFFIX = {"disk-parquet": ".parquet", "disk-csv": ".csv", "disk-ipc": ".arrow"}
 
+def _write_parquet_streaming(path: Path, cols: dict[str, np.ndarray],
+                             chunk_rows: int = 10_000_000) -> None:
+    """Stream the column arrays to Parquet one row group per chunk, so very large
+    datasets (e.g. the 10M+ sizes / future 1B study) are persisted WITHOUT ever
+    materializing a full Polars/Arrow table. Ported from the prior
+    `ttfr_core.write_parquet_in_chunks` (do not regress to a full-frame write)."""
+    import pyarrow as pa, pyarrow.parquet as pq
+    n_rows = len(next(iter(cols.values())))
+    schema = pa.schema([(name, pa.from_numpy_dtype(a.dtype)) for name, a in cols.items()])
+    with pq.ParquetWriter(path, schema) as w:
+        for start in range(0, n_rows, chunk_rows):
+            end = min(start + chunk_rows, n_rows)
+            w.write_batch(pa.record_batch(
+                [pa.array(a[start:end]) for a in cols.values()], schema=schema))
+
 def ensure_disk_dataset(base: Path, chart: str, rows: int, max_traces: int, seed: int,
                         source: str, regenerate: bool) -> Path:
     """Write the dataset for `source` if missing; return the file path. Lazy/scan handles
-    are created by contenders, not here — this only materializes the file once."""
+    are created by contenders, not here — this only materializes the file once.
+    Parquet is streamed in row-group chunks (memory-bounded for large `rows`); CSV/IPC
+    use the full-frame writers (not used at the extreme sizes)."""
     path = base.with_suffix(FORMAT_SUFFIX[source])
     if regenerate or not path.exists():
         base.parent.mkdir(parents=True, exist_ok=True)
-        df = frame_for(chart, rows, max_traces, seed)
-        {".parquet": df.write_parquet, ".csv": df.write_csv, ".arrow": df.write_ipc}[path.suffix](path)
+        if path.suffix == ".parquet":
+            _write_parquet_streaming(path, columns_for(chart, rows, max_traces, seed))
+        else:
+            df = frame_for(chart, rows, max_traces, seed)
+            {".csv": df.write_csv, ".arrow": df.write_ipc}[path.suffix](path)
     return path
 ```
 
@@ -641,21 +731,59 @@ git commit -m "feat(core): Trial/Summary with three RSS memory metrics"
 ```js
 // contract.js — shared page contract. Each probe imports these helpers and finishes
 // a trial by calling benchDone(...). Render-complete requires a double-rAF (paint).
+// Two render proofs are supported and BOTH count toward `marks`:
+//   1. vector marks (canvas/svg/path/rect/polyline), recursing through shadow DOM;
+//   2. <img> elements that decoded to non-zero dimensions AND are non-blank (the
+//      rasterizers — Vaex/Datashader — render a single <img>, so without this they
+//      would always report `no_marks`). The non-blank-pixel check is always-on, per
+//      the spec's "always-on non-blank-pixel assertion".
 window.__benchHelpers = {
   // Resolve after the next compositor paint (two nested rAFs).
   afterPaint() {
     return new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
   },
-  // Recursively count chart marks across nested shadow DOM (Perspective needs this).
-  countMarks(root = document) {
+  // Recursively count vector chart marks across nested shadow DOM (Perspective needs this).
+  countVectorMarks(root = document) {
     let n = 0;
     root.querySelectorAll("canvas,svg,path,rect,polyline").forEach(() => n++);
-    root.querySelectorAll("*").forEach((el) => { if (el.shadowRoot) n += window.__benchHelpers.countMarks(el.shadowRoot); });
+    root.querySelectorAll("*").forEach((el) => { if (el.shadowRoot) n += window.__benchHelpers.countVectorMarks(el.shadowRoot); });
     return n;
+  },
+  // True iff the decoded image is not a single flat colour (i.e. it actually drew data).
+  // Downsamples onto a 32x32 canvas and checks that >1 distinct pixel value appears.
+  imageIsNonBlank(img) {
+    if (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) return false;
+    const w = 32, h = 32;
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, w, h);
+    const px = ctx.getImageData(0, 0, w, h).data;
+    const first = (px[0] << 16) | (px[1] << 8) | px[2];
+    for (let i = 4; i < px.length; i += 4) {
+      if (((px[i] << 16) | (px[i + 1] << 8) | px[i + 2]) !== first) return true;
+    }
+    return false;
+  },
+  // Count non-blank decoded <img> render marks (rasterizers).
+  countImageMarks(root = document) {
+    let n = 0;
+    root.querySelectorAll("img").forEach((img) => { if (window.__benchHelpers.imageIsNonBlank(img)) n++; });
+    return n;
+  },
+  // Signal that the engine's in-browser native store is built (client/WASM tools),
+  // then block until the harness has sampled resident memory and releases us.
+  // Server/raster pages never call this; they render directly on load.
+  async benchStored() {
+    window.__bench_stored = true;
+    await new Promise((res) => {
+      if (window.__bench_go) return res();
+      const id = setInterval(() => { if (window.__bench_go) { clearInterval(id); res(); } }, 2);
+    });
   },
   async benchDone(fields) {
     await window.__benchHelpers.afterPaint();
-    const marks = window.__benchHelpers.countMarks();
+    const marks = window.__benchHelpers.countVectorMarks() + window.__benchHelpers.countImageMarks();
     window.__bench = {
       status: marks > 0 ? "ok" : "no_marks",
       marks,
@@ -667,11 +795,15 @@ window.__benchHelpers = {
 };
 ```
 
+> The split into `countVectorMarks` + `countImageMarks` is what lets one contract serve
+> both the vector engines and the rasterizers. `benchStored()`/`__bench_go` implement the
+> client-WASM two-phase handshake the harness relies on for memory attribution (Task 2.6).
+
 - [ ] **Step 2: Commit** (no test yet — exercised by Task 2.5 / contender tasks)
 
 ```bash
 git add benchmarks/probes/contract.js
-git commit -m "feat(probes): shared page contract with double-rAF paint proof + shadow mark count"
+git commit -m "feat(probes): page contract w/ double-rAF, shadow + non-blank-image marks, store handshake"
 ```
 
 ### Task 2.4: `ProcessTreeSampler` (RSS, three metrics, tag discovery)
@@ -818,6 +950,12 @@ VENDOR_DIST = PROBES / "vendor" / "dist"
 class Contender(Protocol):
     name: str
     backend_root: Any  # psutil.Process | None — process group to sample for backend memory
+    client_store: bool  # True when the engine's native store lives in the BROWSER (WASM tools);
+                        # the harness then attributes resident/preload to the browser store-phase
+    def start_backend(self, *, chart: str, source: str, n_traces: int,
+                      bins: int, n_points: int) -> None: ...
+        # Spawn an EMPTY out-of-process backend and set `backend_root` BEFORE preload, so
+        # the memory baseline is the empty child. No-op for in-process/client contenders.
     def preload(self, *, chart: str, source: str, frame_or_path: Any, n_traces: int,
                 bins: int, n_points: int) -> None: ...
     def get_url(self) -> str: ...            # navigate here; the contender serves it
@@ -830,6 +968,11 @@ class PageServerMixin:
     perspective-wasm, mosaic-server probe). Exposes vendored assets + contract.js."""
     _server: StaticServer | None = None
     _dir: Path | None = None
+    client_store: bool = False  # overridden True by the WASM contenders
+    def start_backend(self, *, chart: str, source: str, n_traces: int,
+                      bins: int, n_points: int) -> None:
+        # Default: no separate backend process. Server contenders override to spawn empty.
+        return None
     def serve_page(self, html: str) -> str:
         d = Path(tempfile.mkdtemp(prefix="ttfr_"))
         (d / "index.html").write_text(html, encoding="utf-8")
@@ -892,14 +1035,31 @@ class RenderProbe:
 
     def run_trial(self, contender: Any, *, chart: str, source: str, frame_or_path: Any,
                   n_traces: int, bins: int, n_points: int) -> Trial:
-        clean_baseline = tree_rss_mb(psutil.Process(os.getpid()))
-        # --- preload (data into the engine's native store) with peak sampling ---
-        backend_getter = lambda: getattr(contender, "backend_root", None) or psutil.Process(os.getpid())
+        self_proc = psutil.Process(os.getpid())
+        backend_getter = lambda: getattr(contender, "backend_root", None) or self_proc
+        client_store = bool(getattr(contender, "client_store", False))
+
+        # --- backend group baselines must be measured ON THE GROUP WE SAMPLE ---
+        # For out-of-process backends (mosaic-server, perspective-server) the child is
+        # spawned EMPTY here, BEFORE the preload-sampling window, so `backend_root` is
+        # registered first and the baseline is the empty child. preload() then loads data
+        # into that already-running backend, so preload_peak/resident are within-group
+        # deltas (not parent-RSS-minus-child-RSS, which could go negative). In-process
+        # backends (FlexViz, rasterizers) make start_backend a no-op and sample our tree.
+        contender.start_backend(chart=chart, source=source, n_traces=n_traces,
+                                bins=bins, n_points=n_points)
+        backend_baseline = tree_rss_mb(backend_getter())
         with ProcessTreeSampler(backend_getter) as pre:
             contender.preload(chart=chart, source=source, frame_or_path=frame_or_path,
                               n_traces=n_traces, bins=bins, n_points=n_points)
-        preload_peak = max(0.0, pre.peak_mb - clean_baseline)
-        resident = max(0.0, pre.current() - clean_baseline) if source == "in-memory" else 0.0
+        # Client/WASM tools build their native store in the BROWSER, not the backend, so
+        # their preload/resident are captured in the browser store-phase below, not here.
+        if client_store:
+            preload_peak = 0.0
+            resident = 0.0
+        else:
+            preload_peak = max(0.0, pre.peak_mb - backend_baseline)
+            resident = max(0.0, pre.current() - backend_baseline) if source == "in-memory" else 0.0
 
         url = contender.get_url()
         page = self._ctx.new_page()
@@ -907,13 +1067,35 @@ class RenderProbe:
         for script in contender.init_scripts():
             page.add_init_script(script)
         try:
-            backend_base = tree_rss_mb(backend_getter())
-            browser_base = tree_rss_mb(self._browser_root)
-            with ProcessTreeSampler(backend_getter) as bs, ProcessTreeSampler(lambda: self._browser_root) as br:
-                page.goto(url, wait_until="load", timeout=60_000)
-                page.wait_for_function(contender.ready_signal(), timeout=45_000)
-                page.wait_for_function("() => window.__bench !== undefined", timeout=45_000)
-                bench: dict = page.evaluate("() => window.__bench")
+            if client_store:
+                # Phase 1: the page builds its in-browser native store, calls benchStored()
+                # and BLOCKS on __bench_go. Sample the store cost here (resident/preload).
+                browser_pre_nav = tree_rss_mb(self._browser_root)
+                with ProcessTreeSampler(lambda: self._browser_root) as store:
+                    page.goto(url, wait_until="load", timeout=60_000)
+                    page.wait_for_function("() => window.__bench_stored === true", timeout=45_000)
+                store_pt = tree_rss_mb(self._browser_root)
+                resident = max(0.0, store_pt - browser_pre_nav)          # browser-held store
+                preload_peak = max(0.0, store.peak_mb - browser_pre_nav)
+                # Phase 2: release + timed render. Baselines are the post-store RSS so the
+                # WASM store build is NOT charged to render memory.
+                backend_render_base = tree_rss_mb(backend_getter())
+                render_browser_base = store_pt
+                with ProcessTreeSampler(backend_getter) as bs, ProcessTreeSampler(lambda: self._browser_root) as br:
+                    page.evaluate("() => { window.__bench_go = true; }")  # release the render
+                    page.wait_for_function(contender.ready_signal(), timeout=45_000)
+                    page.wait_for_function("() => window.__bench !== undefined", timeout=45_000)
+                    bench: dict = page.evaluate("() => window.__bench")
+            else:
+                # Server/raster pages render straight through on load (no store phase). The
+                # render may complete during goto(), so the samplers MUST wrap the goto.
+                backend_render_base = tree_rss_mb(backend_getter())
+                render_browser_base = tree_rss_mb(self._browser_root)
+                with ProcessTreeSampler(backend_getter) as bs, ProcessTreeSampler(lambda: self._browser_root) as br:
+                    page.goto(url, wait_until="load", timeout=60_000)
+                    page.wait_for_function(contender.ready_signal(), timeout=45_000)
+                    page.wait_for_function("() => window.__bench !== undefined", timeout=45_000)
+                    bench: dict = page.evaluate("() => window.__bench")
             if bench.get("status") == "no_marks":
                 raise RuntimeError(f"{contender.name}: rendered no marks")
             if bench.get("status") == "error":
@@ -929,8 +1111,8 @@ class RenderProbe:
             total_ms=float(bench.get("total_ms") or (f("query_ms") or 0) + (f("render_ms") or 0)),
             query_ms=f("query_ms"), transfer_ms=f("transfer_ms"), render_ms=f("render_ms"),
             payload_bytes=int(bench["payload_bytes"]) if bench.get("payload_bytes") is not None else None,
-            backend_timed_peak_mb=max(0.0, bs.peak_mb - backend_base),
-            browser_timed_peak_mb=max(0.0, br.peak_mb - browser_base),
+            backend_timed_peak_mb=max(0.0, bs.peak_mb - backend_render_base),
+            browser_timed_peak_mb=max(0.0, br.peak_mb - render_browser_base),
             resident_footprint_mb=resident, preload_peak_mb=preload_peak,
         )
 
@@ -1141,9 +1323,12 @@ def _free_port() -> int:
 class FlexVizContender:
     name = "flexviz"
     _port = 0
+    client_store = False  # FlexViz computes server-side (in-process), browser only renders
     def __init__(self, flexviz_repo: Path) -> None:
         self._repo = flexviz_repo; self._url = ""
         self.backend_root = psutil.Process(os.getpid())  # FlexViz server runs in-process
+    def start_backend(self, *, chart, source, n_traces, bins, n_points) -> None:
+        return None  # in-process; the FlexViz server thread starts lazily in preload()
     def _ensure_server(self) -> int:
         if FlexVizContender._port:
             return FlexVizContender._port
@@ -1258,19 +1443,25 @@ git commit -m "feat(contenders): FlexViz end-to-end on the new harness + registr
 - Create: `benchmarks/core/contenders/mosaic_server.py`, `benchmarks/probes/mosaic_server.html.j2`
 - Test: extend `tests/test_contenders_render.py`
 
-- [ ] **Step 1: Fix `mosaic_duckdb_server.py`** — add a native-table path and remove the inert cache. Replace the cache machinery: delete `_cache_key`, `_retrieve`, the `diskcache` import, and the `cache` parameter; `_handle_query` calls `_arrow_bytes`/`_json_rows` directly. In `run_mosaic_duckdb_server`, change the in-memory branch to materialize a **native** table:
+- [ ] **Step 1: Fix `mosaic_duckdb_server.py`** — add a native-table path, remove the inert cache, **and start the server EMPTY with a `/load` control route** so the contender can register the backend process (for memory baselining) *before* the table is built. Replace the cache machinery: delete `_cache_key`, `_retrieve`, the `diskcache` import, and the `cache` parameter; `_handle_query` calls `_arrow_bytes`/`_json_rows` directly. Drop `frame`/`disk_path` from `run_mosaic_duckdb_server` (it now starts table-less) and drop `cache` from `_handle_query` and both `ws_message`/`http_handler` call sites.
 
+Add a one-shot `POST /load` handler that builds the store on demand (Arrow IPC bytes for in-memory → a **native** table; a path for disk → a view scanned at query time):
 ```python
-    con = duckdb.connect(":memory:")
-    if frame is not None:
-        con.register("_src", frame)
-        con.execute("CREATE TABLE bench AS SELECT * FROM _src")   # native DuckDB columnar (the fix)
-        con.unregister("_src")
-    elif disk_path is not None:
-        path = str(Path(disk_path).resolve()).replace("'", "''")
-        con.execute(f"CREATE OR REPLACE VIEW bench AS SELECT * FROM '{path}'")  # disk: scan at query time
+    con = duckdb.connect(":memory:")  # starts EMPTY — no `bench` table yet
+
+    def _load(body: bytes, headers) -> None:
+        kind = headers.get("X-Load-Kind")  # "arrow" | "path"
+        if kind == "arrow":
+            import pyarrow.ipc as ipc
+            tbl = ipc.open_stream(body).read_all()           # transient; freed after CREATE TABLE
+            con.register("_src", tbl)
+            con.execute("CREATE OR REPLACE TABLE bench AS SELECT * FROM _src")  # native columnar (the fix)
+            con.unregister("_src")
+        else:  # "path" — disk source: a VIEW, so the scan happens at query time (timed window)
+            path = body.decode().replace("'", "''")
+            con.execute(f"CREATE OR REPLACE VIEW bench AS SELECT * FROM '{path}'")
 ```
-And drop `cache` from `_handle_query(handler, con, query)` and both `ws_message`/`http_handler` call sites.
+Wire `POST /load` into the HTTP handler so the contender can call it after the (empty) server is listening; respond `200` when the build completes. The WS query handler is unchanged except for the dropped `cache` arg.
 
 - [ ] **Step 2: Write `mosaic_server.html.j2`** (vgplot over WS; from the existing probe, using the contract)
 
@@ -1297,7 +1488,7 @@ try {
 } catch (e) { H.benchError(e); }
 </script>
 ```
-Add a `mosaic_server` esbuild entry (`src/mosaic_server_vgplot.js` = `export * from '@uwdata/vgplot';`) to `build.mjs` entryPoints and re-run `vendor_assets.py`.
+The `mosaic_server_vgplot` esbuild entry + its `src/mosaic_server_vgplot.js` were added in Task 1.2, so `dist/mosaic_server_vgplot.js` is already vendored — no build change needed here.
 
 - [ ] **Step 3: Write `mosaic_server.py` contender** (spawn the DuckDB server, serve the probe page)
 
@@ -1320,27 +1511,41 @@ def _free_port() -> int:
 class MosaicServerContender(PageServerMixin):
     name = "mosaic-server"
     def __init__(self) -> None:
-        self._proc = None; self.backend_root = None
-    def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
-        port = _free_port()
-        if isinstance(frame_or_path, Path):
-            kwargs = {"disk_path": str(frame_or_path.resolve()), "frame": None}
-        else:
-            kwargs = {"frame": frame_or_path.select(frame_columns(chart, n_traces)), "disk_path": None}
+        self._proc = None; self._port = 0; self.backend_root = None
+    def start_backend(self, *, chart, source, n_traces, bins, n_points) -> None:
+        # Spawn the server EMPTY (no table) and register its pid BEFORE preload, so the
+        # memory baseline is the empty child and the table build shows up as a delta.
+        self._port = _free_port()
         ctx = mp.get_context("spawn")  # spawn: no shared frame, macOS-safe
         self._proc = ctx.Process(target=run_mosaic_duckdb_server,
-                                 kwargs={"port": port, "cache_dir": None, **kwargs}, daemon=True)
+                                 kwargs={"port": self._port, "cache_dir": None}, daemon=True)
         self._proc.start()
         self.backend_root = psutil.Process(self._proc.pid)
         deadline = time.monotonic() + 15
         while time.monotonic() < deadline:
             try:
-                with socket.create_connection(("127.0.0.1", port), 0.3): break
+                with socket.create_connection(("127.0.0.1", self._port), 0.3): break
             except OSError: time.sleep(0.1)
         else:
             raise RuntimeError("mosaic server did not start")
+    def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
+        import requests
+        base = f"http://127.0.0.1:{self._port}"
+        if isinstance(frame_or_path, Path):
+            # disk: hand the server a path → it makes a VIEW; the scan is at query time (timed).
+            requests.post(f"{base}/load", data=str(frame_or_path.resolve()).encode(),
+                          headers={"X-Load-Kind": "path"}, timeout=30).raise_for_status()
+        else:
+            # in-memory: stream Arrow IPC bytes → native CREATE TABLE (the resident store).
+            import io, pyarrow.ipc as ipc
+            table = frame_or_path.select(frame_columns(chart, n_traces)).to_arrow()
+            sink = io.BytesIO()
+            with ipc.new_stream(sink, table.schema) as w:
+                for b in table.to_batches(): w.write_batch(b)
+            requests.post(f"{base}/load", data=sink.getvalue(),
+                          headers={"X-Load-Kind": "arrow"}, timeout=120).raise_for_status()
         html = (PROBES / "mosaic_server.html.j2").read_text() \
-            .replace("{{WS_URL}}", f"ws://127.0.0.1:{port}/") \
+            .replace("{{WS_URL}}", f"ws://127.0.0.1:{self._port}/") \
             .replace("{{CHART_TYPE}}", '"histogram"' if chart == "histogram" else '"line"') \
             .replace("{{N_TRACES}}", str(n_traces)) \
             .replace("{{BINS_OR_NPTS}}", str(bins if chart == "histogram" else n_points))
@@ -1407,10 +1612,13 @@ git commit -m "feat(contenders): Mosaic-server with native-table fix, no diskcac
 import { makeDuckDB, connectorFor, insertArrow, vg } from './dist/mosaic_wasm.js';
 const H = window.__benchHelpers;
 try {
+  // --- Phase 1: build the native in-browser store (NOT timed). ---
   const db = await makeDuckDB('./dist/duckdb-eh.wasm', './dist/duckdb-browser-eh.worker.js');
   const buf = new Uint8Array(await (await fetch('./bench.arrow')).arrayBuffer());
-  await insertArrow(db, 'bench', buf);          // native WASM table built BEFORE timing window? (see note)
+  await insertArrow(db, 'bench', buf);          // DuckDB-WASM native table = the resident store
   vg.coordinator().databaseConnector(connectorFor(db));
+  await H.benchStored();                          // signal store built; block until harness samples + releases
+  // --- Phase 2: timed render (store already resident). ---
   const marks = [];
   for (let t = 0; t < {{N_TRACES}}; t++) {
     marks.push({{CHART_TYPE}} === "histogram"
@@ -1425,7 +1633,12 @@ try {
 } catch (e) { H.benchError(e); }
 </script>
 ```
-> Note on precondition: per the spec, the WASM table is the engine's native store. Building it inside the page means load+render are both in the timed `total_ms`. That is acceptable and consistent for the client engines (data must reach the browser regardless); the spec's "resident_footprint" for them is the browser-tree delta, which the harness already captures. Keep `total_ms` measured from after the table insert for parity with server engines: set `t0` *after* `insertArrow`.
+> Per the spec, the WASM table is the engine's native (in-browser) store. The page builds
+> it in **Phase 1** and calls `benchStored()`, which blocks on `__bench_go`; the harness
+> samples the browser-tree RSS delta as `resident_footprint`/`preload_peak` and then
+> releases the page. `total_ms` is measured only over **Phase 2** (the actual render), so
+> the store-build cost lands in resident memory, not in render time — parity with the
+> server engines whose store is built in `preload()`.
 
 - [ ] **Step 2: Write `mosaic_wasm.py` contender** (in-memory only; writes the selected frame to an Arrow file served beside the page)
 
@@ -1439,6 +1652,7 @@ from core.contenders.base import PROBES, PageServerMixin, frame_columns
 
 class MosaicWasmContender(PageServerMixin):
     name = "mosaic-wasm"
+    client_store = True  # DuckDB-WASM table lives in the browser; resident measured there
     def __init__(self) -> None:
         self.backend_root = None  # all compute is in the browser
     def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
@@ -1503,9 +1717,12 @@ git commit -m "feat(contenders): Mosaic-wasm (DuckDB-WASM, in-memory Arrow)"
 import { perspective } from './dist/perspective.js';
 const H = window.__benchHelpers;
 try {
+  // --- Phase 1: build the native in-browser WASM Table (NOT timed). ---
   const buf = await (await fetch('./bench.arrow')).arrayBuffer();
   const worker = await perspective.worker();
-  const table = await worker.table(buf);          // native WASM Table (built pre-timing)
+  const table = await worker.table(buf);          // WASM Table = the resident store
+  await H.benchStored();                            // signal store built; block until harness samples + releases
+  // --- Phase 2: timed render. ---
   const viewer = document.getElementById('v');
   const t0 = performance.now();
   await viewer.load(table);
@@ -1538,6 +1755,7 @@ def restore_config(chart: str, n_traces: int, bins: int) -> dict:
 
 class PerspectiveWasmContender(PageServerMixin):
     name = "perspective-wasm"
+    client_store = True  # WASM Table lives in the browser; resident measured there
     def __init__(self) -> None:
         self.backend_root = None
     def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
@@ -1568,7 +1786,7 @@ def test_perspective_wasm_renders_line_in_memory():
     assert trial.total_ms > 0
 ```
 
-- [ ] **Step 4: Run** (Perspective renders in nested shadow DOM — the contract's `countMarks` recurses, verified in spike)
+- [ ] **Step 4: Run** (Perspective renders in nested shadow DOM — the contract's `countVectorMarks` recurses, verified in spike)
 
 Run: `uv run pytest tests/test_contenders_render.py -k perspective_wasm -v`
 Expected: PASS
@@ -1599,37 +1817,90 @@ git commit -m "feat(contenders): Perspective-wasm (client Table, in-memory Arrow
 import { perspective } from './dist/perspective.js';
 const H = window.__benchHelpers;
 try {
+  const t0 = performance.now();
+  // For a DISK source the server holds only the file path; this GET makes it read the
+  // file + build the server Table INSIDE the timed window (spec: disk = read + build +
+  // stream). For an IN-MEMORY source the Table was already built in preload() (resident),
+  // so /build returns immediately with dur≈0. Server-Timing carries the build cost.
+  const r = await fetch("{{BUILD_URL}}");
+  const st = (r.headers.get("Server-Timing") || "").match(/dur=([\d.]+)/);
+  const query_ms = st ? parseFloat(st[1]) : null;
   const ws = await perspective.websocket("{{WS_URL}}");
   const table = await ws.open_table("bench");     // server-held table (virtual)
   const viewer = document.getElementById('v');
-  const t0 = performance.now();
   await viewer.load(table);
   await viewer.restore({{RESTORE_JSON}});
   await viewer.flush();
-  H.benchDone({ total_ms: performance.now() - t0 });
+  const total_ms = performance.now() - t0;
+  H.benchDone({ total_ms, query_ms, render_ms: total_ms - (query_ms || 0) });
 } catch (e) { H.benchError(e); }
 </script>
 ```
-> This page is served by **our** StaticServer (vendored bundle + contract), but talks to the perspective-python tornado server on a different port for the WS. The vendored `dist/perspective.js` is reused.
+> This page is served by **our** StaticServer (vendored bundle + contract), but talks to the perspective-python tornado server on a different port for both the WS (`/ws`) and the `/build` control GET. The vendored `dist/perspective.js` is reused. The tornado server sends `Access-Control-Allow-Origin: *` + `Timing-Allow-Origin: *` so the cross-origin `/build` fetch and its `Server-Timing` are readable.
 
-- [ ] **Step 2: Write the tornado server module** `benchmarks/core/contenders/_perspective_tornado.py` (proven in spike; runs in a child process for clean RSS attribution)
+- [ ] **Step 2: Write the tornado server module** `benchmarks/core/contenders/_perspective_tornado.py` — starts **EMPTY** (no table) so the contender can register the backend pid before the store is built, and ingests **Arrow** (never Python lists). Two control routes:
+> - `POST /load` — in-memory: build the server `Table` from Arrow IPC bytes now (the resident store). Disk: store the file path only (deferred).
+> - `GET /build` — disk: read the file + build the `Table` *inside the timed window*; returns `Server-Timing: build;dur=…`. In-memory: no-op (`dur≈0`).
 
 ```python
 # benchmarks/core/contenders/_perspective_tornado.py
 from __future__ import annotations
-import asyncio
-from typing import Any
+import asyncio, json, time
 
-def run_perspective_server(*, port: int, columns: dict[str, list], table_name: str) -> None:
+def _arrow_bytes_from_file(path: str, cols: list[str]) -> bytes:
+    """Read only `cols` from parquet/csv/ipc into an Arrow IPC stream (no Python lists)."""
+    import io, pyarrow as pa, pyarrow.ipc as ipc
+    suf = path.rsplit(".", 1)[-1].lower()
+    if suf == "parquet":
+        import pyarrow.parquet as pq; tbl = pq.read_table(path, columns=cols)
+    elif suf == "csv":
+        import pyarrow.csv as pc
+        tbl = pc.read_csv(path).select(cols)
+    else:  # .arrow / ipc
+        import pyarrow.feather as fa; tbl = fa.read_table(path, columns=cols)
+    sink = io.BytesIO()
+    with ipc.new_stream(sink, tbl.schema) as w:
+        for b in tbl.to_batches(): w.write_batch(b)
+    return sink.getvalue()
+
+def run_perspective_server(*, port: int) -> None:
     asyncio.set_event_loop(asyncio.new_event_loop())
     import tornado.web, tornado.ioloop
     from perspective import Server
     from perspective.handlers.tornado import PerspectiveTornadoHandler
     server = Server()
     client = server.new_local_client()
-    client.table(columns, name=table_name)
+    deferred: dict = {"path": None, "cols": None}  # disk source, built lazily in /build
+
+    class _Cors(tornado.web.RequestHandler):
+        def set_default_headers(self) -> None:
+            self.set_header("Access-Control-Allow-Origin", "*")
+            self.set_header("Timing-Allow-Origin", "*")
+
+    class LoadHandler(_Cors):
+        def post(self) -> None:
+            kind = self.request.headers.get("X-Load-Kind")
+            if kind == "arrow":                         # in-memory: native Table now (resident)
+                client.table(self.request.body, name="bench")
+            else:                                       # "path": disk — defer to /build (timed)
+                spec = json.loads(self.request.body)
+                deferred["path"], deferred["cols"] = spec["path"], spec["cols"]
+            self.set_status(200)
+
+    class BuildHandler(_Cors):
+        def get(self) -> None:
+            t0 = time.perf_counter()
+            if deferred["path"] is not None:            # disk: read file + build Table in-window
+                data = _arrow_bytes_from_file(deferred["path"], deferred["cols"])
+                client.table(data, name="bench")
+                deferred["path"] = None
+            self.set_header("Server-Timing", f"build;dur={(time.perf_counter()-t0)*1000:.1f}")
+            self.set_status(200)
+
     app = tornado.web.Application([
         (r"/ws", PerspectiveTornadoHandler, {"perspective_server": server}),
+        (r"/load", LoadHandler),
+        (r"/build", BuildHandler),
     ])
     app.listen(port, address="127.0.0.1")
     tornado.ioloop.IOLoop.current().start()
@@ -1655,30 +1926,44 @@ def _free_port() -> int:
 class PerspectiveServerContender(PageServerMixin):
     name = "perspective-server"
     def __init__(self) -> None:
-        self._proc = None; self.backend_root = None
-    def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
-        cols = frame_columns(chart, n_traces)
-        if isinstance(frame_or_path, Path):
-            import polars as pl
-            scan = {".parquet": pl.scan_parquet, ".csv": pl.scan_csv, ".arrow": pl.scan_ipc}
-            frame = scan[frame_or_path.suffix](str(frame_or_path)).select(cols).collect()
-        else:
-            frame = frame_or_path.select(cols)
-        columns = {c: frame[c].to_list() for c in cols}  # perspective ingests column dict
-        port = _free_port()
+        self._proc = None; self._port = 0; self.backend_root = None
+    def start_backend(self, *, chart, source, n_traces, bins, n_points) -> None:
+        # Spawn the perspective server EMPTY and register its pid BEFORE preload, so the
+        # memory baseline is the empty child and the Table build is captured as a delta.
+        self._port = _free_port()
         ctx = mp.get_context("spawn")
         self._proc = ctx.Process(target=run_perspective_server,
-                                 kwargs={"port": port, "columns": columns, "table_name": "bench"}, daemon=True)
+                                 kwargs={"port": self._port}, daemon=True)
         self._proc.start(); self.backend_root = psutil.Process(self._proc.pid)
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
             try:
-                with socket.create_connection(("127.0.0.1", port), 0.3): break
+                with socket.create_connection(("127.0.0.1", self._port), 0.3): break
             except OSError: time.sleep(0.1)
         else:
             raise RuntimeError("perspective server did not start")
+    def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
+        import requests
+        cols = frame_columns(chart, n_traces)
+        base = f"http://127.0.0.1:{self._port}"
+        if isinstance(frame_or_path, Path):
+            # disk: hand over path + cols only; the read + Table build happens in /build,
+            # inside the timed window (NOT here) — so we never .collect() pre-timing.
+            requests.post(f"{base}/load",
+                          data=json.dumps({"path": str(frame_or_path.resolve()), "cols": cols}).encode(),
+                          headers={"X-Load-Kind": "path"}, timeout=30).raise_for_status()
+        else:
+            # in-memory: stream Arrow IPC bytes → native server Table (resident). No to_list().
+            import io, pyarrow.ipc as ipc
+            table = frame_or_path.select(cols).to_arrow()
+            sink = io.BytesIO()
+            with ipc.new_stream(sink, table.schema) as w:
+                for b in table.to_batches(): w.write_batch(b)
+            requests.post(f"{base}/load", data=sink.getvalue(),
+                          headers={"X-Load-Kind": "arrow"}, timeout=120).raise_for_status()
         html = (PROBES / "perspective_server.html.j2").read_text() \
-            .replace("{{WS_URL}}", f"ws://127.0.0.1:{port}/ws") \
+            .replace("{{WS_URL}}", f"ws://127.0.0.1:{self._port}/ws") \
+            .replace("{{BUILD_URL}}", f"{base}/build") \
             .replace("{{RESTORE_JSON}}", json.dumps(restore_config(chart, n_traces, bins)))
         self._url = self.serve_page(html)
     def get_url(self) -> str: return self._url
@@ -1731,12 +2016,14 @@ git commit -m "feat(contenders): Perspective-server (perspective-python tornado 
 
 ```html
 <!doctype html><meta charset=utf-8><style>body{margin:0}</style>
-<img id="chart" />
+<img id="chart" crossorigin="anonymous" />
 <script src="./contract.js"></script>
 <script type="module">
 const H = window.__benchHelpers;
 try {
   const img = document.getElementById('chart');
+  // crossorigin + the PNG server's `Access-Control-Allow-Origin: *` keep the canvas
+  // untainted so contract.js's non-blank-pixel readback works (PNG is a different origin).
   const t0 = performance.now();
   img.src = "{{PNG_URL}}";                 // request triggers server-side raster
   await img.decode();                       // resolves when decoded
@@ -1783,6 +2070,10 @@ class RasterContender(PageServerMixin):
                 self.send_header("Content-Type", "image/png")
                 self.send_header("Server-Timing", f"raster;dur={(time.perf_counter()-t0)*1000:.1f}")
                 self.send_header("Cache-Control", "no-store")
+                # CORS so the probe page (different origin/port) can read pixels back
+                # off a canvas for the contract's non-blank-pixel assertion.
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Timing-Allow-Origin", "*")  # expose PerformanceResourceTiming
                 self.send_header("Content-Length", str(len(png)))
                 self.end_headers(); self.wfile.write(png)
             def log_message(self, *a): pass
@@ -1883,7 +2174,7 @@ git add benchmarks/core/contenders/vaex.py tests/test_contenders_render.py
 git commit -m "feat(contenders): Vaex rasterizer (matplotlib Agg PNG, request-triggered)"
 ```
 
-### Task 6.3: HoloViews+Datashader rasterizer
+### Task 6.3: Datashader rasterizer
 
 **Files:**
 - Create: `benchmarks/core/contenders/datashader.py`
@@ -1920,21 +2211,27 @@ class DatashaderContender(RasterContender):
         if suf == ".csv": return pd.read_csv(self._path, usecols=self._cols)
         import pyarrow.feather as f; return f.read_feather(self._path, columns=self._cols)
     def _make_png(self) -> bytes:
+        from core.oracle import histogram_counts
         df = self._frame()
         cvs = ds.Canvas(plot_width=900, plot_height=400)
         if self._chart == "line":
             imgs = [tf.shade(cvs.line(df, "x", f"y{t+1}")) for t in range(self._n_traces)]
-            img = tf.stack(*imgs)
         else:
-            col = "value1"
-            agg = cvs.points(df.assign(_zero=0.0), col, "_zero")  # 1-D over value range
-            img = tf.shade(agg)
+            # Histogram: bin counts come from the SAME numpy oracle every tool matches
+            # (Task 7.1), then datashader rasterizes the per-bin step line — a real
+            # datashader raster whose bars line up with the oracle (Task 7.2 asserts this).
+            imgs = []
+            for t in range(self._n_traces):
+                centers, counts = histogram_counts(df[f"value{t+1}"].to_numpy(), self._bins)
+                hd = pd.DataFrame({"x": centers, "y": counts.astype("float64")})
+                imgs.append(tf.shade(cvs.line(hd, "x", "y")))
+        img = tf.stack(*imgs)
         pil = tf.set_background(img, "white").to_pil()
         buf = io.BytesIO(); pil.save(buf, format="png"); return buf.getvalue()
     def teardown(self) -> None:
         super().teardown(); self._df = None
 ```
-> Note: for the histogram the canonical datashader path is a 1-D aggregation; if `cvs.points` proves awkward for a count histogram, compute bin counts with numpy and `tf.shade` a `cvs.line` of the step function — either renders a real datashader raster. Pick one and assert the oracle (Task 7.2).
+> This contender uses the **`datashader` API directly** (`Canvas` → `tf.shade`); it is named `datashader` (not "HoloViews+Datashader") and does not depend on `holoviews`. The histogram path is fixed: numpy oracle bin counts rendered as a datashader step line — no `cvs.points` fallback.
 
 - [ ] **Step 2: Add render test**
 
@@ -1954,7 +2251,7 @@ def test_datashader_renders_line_png():
 Run: `uv run pytest tests/test_contenders_render.py -k datashader -v` → PASS
 ```bash
 git add benchmarks/core/contenders/datashader.py tests/test_contenders_render.py
-git commit -m "feat(contenders): HoloViews+Datashader rasterizer (Canvas->shade PNG)"
+git commit -m "feat(contenders): Datashader rasterizer (Canvas->shade PNG)"
 ```
 
 ## Phase 7 — Same-picture oracle + behavioral guards
@@ -2041,8 +2338,44 @@ def assert_real_engine(page, kind: str):
         assert page.evaluate("() => !!document.querySelector('.plotly')")
     elif kind == "vgplot":
         assert page.evaluate("() => document.querySelectorAll('svg').length>0")
+    elif kind == "raster":  # rasterizers: a decoded, non-blank <img>
+        assert page.evaluate("() => window.__benchHelpers.countImageMarks() > 0")
 ```
-> To use it, the render tests should keep the page open; refactor `RenderProbe.run_trial` is not needed — instead add one focused test that drives a contender and inspects the page via a second small Playwright block, OR expose `probe._ctx` for assertions. Simplest: add a dedicated `test_engine_markers` that, for one representative source, navigates and checks markers using the same contender `get_url()` after `preload()`.
+Add a dedicated `test_engine_markers` that drives each representative contender through its
+own `start_backend`/`preload`/`get_url`, navigates a fresh Playwright page, and checks the
+marker. It does NOT touch `RenderProbe` internals (no `probe._ctx`); it injects
+`window.__bench_go = true` so client-store pages don't block on the harness handshake:
+```python
+import pytest
+from playwright.sync_api import sync_playwright
+from core.contenders.mosaic_wasm import MosaicWasmContender
+from core.contenders.perspective_wasm import PerspectiveWasmContender
+from core.contenders.vaex import VaexContender
+
+@pytest.mark.parametrize("factory, chart, kind", [
+    (MosaicWasmContender, "line", "vgplot"),
+    (PerspectiveWasmContender, "line", "perspective"),
+    (VaexContender, "histogram", "raster"),
+])
+def test_engine_markers(factory, chart, kind):
+    frame = frame_for(chart, 20_000, 2, 42)
+    c = factory()
+    c.start_backend(chart=chart, source="in-memory", n_traces=2, bins=50, n_points=1000)
+    c.preload(chart=chart, source="in-memory", frame_or_path=frame,
+              n_traces=2, bins=50, n_points=1000)
+    try:
+        with sync_playwright() as p:
+            b = p.chromium.launch(headless=True)
+            pg = b.new_page()
+            pg.add_init_script("window.__bench_go = true")  # release client-store handshake
+            pg.goto(c.get_url(), wait_until="load")
+            pg.wait_for_function("() => window.__bench !== undefined", timeout=45000)
+            assert pg.evaluate("() => window.__bench.status") == "ok"
+            assert_real_engine(pg, kind)
+            b.close()
+    finally:
+        c.teardown()
+```
 
 - [ ] **Step 2: No-duplicate guard** (the regression that started this project)
 
@@ -2083,8 +2416,22 @@ def test_mosaic_histogram_bins_match_oracle():
         f"SELECT count(*) FROM t WHERE value1 BETWEEN {lo} AND {hi}").fetchone()[0]
     _, oracle = histogram_counts(cols["value1"], 50)
     assert rows == oracle.sum() == 20_000
+
+def test_perspective_reads_back_all_rows():
+    # Engine read-back: prove perspective ingested EVERY row (not a stub/truncation) and
+    # the values round-trip — server-side, so no browser needed. Pairs with the DuckDB
+    # binning lock above to cover the second Class-A engine.
+    import perspective
+    cols = histogram_columns(20_000, 1, 42)
+    client = perspective.Server().new_local_client()
+    table = client.table({"value1": cols["value1"].tolist()})
+    assert table.num_rows() == 20_000
+    back = table.view(columns=["value1"]).to_columns()["value1"]
+    assert len(back) == 20_000
+    assert abs(back[0] - float(cols["value1"][0])) < 1e-9
 ```
-> This locks the binning math against the oracle. Per-engine read-back asserts (Perspective `view`, Plotly traces) are added opportunistically where the engine exposes the rendered data; Perspective read-back was proven in the spike.
+> Two engine read-back locks: DuckDB binning vs the numpy oracle, and Perspective full-row
+> read-back. Both run server-side (no browser), so they execute in the default test job.
 
 - [ ] **Step 4: Run all behavioral tests + commit**
 
@@ -2177,21 +2524,25 @@ git commit -m "docs: update CLAUDE.md for unified ttfr_bench + vendoring"
 - Page contract + double-rAF → 2.3 ✓
 - Three contender classes (7 tools) → 3.2, 3.3, 4.1, 4.2, 5.1, 6.2, 6.3 ✓
 - Disk vs in-memory semantics (lazy scan; client engines in-memory only) → FlexViz lazy (3.2), Mosaic view/table (3.3), `CLIENT_ONLY` enforcement (3.1), client contenders assert in-memory (4.1/4.2) ✓
-- Render-complete signals + paint proof → contract.js double-rAF + shadow recursion (2.3), Perspective server/wasm (4.2/5.1) ✓
-- Memory: RSS, three metrics, tag discovery → 2.4, harness deltas (2.6) ✓
-- Vendoring esbuild + manifest + no-CDN test + wasm MIME → 1.1–1.5 ✓
-- Rasterizers request-triggered → 6.1 ✓
+- Render-complete signals + paint proof → contract.js double-rAF + shadow recursion + non-blank `<img>` for rasterizers (2.3), Perspective server/wasm (4.2/5.1) ✓
+- Memory: RSS, three metrics, tag discovery → 2.4; per-group baselines via `start_backend` (empty-spawn before preload) + client-store browser phase in harness (2.6) ✓
+- Vendoring esbuild + manifest + no-CDN test (mosaic-wasm **and** perspective) + wasm MIME → 1.1–1.5 ✓
+- Rasterizers request-triggered (PNG w/ CORS+TAO so pixel read-back + timing split work) → 6.1 ✓
 - Same-picture oracle → 7.1, 7.2 ✓
 - Behavioral tests (markers, no-duplicate, query-count) → 7.2 ✓
 - Report methodology rewrite → 8.1 ✓
 - Makefile migration → 3.1 ✓
 - Graphic Walker deferred → not in roster (config 3.1) ✓
 
-**Type consistency:** Trial fields (`backend_timed_peak_mb`, `browser_timed_peak_mb`, `resident_footprint_mb`, `preload_peak_mb`) are defined in 2.2 and used identically in harness (2.6) and report (8.1). Contender protocol (`preload/get_url/init_scripts/ready_signal/teardown/backend_root`) defined in 2.5 and implemented uniformly in every contender task. `frame_columns(chart, n_traces)` signature consistent. `build_registry(flexviz_repo)` matches driver call in 3.1.
+**Type consistency:** Trial fields (`backend_timed_peak_mb`, `browser_timed_peak_mb`, `resident_footprint_mb`, `preload_peak_mb`) are defined in 2.2 and used identically in harness (2.6) and report (8.1). Contender protocol (`start_backend/preload/get_url/init_scripts/ready_signal/teardown/backend_root/client_store`) defined in 2.5 and implemented uniformly in every contender task (`PageServerMixin` supplies no-op `start_backend` + `client_store=False`; FlexViz defines both explicitly; mosaic-/perspective-server override `start_backend`; wasm tools set `client_store=True`). `frame_columns(chart, n_traces)` signature consistent. `build_registry(flexviz_repo)` matches driver call in 3.1.
+
+**Memory model (post-review):** baselines are measured **on the group being sampled**. Out-of-process backends (mosaic-server, perspective-server) spawn EMPTY in `start_backend` *before* the preload window, so `preload_peak`/`resident` are within-child deltas (never parent-RSS − child-RSS). Client/WASM stores live in the browser and are built in a separate page phase (`benchStored()`/`__bench_go`), so their `resident_footprint` is the browser-tree delta and is excluded from `browser_timed_peak` (render-only). Disk timing: FlexViz lazy scan, Mosaic disk VIEW, and Perspective `/build` all do the file read inside the timed window (Perspective build cost surfaces as `query_ms` via `Server-Timing`).
 
 **Known risks called out for the executor:**
 - Engine render tests need the FlexViz plugin built and `vendor_assets.py` run; mark them integration (they skip cleanly when prerequisites are absent).
-- `perspective-python` minor must equal the vendored `@finos/perspective` (3.1.x); if you bump one, bump both and re-run `vendor_assets.py`.
-- Perspective marks live in nested shadow DOM — the contract's `countMarks` recursion is required; do not "simplify" it.
+- `perspective-python` must equal the vendored `@finos/perspective` **patch-for-patch** (both `==3.1.3`); the wire protocol is patch-sensitive. If you bump one, bump both (`pyproject.toml` + `package.json`) and re-run `vendor_assets.py`.
+- Perspective marks live in nested shadow DOM — the contract's `countVectorMarks` recursion is required; do not "simplify" it.
+- Perspective's WASM/worker assets must be vendored locally (build.mjs globs them); the no-CDN perspective test (1.5) is the backstop against a silent CDN fallback.
+- The Datashader contender uses the `datashader` API directly and is named `datashader` (no `holoviews` dependency).
 - If `find_process_by_cmdline_tag` mis-selects, fall back to name-filtered children (note in Task 2.6).
 
