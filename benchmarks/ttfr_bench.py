@@ -82,6 +82,14 @@ def main() -> None:
                         f"rows={rows:,} traces={n_traces} source={source} -> {eligible}",
                         flush=True,
                     )
+
+                    def _ceiling(name, err, rows=rows, nt=n_traces, src=source):
+                        print(
+                            f"  [ceiling] {name} failed at rows={rows:,} traces={nt} "
+                            f"{src}: {err} — skipping it for this cell",
+                            flush=True,
+                        )
+
                     trials = run_repeated_trials(
                         contenders,
                         run_trial=lambda c, fo=frame_or_path, nt=n_traces, src=source: (
@@ -99,6 +107,7 @@ def main() -> None:
                         repeats=a.repeats,
                         seed=a.seed,
                         seed_offset=rows + n_traces,
+                        on_error=_ceiling,
                     )
                     all_trials[rows][n_traces][source] = {
                         tool: [trial_to_dict(t) for t in ts] for tool, ts in trials.items()

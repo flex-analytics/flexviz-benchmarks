@@ -154,15 +154,40 @@ def run_repeated_trials(
     repeats: int,
     seed: int,
     seed_offset: int = 0,
+    on_error: Callable[[str, Exception], None] | None = None,
 ) -> dict[str, list[Trial]]:
+    """Run warmup + shuffled repeats for each contender.
+
+    A contender that raises (e.g. a client/WASM engine hitting its memory ceiling with a
+    `std::bad_alloc` at large `rows`) is recorded via `on_error`, dropped from the results,
+    and skipped for the rest of this cell — it must NOT abort the whole benchmark matrix.
+    The absence of a tool at a given size is itself the reported ceiling.
+    """
     out: dict[str, list[Trial]] = {n: [] for n, _ in contenders}
-    for _name, factory in contenders:
+    failed: set[str] = set()
+
+    def _attempt(name: str, factory: Callable[[], Any]) -> tuple[Trial | None, bool]:
+        try:
+            return run_trial(factory()), True
+        except Exception as e:  # noqa: BLE001 — any engine failure is a ceiling, not fatal
+            failed.add(name)
+            out.pop(name, None)  # discard partial results; a ceiling-hit cell is unreliable
+            if on_error is not None:
+                on_error(name, e)
+            return None, False
+
+    for name, factory in contenders:
         for _ in range(warmup):
-            run_trial(factory())
+            if name in failed:
+                break
+            _attempt(name, factory)
+
     rng = random.Random(seed + seed_offset)
     for _ in range(repeats):
-        order = list(contenders)
+        order = [(n, f) for n, f in contenders if n not in failed]
         rng.shuffle(order)
         for name, factory in order:
-            out[name].append(run_trial(factory()))
-    return out
+            trial, ok = _attempt(name, factory)
+            if ok:
+                out[name].append(trial)
+    return {n: ts for n, ts in out.items() if ts}
