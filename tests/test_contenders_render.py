@@ -135,3 +135,76 @@ def test_datashader_renders_line_png():
             n_points=1000,
         )
     assert trial.total_ms > 0
+
+
+# --- Behavioral guards (Task 7.2) -------------------------------------------------
+
+import hashlib  # noqa: E402
+
+from playwright.sync_api import sync_playwright  # noqa: E402
+
+
+def assert_real_engine(page, kind: str):
+    if kind == "perspective":
+        assert page.query_selector("perspective-viewer") is not None
+        assert page.evaluate(
+            "() => { const v=document.querySelector('perspective-viewer');"
+            " return !!v.shadowRoot && v.shadowRoot.childElementCount>0; }"
+        )
+    elif kind == "plotly":
+        assert page.evaluate("() => !!document.querySelector('.plotly')")
+    elif kind == "vgplot":
+        assert page.evaluate("() => document.querySelectorAll('svg').length>0")
+    elif kind == "raster":  # rasterizers: a decoded, non-blank <img>
+        assert page.evaluate("() => window.__benchHelpers.countImageMarks() > 0")
+
+
+@pytest.mark.parametrize(
+    "factory, chart, kind",
+    [
+        (MosaicWasmContender, "line", "vgplot"),
+        (PerspectiveWasmContender, "line", "perspective"),
+        (VaexContender, "histogram", "raster"),
+    ],
+)
+def test_engine_markers(factory, chart, kind):
+    frame = frame_for(chart, 20_000, 2, 42)
+    c = factory()
+    c.start_backend(chart=chart, source="in-memory", n_traces=2, bins=50, n_points=1000)
+    c.preload(
+        chart=chart, source="in-memory", frame_or_path=frame, n_traces=2, bins=50, n_points=1000
+    )
+    try:
+        with sync_playwright() as p:
+            b = p.chromium.launch(headless=True)
+            pg = b.new_page()
+            pg.add_init_script("window.__bench_go = true")  # release client-store handshake
+            pg.goto(c.get_url(), wait_until="load")
+            pg.wait_for_function("() => window.__bench !== undefined", timeout=45000)
+            assert pg.evaluate("() => window.__bench.status") == "ok"
+            assert_real_engine(pg, kind)
+            b.close()
+    finally:
+        c.teardown()
+
+
+def test_no_two_contenders_emit_identical_pages():
+    import urllib.request
+
+    frame = frame_for("histogram", 10_000, 2, 42)
+    hashes = {}
+    for make in [MosaicWasmContender, PerspectiveWasmContender]:
+        c = make()
+        c.preload(
+            chart="histogram",
+            source="in-memory",
+            frame_or_path=frame,
+            n_traces=2,
+            bins=50,
+            n_points=1000,
+        )
+        body = urllib.request.urlopen(c.get_url()).read()
+        h = hashlib.sha256(body).hexdigest()
+        c.teardown()
+        assert h not in hashes, f"{c.name} identical to {hashes.get(h)}"
+        hashes[h] = c.name
