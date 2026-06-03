@@ -56,7 +56,9 @@ and measurement bugs, deduplicate, and add **Perspective** and **HoloViews+Datas
   HoloViews+Datashader. The same-engine server-vs-WASM pairs (Mosaic, Perspective)
   isolate compute-location as a single variable — the cleanest demonstration of
   server-compute vs ship-to-browser. Drop the duplicate PyGWalker (keep only the
-  underlying Graphic Walker engine). No naive Plotly/Bokeh baseline.
+  underlying Graphic Walker engine). No naive Plotly/Bokeh baseline. **Graphic Walker
+  is provisional** — the spike could not render it; the plan keeps it behind a bounded
+  investigation with an auto-fallback to a 7-tool roster (see Spike results).
 - **Client/WASM engines run in-memory only.** Graphic Walker, Mosaic-wasm, and
   Perspective-wasm compute in the browser; their data arrives as an in-RAM Arrow
   buffer. They have **no disk source** (marked N/A) — they cannot do out-of-core, and
@@ -392,8 +394,12 @@ HTTP server, rendered headless via Playwright, asserting marks + reading back da
    Walker's exact internal `visualState`/`visualConfig`/workflow contract, which the
    harness must reproduce (likely by capturing a real spec exported from a live Graphic
    Walker session for our chart, then replaying it). It also pulls `leaflet.css` from
-   unpkg, which vendoring must intercept/stub. **This is the one engine not proven; it
-   needs a dedicated investigation task or a roster decision (see open question).**
+   unpkg, which vendoring must intercept/stub. **Decision: keep GW with a bounded
+   investigation as the plan's first GW step** — try the full `GraphicWalker` /
+   `GraphicRenderer` component (not the lower-level `PureRenderer`) fed a spec captured
+   from a real GW session. If it cannot be driven headless within the time box,
+   **auto-fall back to a 7-tool roster** (GW dropped; its client-compute story is
+   already covered by Mosaic-wasm + Perspective-wasm).
 
 ## Out of scope / risks
 
