@@ -224,3 +224,6 @@ results/
 
 # MCP server runtime directory
 .playwright-mcp/
+
+# Vendored JS build deps (lockfile is committed, node_modules is not)
+benchmarks/probes/vendor/node_modules/
