@@ -2,7 +2,8 @@
 
 Date: 2026-06-02
 Status: design approved; spikes run (Mosaic-wasm ✅, Perspective+server ✅, Graphic
-Walker ⚠️ blocked); pending GW roster decision, then implementation plan
+Walker ⚠️ blocked). **Implementation plan targets a 7-tool roster — Graphic Walker is
+deferred to a later pass** (its render could not be driven headless in the spike).
 
 ## Motivation
 
@@ -56,9 +57,12 @@ and measurement bugs, deduplicate, and add **Perspective** and **HoloViews+Datas
   HoloViews+Datashader. The same-engine server-vs-WASM pairs (Mosaic, Perspective)
   isolate compute-location as a single variable — the cleanest demonstration of
   server-compute vs ship-to-browser. Drop the duplicate PyGWalker (keep only the
-  underlying Graphic Walker engine). No naive Plotly/Bokeh baseline. **Graphic Walker
-  is provisional** — the spike could not render it; the plan keeps it behind a bounded
-  investigation with an auto-fallback to a 7-tool roster (see Spike results).
+  underlying Graphic Walker engine). No naive Plotly/Bokeh baseline. **Graphic Walker is
+  DEFERRED out of this implementation pass** (the spike could not drive its render
+  headless). This plan therefore targets **7 tools**: FlexViz, Mosaic-server,
+  Mosaic-wasm, Perspective-server, Perspective-wasm, Vaex, HoloViews+Datashader. GW is
+  revisited in a later pass via the captured-spec / full-component approach in Spike
+  results; the harness must keep adding a contender cheap.
 - **Client/WASM engines run in-memory only.** Graphic Walker, Mosaic-wasm, and
   Perspective-wasm compute in the browser; their data arrives as an in-RAM Arrow
   buffer. They have **no disk source** (marked N/A) — they cannot do out-of-core, and
