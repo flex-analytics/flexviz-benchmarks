@@ -1,0 +1,26 @@
+<!doctype html><meta charset=utf-8>
+<style>body{margin:0}perspective-viewer{width:900px;height:400px}</style>
+<perspective-viewer id="v"></perspective-viewer>
+<script src="./contract.js"></script>
+<script type="module">
+import { perspective } from './dist/perspective.js';
+const H = window.__benchHelpers;
+try {
+  const t0 = performance.now();
+  // For a DISK source the server holds only the file path; this GET makes it read the
+  // file + build the server Table INSIDE the timed window (spec: disk = read + build +
+  // stream). For an IN-MEMORY source the Table was already built in preload() (resident),
+  // so /build returns immediately with dur≈0. Server-Timing carries the build cost.
+  const r = await fetch("{{BUILD_URL}}");
+  const st = (r.headers.get("Server-Timing") || "").match(/dur=([\d.]+)/);
+  const query_ms = st ? parseFloat(st[1]) : null;
+  const ws = await perspective.websocket("{{WS_URL}}");
+  const table = await ws.open_table("bench");     // server-held table (virtual)
+  const viewer = document.getElementById('v');
+  await viewer.load(table);
+  await viewer.restore({{RESTORE_JSON}});
+  await viewer.flush();
+  const total_ms = performance.now() - t0;
+  H.benchDone({ total_ms, query_ms, render_ms: total_ms - (query_ms || 0) });
+} catch (e) { H.benchError(e); }
+</script>
