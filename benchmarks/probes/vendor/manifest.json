@@ -1,0 +1,12 @@
+{
+  "duckdb-browser-eh.worker.js": "260b4773d2d78e5ab1106bc163ffd5b0b6eaeddedacf23190e9cafc9cc010d3d",
+  "duckdb-eh.wasm": "00d45e5e074b7f7e17e45daabacb0fb67248eac8bd638a72cd1b42dad23788e4",
+  "mosaic_server_vgplot.js": "c6cedb4785ca39a77c78cf0eea7f46b7957d465d9b14c73f7a7767129d4978c5",
+  "mosaic_wasm.js": "7e4d8ca9fe8184b548535364c18fa8f64c3a2447da7a447da5decb8b6b8dbc22",
+  "perspective-core.js": "0bc4908112f7ecd2a1f142f76a1419eac7f713f7ddf35e73ca4c530f56834188",
+  "perspective-server.wasm": "5b80926e27f7cf278441b6f5a778caa9ffb6885bdb86c3e71bbe5cd11b510dfe",
+  "perspective-viewer-d3fc.js": "432fb57946ed45ff019112221e074d41897dc4d26af90ceee159f2fa71114056",
+  "perspective-viewer.js": "97d507f02c0465bd0df3feb6e17811c62d2ed42f12b9627941684671edfccdb0",
+  "perspective-viewer.wasm": "cab96550e6c264d4fce34015205eeb4900798a61e71f0bdebbc45b5321f5c638",
+  "perspective.js": "12a72e6529a6476b242f4f059aa90cbe2ba7230e45d8d0c6ade559ad4a1c714e"
+}
