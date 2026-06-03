@@ -41,7 +41,7 @@ class StaticServer:
     def url(self) -> str:
         return f"http://127.0.0.1:{self._port}"
 
-    def __enter__(self) -> "StaticServer":
+    def __enter__(self) -> StaticServer:
         handler = functools.partial(_Handler, directory=self._dir)
         self._httpd = http.server.ThreadingHTTPServer(("127.0.0.1", self._port), handler)
         threading.Thread(target=self._httpd.serve_forever, daemon=True).start()

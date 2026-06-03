@@ -53,7 +53,7 @@ class ProcessTreeSampler:
         root = self._root_getter()
         return tree_rss_mb(root) if root is not None else 0.0
 
-    def __enter__(self) -> "ProcessTreeSampler":
+    def __enter__(self) -> ProcessTreeSampler:
         self._peak = self._sample()
         self._stop.clear()
         self._thread = threading.Thread(target=self._loop, daemon=True)

@@ -3,7 +3,8 @@ from __future__ import annotations
 import os
 import random
 import tempfile
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import psutil
 from playwright.sync_api import sync_playwright
@@ -17,7 +18,7 @@ class RenderProbe:
         self._headless = headless
         self._tag = f"ttfrpw_{os.getpid()}_{random.randint(0, 1_000_000)}"
 
-    def __enter__(self) -> "RenderProbe":
+    def __enter__(self) -> RenderProbe:
         self._pw = sync_playwright().start()
         self._udd = tempfile.mkdtemp(prefix=self._tag)  # tag lives in --user-data-dir cmdline
         self._ctx = self._pw.chromium.launch_persistent_context(
@@ -42,7 +43,10 @@ class RenderProbe:
         n_points: int,
     ) -> Trial:
         self_proc = psutil.Process(os.getpid())
-        backend_getter = lambda: getattr(contender, "backend_root", None) or self_proc
+
+        def backend_getter():
+            return getattr(contender, "backend_root", None) or self_proc
+
         client_store = bool(getattr(contender, "client_store", False))
 
         # --- backend group baselines must be measured ON THE GROUP WE SAMPLE ---
@@ -72,9 +76,7 @@ class RenderProbe:
             resident = 0.0
         else:
             preload_peak = max(0.0, pre.peak_mb - backend_baseline)
-            resident = (
-                max(0.0, pre.current() - backend_baseline) if source == "in-memory" else 0.0
-            )
+            resident = max(0.0, pre.current() - backend_baseline) if source == "in-memory" else 0.0
 
         url = contender.get_url()
         page = self._ctx.new_page()
@@ -88,9 +90,7 @@ class RenderProbe:
                 browser_pre_nav = tree_rss_mb(self._browser_root)
                 with ProcessTreeSampler(lambda: self._browser_root) as store:
                     page.goto(url, wait_until="load", timeout=60_000)
-                    page.wait_for_function(
-                        "() => window.__bench_stored === true", timeout=45_000
-                    )
+                    page.wait_for_function("() => window.__bench_stored === true", timeout=45_000)
                 store_pt = tree_rss_mb(self._browser_root)
                 resident = max(0.0, store_pt - browser_pre_nav)  # browser-held store
                 preload_peak = max(0.0, store.peak_mb - browser_pre_nav)
@@ -98,9 +98,10 @@ class RenderProbe:
                 # WASM store build is NOT charged to render memory.
                 backend_render_base = tree_rss_mb(backend_getter())
                 render_browser_base = store_pt
-                with ProcessTreeSampler(backend_getter) as bs, ProcessTreeSampler(
-                    lambda: self._browser_root
-                ) as br:
+                with (
+                    ProcessTreeSampler(backend_getter) as bs,
+                    ProcessTreeSampler(lambda: self._browser_root) as br,
+                ):
                     page.evaluate("() => { window.__bench_go = true; }")  # release the render
                     page.wait_for_function(contender.ready_signal(), timeout=45_000)
                     page.wait_for_function("() => window.__bench !== undefined", timeout=45_000)
@@ -110,9 +111,10 @@ class RenderProbe:
                 # render may complete during goto(), so the samplers MUST wrap the goto.
                 backend_render_base = tree_rss_mb(backend_getter())
                 render_browser_base = tree_rss_mb(self._browser_root)
-                with ProcessTreeSampler(backend_getter) as bs, ProcessTreeSampler(
-                    lambda: self._browser_root
-                ) as br:
+                with (
+                    ProcessTreeSampler(backend_getter) as bs,
+                    ProcessTreeSampler(lambda: self._browser_root) as br,
+                ):
                     page.goto(url, wait_until="load", timeout=60_000)
                     page.wait_for_function(contender.ready_signal(), timeout=45_000)
                     page.wait_for_function("() => window.__bench !== undefined", timeout=45_000)
@@ -130,9 +132,7 @@ class RenderProbe:
             return float(v) if v is not None else None
 
         return Trial(
-            total_ms=float(
-                bench.get("total_ms") or (f("query_ms") or 0) + (f("render_ms") or 0)
-            ),
+            total_ms=float(bench.get("total_ms") or (f("query_ms") or 0) + (f("render_ms") or 0)),
             query_ms=f("query_ms"),
             transfer_ms=f("transfer_ms"),
             render_ms=f("render_ms"),

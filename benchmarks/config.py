@@ -1,18 +1,29 @@
-SIZES: list[int] = [1_000_000, 2_000_000, 10_000_000, 50_000_000]
+SIZES: list[int] = [1_000_000, 2_000_000, 10_000_000]
 
 # Trace counts per chart.
-N_TRACES: list[int] = [1, 2, 5, 10]
+N_TRACES: list[int] = [1, 2, 5]
 
 # Data source types included in each benchmark run.
 # "disk-parquet"  — wide Parquet file on disk.
 # "disk-csv"      — same dataset as CSV.
 # "disk-ipc"      — same dataset as Arrow IPC (.arrow).
 # "in-memory"     — dataset generated and held in a Polars DataFrame in RAM.
-# Future: "db" — local DuckDB database file and even remote Postgres database.
-DATA_SOURCES: list[str] = ["in-memory", "disk-parquet", "disk-csv", "disk-ipc"][:2]
+# Server engines run all sources; wasm/client engines are in-memory only (enforced in driver).
+DATA_SOURCES: list[str] = ["in-memory", "disk-parquet"]
 
-# Tools to include in each benchmark run.
-CONTENDERS: list[str] = ["flexviz", "mosaic", "vaex", "graphic-walker"]
+# Tools to include in each benchmark run (7-tool roster; Graphic Walker deferred).
+CONTENDERS: list[str] = [
+    "flexviz",
+    "mosaic-server",
+    "mosaic-wasm",
+    "perspective-server",
+    "perspective-wasm",
+    "vaex",
+    "datashader",
+]
+
+# Client/WASM engines compute in the browser and have no out-of-core path: in-memory only.
+CLIENT_ONLY: set[str] = {"mosaic-wasm", "perspective-wasm"}
 
 # Trial execution settings.
 WARMUP: int = 2
