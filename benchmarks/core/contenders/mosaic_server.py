@@ -32,24 +32,27 @@ class MosaicServerContender(PageServerMixin):
     def start_backend(self, *, chart, source, n_traces, bins, n_points) -> None:
         # Spawn the server EMPTY (no table) and register its pid BEFORE preload, so the
         # memory baseline is the empty child and the table build shows up as a delta.
-        self._port = _free_port()
-        ctx = mp.get_context("spawn")  # spawn: no shared frame, macOS-safe
-        self._proc = ctx.Process(
-            target=run_mosaic_duckdb_server,
-            kwargs={"port": self._port, "cache_dir": None},
-            daemon=True,
-        )
-        self._proc.start()
-        self.backend_root = psutil.Process(self._proc.pid)
-        deadline = time.monotonic() + 15
-        while time.monotonic() < deadline:
-            try:
-                with socket.create_connection(("127.0.0.1", self._port), 0.3):
-                    break
-            except OSError:
-                time.sleep(0.1)
-        else:
-            raise RuntimeError("mosaic server did not start")
+        last_error = None
+        for _ in range(3):
+            self._port = _free_port()
+            ctx = mp.get_context("spawn")  # spawn: no shared frame, macOS-safe
+            self._proc = ctx.Process(
+                target=run_mosaic_duckdb_server,
+                kwargs={"port": self._port, "cache_dir": None},
+                daemon=True,
+            )
+            self._proc.start()
+            self.backend_root = psutil.Process(self._proc.pid)
+            deadline = time.monotonic() + 15
+            while time.monotonic() < deadline:
+                try:
+                    with socket.create_connection(("127.0.0.1", self._port), 0.3):
+                        return
+                except OSError as exc:
+                    last_error = exc
+                    time.sleep(0.1)
+            self.teardown()
+        raise RuntimeError(f"mosaic server did not start: {last_error}")
 
     def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
         import requests

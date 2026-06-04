@@ -14,6 +14,7 @@ from report import (
     _format_size,
     _hex_to_rgba,
     build_browser_memory_table,
+    build_failures_table,
     build_figure,
     build_page,
     build_timing_table,
@@ -159,7 +160,13 @@ class TestComputeBands:
 
 class TestLoadJson:
     def test_returns_summary(self):
-        payload = {"summary": [{"rows": 1, "n_traces": 1}], "trials": {}, "config": {}, "notes": []}
+        payload = {
+            "summary": [{"rows": 1, "n_traces": 1}],
+            "trials": {},
+            "config": {},
+            "notes": [],
+            "failures": [{"tool": "x", "error": "boom"}],
+        }
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(payload, f)
             path = Path(f.name)
@@ -168,6 +175,7 @@ class TestLoadJson:
             assert data["summary"] == payload["summary"]
             assert "trials" in data
             assert "config" in data
+            assert data["failures"] == payload["failures"]
         finally:
             os.unlink(path)
 
@@ -181,8 +189,26 @@ class TestLoadJson:
             assert data["trials"] == {}
             assert data["config"] == {}
             assert data["notes"] == []
+            assert data["failures"] == []
         finally:
             os.unlink(path)
+
+
+def test_build_failures_table_renders_ceiling_reasons():
+    html = build_failures_table(
+        [
+            {
+                "rows": 10_000_000,
+                "n_traces": 5,
+                "source": "in-memory",
+                "tool": "perspective-wasm",
+                "error": "std::bad_alloc",
+            }
+        ]
+    )
+    assert "perspective-wasm" in html
+    assert "std::bad_alloc" in html
+    assert "10,000,000" in html
 
 
 class TestHexToRgba:
@@ -389,7 +415,7 @@ class TestBuildPage:
             metrics=TIMING_METRICS, show_legend=False,
             add_toggle=False, x_log=False, title="Traces Scaling",
         )
-        return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, dims,
+        return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, [], dims,
                           fixed_n_traces=1, fixed_rows=2000, summaries=SAMPLE_SUMMARY)
 
     def test_returns_string(self):
@@ -537,7 +563,7 @@ class TestBuildPageMethodologyCard:
             metrics=TIMING_METRICS, show_legend=False,
             add_toggle=False, x_log=False, title="Traces Scaling",
         )
-        return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, dims,
+        return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, [], dims,
                           fixed_n_traces=1, fixed_rows=2000, summaries=SAMPLE_SUMMARY)
 
     def test_methodology_card_present(self):

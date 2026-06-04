@@ -7,9 +7,11 @@ import { perspective } from './dist/perspective.js';
 const H = window.__benchHelpers;
 try {
   // --- Phase 1: build the native in-browser WASM Table (NOT timed). ---
-  const buf = await (await fetch('./bench.arrow')).arrayBuffer();
+  let buf = await (await fetch('./bench.arrow')).arrayBuffer();
   const worker = await perspective.worker();
   const table = await worker.table(buf);          // WASM Table = the resident store
+  buf = null;
+  await new Promise((resolve) => setTimeout(resolve, 0));
   await H.benchStored();                            // signal store built; block until harness samples + releases
   // --- Phase 2: timed render. ---
   const viewer = document.getElementById('v');

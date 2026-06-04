@@ -41,6 +41,29 @@ def frame_for(chart: str, rows: int, max_traces: int, seed: int) -> pl.DataFrame
 FORMAT_SUFFIX = {"disk-parquet": ".parquet", "disk-csv": ".csv", "disk-ipc": ".arrow"}
 
 
+def _expected_columns(chart: str, max_traces: int) -> list[str]:
+    if chart == "line":
+        return ["x"] + [f"y{t + 1}" for t in range(max_traces)]
+    return [f"value{t + 1}" for t in range(max_traces)]
+
+
+def _dataset_matches(path: Path, chart: str, rows: int, max_traces: int) -> bool:
+    expected = _expected_columns(chart, max_traces)
+    try:
+        if path.suffix == ".parquet":
+            import pyarrow.parquet as pq
+
+            pf = pq.ParquetFile(path)
+            return pf.metadata.num_rows == rows and pf.schema_arrow.names == expected
+        if path.suffix == ".csv":
+            schema = pl.scan_csv(path).collect_schema()
+        else:
+            schema = pl.scan_ipc(path).collect_schema()
+        return schema.names() == expected
+    except Exception:
+        return False
+
+
 def _write_parquet_streaming(
     path: Path, cols: dict[str, np.ndarray], chunk_rows: int = 10_000_000
 ) -> None:
@@ -75,7 +98,7 @@ def ensure_disk_dataset(
     Parquet is streamed in row-group chunks (memory-bounded for large `rows`); CSV/IPC
     use the full-frame writers (not used at the extreme sizes)."""
     path = base.with_suffix(FORMAT_SUFFIX[source])
-    if regenerate or not path.exists():
+    if regenerate or not path.exists() or not _dataset_matches(path, chart, rows, max_traces):
         base.parent.mkdir(parents=True, exist_ok=True)
         if path.suffix == ".parquet":
             _write_parquet_streaming(path, columns_for(chart, rows, max_traces, seed))

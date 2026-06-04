@@ -10,7 +10,12 @@ from typing import Any
 import psutil
 from playwright.sync_api import sync_playwright
 
-from core.memory import ProcessTreeSampler, find_process_by_cmdline_tag, tree_rss_mb
+from core.memory import (
+    ProcessTreeSampler,
+    find_process_by_cmdline_tag,
+    tree_rss_mb,
+    tree_rss_mb_excluding,
+)
 from core.model import Trial
 
 
@@ -49,6 +54,14 @@ class RenderProbe:
         def backend_getter():
             return getattr(contender, "backend_root", None) or self_proc
 
+        def backend_rss_mb() -> float:
+            root = backend_getter()
+            if root is None:
+                return 0.0
+            if root.pid == self_proc.pid and self._browser_root.pid != self_proc.pid:
+                return tree_rss_mb_excluding(root, self._browser_root)
+            return tree_rss_mb(root)
+
         client_store = bool(getattr(contender, "client_store", False))
 
         # --- backend group baselines must be measured ON THE GROUP WE SAMPLE ---
@@ -61,8 +74,8 @@ class RenderProbe:
         contender.start_backend(
             chart=chart, source=source, n_traces=n_traces, bins=bins, n_points=n_points
         )
-        backend_baseline = tree_rss_mb(backend_getter())
-        with ProcessTreeSampler(backend_getter) as pre:
+        backend_baseline = backend_rss_mb()
+        with ProcessTreeSampler(backend_getter, sample_func=backend_rss_mb) as pre:
             contender.preload(
                 chart=chart,
                 source=source,
@@ -98,10 +111,10 @@ class RenderProbe:
                 preload_peak = max(0.0, store.peak_mb - browser_pre_nav)
                 # Phase 2: release + timed render. Baselines are the post-store RSS so the
                 # WASM store build is NOT charged to render memory.
-                backend_render_base = tree_rss_mb(backend_getter())
+                backend_render_base = backend_rss_mb()
                 render_browser_base = store_pt
                 with (
-                    ProcessTreeSampler(backend_getter) as bs,
+                    ProcessTreeSampler(backend_getter, sample_func=backend_rss_mb) as bs,
                     ProcessTreeSampler(lambda: self._browser_root) as br,
                 ):
                     page.evaluate("() => { window.__bench_go = true; }")  # release the render
@@ -111,10 +124,10 @@ class RenderProbe:
             else:
                 # Server/raster pages render straight through on load (no store phase). The
                 # render may complete during goto(), so the samplers MUST wrap the goto.
-                backend_render_base = tree_rss_mb(backend_getter())
+                backend_render_base = backend_rss_mb()
                 render_browser_base = tree_rss_mb(self._browser_root)
                 with (
-                    ProcessTreeSampler(backend_getter) as bs,
+                    ProcessTreeSampler(backend_getter, sample_func=backend_rss_mb) as bs,
                     ProcessTreeSampler(lambda: self._browser_root) as br,
                 ):
                     page.goto(url, wait_until="load", timeout=60_000)

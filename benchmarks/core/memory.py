@@ -20,6 +20,32 @@ def tree_rss_mb(proc: psutil.Process) -> float:
     return total / 1024 / 1024
 
 
+def tree_rss_mb_excluding(proc: psutil.Process, excluded: psutil.Process | None) -> float:
+    """Tree RSS for `proc`, excluding `excluded` and its descendants."""
+    if excluded is None:
+        return tree_rss_mb(proc)
+    excluded_pids = {excluded.pid}
+    try:
+        excluded_pids.update(c.pid for c in excluded.children(recursive=True))
+    except psutil.Error:
+        pass
+
+    total = 0
+    try:
+        if proc.pid not in excluded_pids:
+            total += proc.memory_info().rss
+        for c in proc.children(recursive=True):
+            if c.pid in excluded_pids:
+                continue
+            try:
+                total += c.memory_info().rss
+            except psutil.Error:
+                pass
+    except psutil.Error:
+        return 0.0
+    return total / 1024 / 1024
+
+
 def _iter_descendants() -> list[psutil.Process]:
     return psutil.Process(os.getpid()).children(recursive=True)
 
@@ -42,14 +68,17 @@ class ProcessTreeSampler:
     """Samples peak tree RSS for a named process group at a fixed interval.
     Use mark()/footprint to capture preload vs timed deltas (see harness)."""
 
-    def __init__(self, root_getter, *, interval_s: float = 0.005) -> None:
+    def __init__(self, root_getter, *, interval_s: float = 0.005, sample_func=None) -> None:
         self._root_getter = root_getter
+        self._sample_func = sample_func
         self._interval = interval_s
         self._peak = 0.0
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
     def _sample(self) -> float:
+        if self._sample_func is not None:
+            return self._sample_func()
         root = self._root_getter()
         return tree_rss_mb(root) if root is not None else 0.0
 

@@ -23,6 +23,17 @@ def test_tree_rss_sums_root_and_children(monkeypatch):
     assert round(memory.tree_rss_mb(root)) == 150
 
 
+def test_tree_rss_excluding_subtree():
+    browser = FakeProc(3, 70 * 1024 * 1024, kids=[FakeProc(4, 30 * 1024 * 1024)])
+    root = FakeProc(
+        1,
+        100 * 1024 * 1024,
+        kids=[FakeProc(2, 50 * 1024 * 1024), browser],
+    )
+
+    assert round(memory.tree_rss_mb_excluding(root, browser)) == 150
+
+
 def test_find_browser_root_by_tag(monkeypatch):
     procs = [
         FakeProc(10, 0, cmd=["chrome", "--user-data-dir=/tmp/TAG123"]),

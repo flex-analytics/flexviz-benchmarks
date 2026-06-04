@@ -1,5 +1,13 @@
 import { build } from 'esbuild';
-import { cpSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
+import {
+  cpSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  readdirSync,
+  existsSync,
+  rmSync,
+} from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, '..', 'vendor');            // emit alongside (probes/vendor)
 const dist = join(out, 'dist');
 const nm = join(here, 'node_modules');
+rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
 // 1. esbuild the Mosaic ESM entries to self-contained bundles. These cannot use a stock
@@ -27,7 +36,11 @@ await build({
 // 2. Copy DuckDB-WASM runtime assets (wasm + worker) — duckdb resolves these via a
 //    runtime config object, not import.meta.url, so esbuild won't emit them.
 const dd = join(nm, '@duckdb', 'duckdb-wasm', 'dist');
-for (const f of ['duckdb-eh.wasm', 'duckdb-browser-eh.worker.js']) cpSync(join(dd, f), join(dist, f));
+for (const f of [
+  'duckdb-coi.wasm',
+  'duckdb-browser-coi.worker.js',
+  'duckdb-browser-coi.pthread.worker.js',
+]) cpSync(join(dd, f), join(dist, f));
 
 // 3. Vendor Perspective from its PREBUILT cdn bundles. Each @finos/perspective* package
 //    ships a self-contained dist/cdn/*.js (the same artifact jsdelivr serves) that has no

@@ -48,6 +48,23 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+def benchmark_notes(chart: str, contenders: list[str]) -> list[str]:
+    notes = []
+    if chart == "line" and any(n.startswith("perspective-") for n in contenders):
+        notes.append(
+            "Perspective line uses its shipped Y Line viewer grouped by raw x values; "
+            "it is reported as a raw, non-downsampled line workload and is not directly "
+            "comparable to the 1000-point envelope line workload."
+        )
+    if chart == "histogram" and "vaex" in contenders:
+        notes.append(
+            "Vaex in-memory histogram timings can be dominated by fixed Matplotlib/PNG/browser "
+            "overhead at these output sizes; its in-memory resident footprint is also understated "
+            "because vaex.from_arrays can reference already-resident input arrays."
+        )
+    return notes
+
+
 def main() -> None:
     a = parse_args()
     sizes = [int(s) for s in a.sizes.split(",") if s.strip()]
@@ -66,6 +83,8 @@ def main() -> None:
     out_path = a.json_out or Path(f"results/ttfr_{a.chart}.json")
 
     summaries, all_trials = [], {}
+    failures = []
+    notes = benchmark_notes(a.chart, names)
     with RenderProbe(headless=not a.no_headless) as probe:
         for rows in sizes:
             all_trials[rows] = {}
@@ -91,6 +110,15 @@ def main() -> None:
                     )
 
                     def _ceiling(name, err, rows=rows, nt=n_traces, src=source):
+                        failures.append(
+                            {
+                                "rows": rows,
+                                "n_traces": nt,
+                                "source": src,
+                                "tool": name,
+                                "error": str(err),
+                            }
+                        )
                         print(
                             f"  [ceiling] {name} failed at rows={rows:,} traces={nt} "
                             f"{src}: {err} — skipping it for this cell",
@@ -139,6 +167,8 @@ def main() -> None:
                 "trials": {
                     str(r): {str(t): src for t, src in tm.items()} for r, tm in all_trials.items()
                 },
+                "notes": notes,
+                "failures": failures,
             },
             indent=2,
         )

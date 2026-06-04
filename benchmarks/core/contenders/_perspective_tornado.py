@@ -5,30 +5,22 @@ import json
 import time
 
 
-def _arrow_bytes_from_file(path: str, cols: list[str]) -> bytes:
-    """Read only `cols` from parquet/csv/ipc into an Arrow IPC stream (no Python lists)."""
-    import io
-
-    import pyarrow.ipc as ipc
+def _arrow_table_from_file(path: str, cols: list[str]):
+    """Read only `cols` from parquet/csv/ipc into an Arrow table."""
 
     suf = path.rsplit(".", 1)[-1].lower()
     if suf == "parquet":
         import pyarrow.parquet as pq
 
-        tbl = pq.read_table(path, columns=cols)
+        return pq.read_table(path, columns=cols)
     elif suf == "csv":
         import pyarrow.csv as pc
 
-        tbl = pc.read_csv(path).select(cols)
+        return pc.read_csv(path).select(cols)
     else:  # .arrow / ipc
         import pyarrow.feather as fa
 
-        tbl = fa.read_table(path, columns=cols)
-    sink = io.BytesIO()
-    with ipc.new_stream(sink, tbl.schema) as w:
-        for b in tbl.to_batches():
-            w.write_batch(b)
-    return sink.getvalue()
+        return fa.read_table(path, columns=cols)
 
 
 def run_perspective_server(*, port: int) -> None:
@@ -46,6 +38,7 @@ def run_perspective_server(*, port: int) -> None:
         def set_default_headers(self) -> None:
             self.set_header("Access-Control-Allow-Origin", "*")
             self.set_header("Timing-Allow-Origin", "*")
+            self.set_header("Access-Control-Expose-Headers", "Server-Timing")
 
     class LoadHandler(_Cors):
         def post(self) -> None:
@@ -54,14 +47,19 @@ def run_perspective_server(*, port: int) -> None:
                 client.table(self.request.body, name="bench")
             else:  # "path": disk — defer to /build (timed)
                 spec = json.loads(self.request.body)
-                deferred["path"], deferred["cols"] = spec["path"], spec["cols"]
+                deferred.update(spec)
             self.set_status(200)
 
     class BuildHandler(_Cors):
         def get(self) -> None:
             t0 = time.perf_counter()
             if deferred["path"] is not None:  # disk: read file + build Table in-window
-                data = _arrow_bytes_from_file(deferred["path"], deferred["cols"])
+                if deferred.get("chart") == "histogram":
+                    from core.contenders.perspective_wasm import histogram_arrow_table
+
+                    data = histogram_arrow_table(deferred["path"], int(deferred["n_traces"]))
+                else:
+                    data = _arrow_table_from_file(deferred["path"], deferred["cols"])
                 client.table(data, name="bench")
                 deferred["path"] = None
             self.set_header("Server-Timing", f"build;dur={(time.perf_counter() - t0) * 1000:.1f}")

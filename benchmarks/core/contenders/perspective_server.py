@@ -10,7 +10,12 @@ import psutil
 
 from core.contenders._perspective_tornado import run_perspective_server
 from core.contenders.base import PROBES, PageServerMixin, frame_columns
-from core.contenders.perspective_wasm import histogram_range, restore_config
+from core.contenders.perspective_wasm import (
+    histogram_arrow_table,
+    histogram_range,
+    histogram_source_columns,
+    restore_config,
+)
 
 
 def _free_port() -> int:
@@ -58,7 +63,14 @@ class PerspectiveServerContender(PageServerMixin):
             # inside the timed window (NOT here) — so we never .collect() pre-timing.
             requests.post(
                 f"{base}/load",
-                data=json.dumps({"path": str(frame_or_path.resolve()), "cols": cols}).encode(),
+                data=json.dumps(
+                    {
+                        "path": str(frame_or_path.resolve()),
+                        "cols": cols,
+                        "chart": chart,
+                        "n_traces": n_traces,
+                    }
+                ).encode(),
                 headers={"X-Load-Kind": "path"},
                 timeout=30,
             ).raise_for_status()
@@ -68,7 +80,11 @@ class PerspectiveServerContender(PageServerMixin):
 
             import pyarrow.ipc as ipc
 
-            table = frame_or_path.select(cols).to_arrow()
+            table = (
+                histogram_arrow_table(frame_or_path, n_traces)
+                if chart == "histogram"
+                else frame_or_path.select(cols).to_arrow()
+            )
             sink = io.BytesIO()
             with ipc.new_stream(sink, table.schema) as w:
                 for b in table.to_batches():
@@ -79,7 +95,11 @@ class PerspectiveServerContender(PageServerMixin):
                 headers={"X-Load-Kind": "arrow"},
                 timeout=120,
             ).raise_for_status()
-        hist_range = histogram_range(frame_or_path) if chart == "histogram" else None
+        hist_range = (
+            histogram_range(frame_or_path, histogram_source_columns(n_traces))
+            if chart == "histogram"
+            else None
+        )
         html = (
             (PROBES / "perspective_server.html.j2")
             .read_text()

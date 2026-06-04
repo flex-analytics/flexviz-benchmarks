@@ -123,6 +123,7 @@ def load_json(path: Path) -> dict[str, Any]:
         "trials": raw.get("trials", {}),
         "config": raw.get("config", {}),
         "notes": raw.get("notes", []),
+        "failures": raw.get("failures", []),
     }
 
 
@@ -532,9 +533,11 @@ _METHODOLOGY_HTML = """\
   <p>Seven tools across three classes. <strong>TTFR</strong> is clocked entirely in the
   browser, from the request that triggers each tool&rsquo;s pipeline to a paint-proven
   first render (a double <code>requestAnimationFrame</code> after the engine&rsquo;s
-  ready signal). Every engine renders the <em>same picture</em> &mdash; histogram =
-  <code>bins</code> bars/trace; line = an argmin/argmax envelope at ~1000 points &mdash;
-  so latency compares tools, not algorithms. The same-engine
+  ready signal). Engines render the same bounded histogram workload
+  (<code>bins</code> bars/trace). For line charts, FlexViz/Mosaic/Vaex/Datashader use the
+  bounded ~1000-point line/envelope workload; Perspective line is explicitly reported as
+  its shipped raw-<code>x</code> Y Line workload because it does not implement that
+  scalable envelope in this benchmark. The same-engine
   <strong>server&nbsp;vs&nbsp;WASM</strong> pairs (Mosaic, Perspective) isolate
   compute-location as a single variable.</p>
 
@@ -708,11 +711,39 @@ def build_browser_memory_table(
     )
 
 
+def build_failures_table(failures: list[dict[str, Any]]) -> str:
+    if not failures:
+        return ""
+    rows = []
+    for failure in failures:
+        rows.append(
+            "<tr>"
+            f"<td>{escape(str(failure.get('tool', '')))}</td>"
+            f"<td>{int(failure.get('rows', 0)):,}</td>"
+            f"<td>{escape(str(failure.get('n_traces', '')))}</td>"
+            f"<td>{escape(str(failure.get('source', '')))}</td>"
+            f"<td>{escape(str(failure.get('error', '')))}</td>"
+            "</tr>"
+        )
+    return (
+        '<div class="card">'
+        "<h2>Ceiling Failures</h2>"
+        '<table class="timing-detail-table">'
+        "<thead><tr>"
+        "<th>Tool</th><th>Rows</th><th>Traces</th><th>Source</th><th>Error</th>"
+        "</tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table>"
+        "</div>"
+    )
+
+
 def build_page(
     fig1: go.Figure,
     fig2: go.Figure,
     config: dict[str, Any],
     notes: list[str],
+    failures: list[dict[str, Any]],
     dims: dict[str, list],
     *,
     fixed_n_traces: int,
@@ -750,8 +781,9 @@ def build_page(
 
     notes_html = ""
     if notes:
-        items = "".join(f"<li>{n}</li>" for n in notes)
+        items = "".join(f"<li>{escape(n)}</li>" for n in notes)
         notes_html = f'<ul class="notes-list">{items}</ul>'
+    failures_html = build_failures_table(failures)
 
     fixed_rows_fmt = f"{fixed_rows:,}"
     plural_s = "s" if fixed_n_traces != 1 else ""
@@ -840,6 +872,8 @@ def build_page(
 
   {_METHODOLOGY_HTML}
 
+  {failures_html}
+
   <div class="section-card">
     <h2>Rows Scaling &mdash; n_traces={fixed_n_traces}</h2>
     <p>How render time and memory grow as dataset size increases, with the number of traces fixed at {fixed_n_traces}. Use the Log / Linear toggle to switch the x-axis scale.</p>
@@ -904,6 +938,7 @@ def main() -> None:
     trials_json = data["trials"]
     config = data["config"]
     notes = data["notes"]
+    failures = data["failures"]
 
     dims = _detect_dimensions(summaries)
     bands = compute_bands(trials_json)
@@ -941,6 +976,7 @@ def main() -> None:
         fig2,
         config,
         notes,
+        failures,
         dims,
         fixed_n_traces=fixed_n_traces,
         fixed_rows=fixed_rows,

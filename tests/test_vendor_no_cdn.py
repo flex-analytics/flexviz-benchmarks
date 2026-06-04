@@ -1,16 +1,19 @@
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import sync_playwright
-
 from core.serve import StaticServer
+from playwright.sync_api import sync_playwright
 
 VENDOR = Path(__file__).parent.parent / "benchmarks" / "probes" / "vendor"
 
 MOSAIC_PAGE = """<!doctype html><meta charset=utf-8><div id=app style="width:600px;height:300px"></div>
 <script type="module">
 import { makeDuckDB, connectorFor, vg } from './dist/mosaic_wasm.js';
-const db = await makeDuckDB('./dist/duckdb-eh.wasm', './dist/duckdb-browser-eh.worker.js');
+const db = await makeDuckDB(
+  './dist/duckdb-coi.wasm',
+  './dist/duckdb-browser-coi.worker.js',
+  './dist/duckdb-browser-coi.pthread.worker.js'
+);
 vg.coordinator().databaseConnector(connectorFor(db));
 await vg.coordinator().exec('CREATE TABLE t AS SELECT i x, sin(i/10.0) y FROM range(0,5000) s(i)');
 const plot = vg.plot(vg.lineY(vg.from('t'), {x:'x',y:'y'}), vg.width(600), vg.height(300));
@@ -64,6 +67,15 @@ def _render_no_cdn(tmp_name: str, page_html: str) -> int:
 )
 def test_mosaic_wasm_renders_with_no_cdn():
     assert _render_no_cdn("_nocdn_mosaic.html", MOSAIC_PAGE) > 0
+
+
+def test_duckdb_wasm_coi_threaded_assets_are_vendored():
+    for name in [
+        "duckdb-coi.wasm",
+        "duckdb-browser-coi.worker.js",
+        "duckdb-browser-coi.pthread.worker.js",
+    ]:
+        assert (VENDOR / "dist" / name).exists()
 
 
 @pytest.mark.skipif(

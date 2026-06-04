@@ -3,13 +3,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 import pytest  # noqa: E402
-
+from core.contenders.datashader import DatashaderContender  # noqa: E402
 from core.contenders.flexviz import FlexVizContender  # noqa: E402
 from core.contenders.mosaic_server import MosaicServerContender  # noqa: E402
 from core.contenders.mosaic_wasm import MosaicWasmContender  # noqa: E402
-from core.contenders.perspective_wasm import PerspectiveWasmContender  # noqa: E402
 from core.contenders.perspective_server import PerspectiveServerContender  # noqa: E402
-from core.contenders.datashader import DatashaderContender  # noqa: E402
+from core.contenders.perspective_wasm import PerspectiveWasmContender  # noqa: E402
 from core.contenders.vaex import VaexContender  # noqa: E402
 from core.datagen import ensure_disk_dataset, frame_for  # noqa: E402
 from core.harness import RenderProbe  # noqa: E402
@@ -85,6 +84,21 @@ def test_perspective_wasm_renders_line_in_memory():
     assert trial.total_ms > 0
 
 
+def test_perspective_wasm_renders_histogram_in_memory():
+    frame = frame_for("histogram", 50_000, 2, 42)
+    with RenderProbe(headless=True) as probe:
+        trial = probe.run_trial(
+            PerspectiveWasmContender(),
+            chart="histogram",
+            source="in-memory",
+            frame_or_path=frame,
+            n_traces=2,
+            bins=50,
+            n_points=1000,
+        )
+    assert trial.total_ms > 0
+
+
 @pytest.mark.parametrize("source", ["in-memory", "disk-parquet"])
 def test_perspective_server_renders_line(source, tmp_path):
     data = (
@@ -100,6 +114,27 @@ def test_perspective_server_renders_line(source, tmp_path):
             frame_or_path=data,
             n_traces=2,
             bins=100,
+            n_points=1000,
+        )
+    assert trial.total_ms > 0
+    assert trial.backend_timed_peak_mb >= 0
+
+
+@pytest.mark.parametrize("source", ["in-memory", "disk-parquet"])
+def test_perspective_server_renders_histogram(source, tmp_path):
+    data = (
+        frame_for("histogram", 50_000, 2, 42)
+        if source == "in-memory"
+        else ensure_disk_dataset(tmp_path / "ds", "histogram", 50_000, 2, 42, source, True)
+    )
+    with RenderProbe(headless=True) as probe:
+        trial = probe.run_trial(
+            PerspectiveServerContender(),
+            chart="histogram",
+            source=source,
+            frame_or_path=data,
+            n_traces=2,
+            bins=50,
             n_points=1000,
         )
     assert trial.total_ms > 0

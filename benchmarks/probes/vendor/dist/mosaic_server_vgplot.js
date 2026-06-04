@@ -28,9 +28,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// node_modules/binary-search-bounds/search-bounds.js
+// benchmarks/probes/vendor/node_modules/binary-search-bounds/search-bounds.js
 var require_search_bounds = __commonJS({
-  "node_modules/binary-search-bounds/search-bounds.js"(exports, module) {
+  "benchmarks/probes/vendor/node_modules/binary-search-bounds/search-bounds.js"(exports, module) {
     "use strict";
     function ge(a2, y4, c4, l, h2) {
       var i = h2 + 1;
@@ -129,9 +129,9 @@ var require_search_bounds = __commonJS({
   }
 });
 
-// node_modules/interval-tree-1d/interval-tree.js
+// benchmarks/probes/vendor/node_modules/interval-tree-1d/interval-tree.js
 var require_interval_tree = __commonJS({
-  "node_modules/interval-tree-1d/interval-tree.js"(exports, module) {
+  "benchmarks/probes/vendor/node_modules/interval-tree-1d/interval-tree.js"(exports, module) {
     "use strict";
     var bounds = require_search_bounds();
     var NOT_FOUND = 0;
@@ -484,7 +484,7 @@ var require_interval_tree = __commonJS({
   }
 });
 
-// node_modules/@uwdata/mosaic-core/src/util/throttle.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/throttle.js
 var NIL = {};
 function throttle(callback, debounce = false) {
   let curr;
@@ -520,7 +520,7 @@ function throttle(callback, debounce = false) {
   return debounce ? delay : process;
 }
 
-// node_modules/@uwdata/mosaic-core/src/MosaicClient.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/MosaicClient.js
 var MosaicClient = class {
   /**
    * Constructor.
@@ -634,7 +634,7 @@ var MosaicClient = class {
   }
 };
 
-// node_modules/tslib/tslib.es6.mjs
+// benchmarks/probes/vendor/node_modules/tslib/tslib.es6.mjs
 function __rest(s2, e) {
   var t = {};
   for (var p2 in s2) if (Object.prototype.hasOwnProperty.call(s2, p2) && e.indexOf(p2) < 0)
@@ -761,7 +761,7 @@ function __asyncValues(o) {
   }
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/buffer.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/buffer.mjs
 var buffer_exports = {};
 __export(buffer_exports, {
   compareArrayLike: () => compareArrayLike,
@@ -802,13 +802,13 @@ __export(buffer_exports, {
   toUint8ClampedArrayIterator: () => toUint8ClampedArrayIterator
 });
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/utf8.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/utf8.mjs
 var decoder = new TextDecoder("utf-8");
 var decodeUtf8 = (buffer) => decoder.decode(buffer);
 var encoder = new TextEncoder();
 var encodeUtf8 = (value) => encoder.encode(value);
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/compat.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/compat.mjs
 var isNumber = (x4) => typeof x4 === "number";
 var isBoolean = (x4) => typeof x4 === "boolean";
 var isFunction = (x4) => typeof x4 === "function";
@@ -851,7 +851,7 @@ var isFlatbuffersByteBuffer = (x4) => {
   return isObject(x4) && isFunction(x4["clear"]) && isFunction(x4["bytes"]) && isFunction(x4["position"]) && isFunction(x4["setPosition"]) && isFunction(x4["capacity"]) && isFunction(x4["getBufferIdentifier"]) && isFunction(x4["createLong"]);
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/buffer.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/buffer.mjs
 var SharedArrayBuf = typeof SharedArrayBuffer !== "undefined" ? SharedArrayBuffer : ArrayBuffer;
 function collapseContiguousByteRanges(chunks) {
   const result = chunks[0] ? [chunks[0]] : [];
@@ -1034,7 +1034,7 @@ function compareArrayLike(a2, b2) {
   return true;
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/adapters.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/adapters.mjs
 var adapters_default = {
   fromIterable(source) {
     return pump2(fromIterable(source));
@@ -1278,7 +1278,7 @@ function fromNodeStream(stream) {
   });
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/metadata-version.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/metadata-version.mjs
 var MetadataVersion;
 (function(MetadataVersion3) {
   MetadataVersion3[MetadataVersion3["V1"] = 0] = "V1";
@@ -1288,14 +1288,14 @@ var MetadataVersion;
   MetadataVersion3[MetadataVersion3["V5"] = 4] = "V5";
 })(MetadataVersion || (MetadataVersion = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/union-mode.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/union-mode.mjs
 var UnionMode;
 (function(UnionMode3) {
   UnionMode3[UnionMode3["Sparse"] = 0] = "Sparse";
   UnionMode3[UnionMode3["Dense"] = 1] = "Dense";
 })(UnionMode || (UnionMode = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/precision.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/precision.mjs
 var Precision;
 (function(Precision3) {
   Precision3[Precision3["HALF"] = 0] = "HALF";
@@ -1303,14 +1303,14 @@ var Precision;
   Precision3[Precision3["DOUBLE"] = 2] = "DOUBLE";
 })(Precision || (Precision = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/date-unit.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/date-unit.mjs
 var DateUnit;
 (function(DateUnit3) {
   DateUnit3[DateUnit3["DAY"] = 0] = "DAY";
   DateUnit3[DateUnit3["MILLISECOND"] = 1] = "MILLISECOND";
 })(DateUnit || (DateUnit = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/time-unit.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/time-unit.mjs
 var TimeUnit;
 (function(TimeUnit3) {
   TimeUnit3[TimeUnit3["SECOND"] = 0] = "SECOND";
@@ -1319,7 +1319,7 @@ var TimeUnit;
   TimeUnit3[TimeUnit3["NANOSECOND"] = 3] = "NANOSECOND";
 })(TimeUnit || (TimeUnit = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/interval-unit.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/interval-unit.mjs
 var IntervalUnit;
 (function(IntervalUnit3) {
   IntervalUnit3[IntervalUnit3["YEAR_MONTH"] = 0] = "YEAR_MONTH";
@@ -1327,26 +1327,26 @@ var IntervalUnit;
   IntervalUnit3[IntervalUnit3["MONTH_DAY_NANO"] = 2] = "MONTH_DAY_NANO";
 })(IntervalUnit || (IntervalUnit = {}));
 
-// node_modules/flatbuffers/mjs/constants.js
+// benchmarks/probes/vendor/node_modules/flatbuffers/mjs/constants.js
 var SIZEOF_SHORT = 2;
 var SIZEOF_INT = 4;
 var FILE_IDENTIFIER_LENGTH = 4;
 var SIZE_PREFIX_LENGTH = 4;
 
-// node_modules/flatbuffers/mjs/utils.js
+// benchmarks/probes/vendor/node_modules/flatbuffers/mjs/utils.js
 var int32 = new Int32Array(2);
 var float32 = new Float32Array(int32.buffer);
 var float64 = new Float64Array(int32.buffer);
 var isLittleEndian = new Uint16Array(new Uint8Array([1, 0]).buffer)[0] === 1;
 
-// node_modules/flatbuffers/mjs/encoding.js
+// benchmarks/probes/vendor/node_modules/flatbuffers/mjs/encoding.js
 var Encoding;
 (function(Encoding2) {
   Encoding2[Encoding2["UTF8_BYTES"] = 1] = "UTF8_BYTES";
   Encoding2[Encoding2["UTF16_STRING"] = 2] = "UTF16_STRING";
 })(Encoding || (Encoding = {}));
 
-// node_modules/flatbuffers/mjs/byte-buffer.js
+// benchmarks/probes/vendor/node_modules/flatbuffers/mjs/byte-buffer.js
 var ByteBuffer = class _ByteBuffer {
   /**
    * Create a new ByteBuffer with a given array of bytes (`Uint8Array`)
@@ -1590,7 +1590,7 @@ var ByteBuffer = class _ByteBuffer {
   }
 };
 
-// node_modules/flatbuffers/mjs/builder.js
+// benchmarks/probes/vendor/node_modules/flatbuffers/mjs/builder.js
 var Builder = class _Builder {
   /**
    * Create a FlatBufferBuilder.
@@ -2087,20 +2087,20 @@ var Builder = class _Builder {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/body-compression-method.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/body-compression-method.mjs
 var BodyCompressionMethod;
 (function(BodyCompressionMethod3) {
   BodyCompressionMethod3[BodyCompressionMethod3["BUFFER"] = 0] = "BUFFER";
 })(BodyCompressionMethod || (BodyCompressionMethod = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/compression-type.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/compression-type.mjs
 var CompressionType;
 (function(CompressionType3) {
   CompressionType3[CompressionType3["LZ4_FRAME"] = 0] = "LZ4_FRAME";
   CompressionType3[CompressionType3["ZSTD"] = 1] = "ZSTD";
 })(CompressionType || (CompressionType = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/body-compression.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/body-compression.mjs
 var BodyCompression = class _BodyCompression {
   constructor() {
     this.bb = null;
@@ -2154,7 +2154,7 @@ var BodyCompression = class _BodyCompression {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/buffer.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/buffer.mjs
 var Buffer2 = class {
   constructor() {
     this.bb = null;
@@ -2193,7 +2193,7 @@ var Buffer2 = class {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/field-node.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/field-node.mjs
 var FieldNode = class {
   constructor() {
     this.bb = null;
@@ -2230,7 +2230,7 @@ var FieldNode = class {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/record-batch.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/record-batch.mjs
 var RecordBatch = class _RecordBatch {
   constructor() {
     this.bb = null;
@@ -2317,7 +2317,7 @@ var RecordBatch = class _RecordBatch {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/dictionary-batch.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/dictionary-batch.mjs
 var DictionaryBatch = class _DictionaryBatch {
   constructor() {
     this.bb = null;
@@ -2370,20 +2370,20 @@ var DictionaryBatch = class _DictionaryBatch {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/endianness.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/endianness.mjs
 var Endianness;
 (function(Endianness3) {
   Endianness3[Endianness3["Little"] = 0] = "Little";
   Endianness3[Endianness3["Big"] = 1] = "Big";
 })(Endianness || (Endianness = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/dictionary-kind.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/dictionary-kind.mjs
 var DictionaryKind;
 (function(DictionaryKind3) {
   DictionaryKind3[DictionaryKind3["DenseArray"] = 0] = "DenseArray";
 })(DictionaryKind || (DictionaryKind = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/int.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/int.mjs
 var Int = class _Int {
   constructor() {
     this.bb = null;
@@ -2430,7 +2430,7 @@ var Int = class _Int {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/dictionary-encoding.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/dictionary-encoding.mjs
 var DictionaryEncoding = class _DictionaryEncoding {
   constructor() {
     this.bb = null;
@@ -2503,7 +2503,7 @@ var DictionaryEncoding = class _DictionaryEncoding {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/key-value.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/key-value.mjs
 var KeyValue = class _KeyValue {
   constructor() {
     this.bb = null;
@@ -2550,7 +2550,7 @@ var KeyValue = class _KeyValue {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/binary.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/binary.mjs
 var Binary = class _Binary {
   constructor() {
     this.bb = null;
@@ -2581,7 +2581,7 @@ var Binary = class _Binary {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/bool.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/bool.mjs
 var Bool = class _Bool {
   constructor() {
     this.bb = null;
@@ -2612,7 +2612,7 @@ var Bool = class _Bool {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/date.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/date.mjs
 var Date2 = class _Date {
   constructor() {
     this.bb = null;
@@ -2651,7 +2651,7 @@ var Date2 = class _Date {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/decimal.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/decimal.mjs
 var Decimal = class _Decimal {
   constructor() {
     this.bb = null;
@@ -2716,7 +2716,7 @@ var Decimal = class _Decimal {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/duration.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/duration.mjs
 var Duration = class _Duration {
   constructor() {
     this.bb = null;
@@ -2755,7 +2755,7 @@ var Duration = class _Duration {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/fixed-size-binary.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/fixed-size-binary.mjs
 var FixedSizeBinary = class _FixedSizeBinary {
   constructor() {
     this.bb = null;
@@ -2797,7 +2797,7 @@ var FixedSizeBinary = class _FixedSizeBinary {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/fixed-size-list.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/fixed-size-list.mjs
 var FixedSizeList = class _FixedSizeList {
   constructor() {
     this.bb = null;
@@ -2839,7 +2839,7 @@ var FixedSizeList = class _FixedSizeList {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/floating-point.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/floating-point.mjs
 var FloatingPoint = class _FloatingPoint {
   constructor() {
     this.bb = null;
@@ -2878,7 +2878,7 @@ var FloatingPoint = class _FloatingPoint {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/interval.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/interval.mjs
 var Interval = class _Interval {
   constructor() {
     this.bb = null;
@@ -2917,7 +2917,7 @@ var Interval = class _Interval {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/large-binary.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/large-binary.mjs
 var LargeBinary = class _LargeBinary {
   constructor() {
     this.bb = null;
@@ -2948,7 +2948,7 @@ var LargeBinary = class _LargeBinary {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/large-utf8.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/large-utf8.mjs
 var LargeUtf8 = class _LargeUtf8 {
   constructor() {
     this.bb = null;
@@ -2979,7 +2979,7 @@ var LargeUtf8 = class _LargeUtf8 {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/list.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/list.mjs
 var List = class _List {
   constructor() {
     this.bb = null;
@@ -3010,7 +3010,7 @@ var List = class _List {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/map.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/map.mjs
 var Map2 = class _Map {
   constructor() {
     this.bb = null;
@@ -3052,7 +3052,7 @@ var Map2 = class _Map {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/null.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/null.mjs
 var Null = class _Null {
   constructor() {
     this.bb = null;
@@ -3083,7 +3083,7 @@ var Null = class _Null {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/struct-.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/struct-.mjs
 var Struct_ = class _Struct_ {
   constructor() {
     this.bb = null;
@@ -3114,7 +3114,7 @@ var Struct_ = class _Struct_ {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/time.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/time.mjs
 var Time = class _Time {
   constructor() {
     this.bb = null;
@@ -3161,7 +3161,7 @@ var Time = class _Time {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/timestamp.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/timestamp.mjs
 var Timestamp = class _Timestamp {
   constructor() {
     this.bb = null;
@@ -3208,7 +3208,7 @@ var Timestamp = class _Timestamp {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/union.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/union.mjs
 var Union = class _Union {
   constructor() {
     this.bb = null;
@@ -3273,7 +3273,7 @@ var Union = class _Union {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/utf8.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/utf8.mjs
 var Utf8 = class _Utf8 {
   constructor() {
     this.bb = null;
@@ -3304,7 +3304,7 @@ var Utf8 = class _Utf8 {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/type.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/type.mjs
 var Type;
 (function(Type5) {
   Type5[Type5["NONE"] = 0] = "NONE";
@@ -3332,7 +3332,7 @@ var Type;
   Type5[Type5["RunEndEncoded"] = 22] = "RunEndEncoded";
 })(Type || (Type = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/field.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/field.mjs
 var Field = class _Field {
   constructor() {
     this.bb = null;
@@ -3452,7 +3452,7 @@ var Field = class _Field {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/schema.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/schema.mjs
 var Schema = class _Schema {
   constructor() {
     this.bb = null;
@@ -3571,7 +3571,7 @@ var Schema = class _Schema {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/message-header.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/message-header.mjs
 var MessageHeader;
 (function(MessageHeader3) {
   MessageHeader3[MessageHeader3["NONE"] = 0] = "NONE";
@@ -3582,7 +3582,7 @@ var MessageHeader;
   MessageHeader3[MessageHeader3["SparseTensor"] = 5] = "SparseTensor";
 })(MessageHeader || (MessageHeader = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/enum.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/enum.mjs
 var Type2;
 (function(Type5) {
   Type5[Type5["NONE"] = 0] = "NONE";
@@ -3645,7 +3645,7 @@ var BufferType;
   BufferType3[BufferType3["TYPE"] = 3] = "TYPE";
 })(BufferType || (BufferType = {}));
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/vector.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/vector.mjs
 var vector_exports = {};
 __export(vector_exports, {
   clampRange: () => clampRange,
@@ -3653,7 +3653,7 @@ __export(vector_exports, {
   wrapIndex: () => wrapIndex
 });
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/pretty.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/pretty.mjs
 var pretty_exports = {};
 __export(pretty_exports, {
   valueToString: () => valueToString
@@ -3686,7 +3686,7 @@ function valueToString(x4) {
   return ArrayBuffer.isView(x4) ? `[${x4}]` : JSON.stringify(x4, (_2, y4) => typeof y4 === "bigint" ? `${y4}` : y4);
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/bn.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/bn.mjs
 var bn_exports = {};
 __export(bn_exports, {
   BN: () => BN,
@@ -3696,7 +3696,7 @@ __export(bn_exports, {
   isArrowBigNumSymbol: () => isArrowBigNumSymbol
 });
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/bigint.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/bigint.mjs
 function bigIntToNumber(number7) {
   if (typeof number7 === "bigint" && (number7 < Number.MIN_SAFE_INTEGER || number7 > Number.MAX_SAFE_INTEGER)) {
     throw new TypeError(`${number7} is not safe to convert to a number.`);
@@ -3707,7 +3707,7 @@ function divideBigInts(number7, divisor) {
   return bigIntToNumber(number7 / divisor) + bigIntToNumber(number7 % divisor) / bigIntToNumber(divisor);
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/bn.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/bn.mjs
 var isArrowBigNumSymbol = Symbol.for("isArrowBigNum");
 function BigNum(x4, ...xs) {
   if (xs.length === 0) {
@@ -3866,7 +3866,7 @@ var BN = class _BN {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/type.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/type.mjs
 var _a;
 var _b;
 var _c;
@@ -4506,7 +4506,7 @@ function strideForType(type2) {
   }
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor.mjs
 var Visitor = class {
   visitMany(nodes, ...args) {
     return nodes.map((node, i) => this.visit(node, ...args.map((x4) => x4[i])));
@@ -4905,7 +4905,7 @@ Visitor.prototype.visitDurationMillisecond = null;
 Visitor.prototype.visitDurationMicrosecond = null;
 Visitor.prototype.visitDurationNanosecond = null;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/math.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/math.mjs
 var math_exports = {};
 __export(math_exports, {
   float64ToUint16: () => float64ToUint16,
@@ -4950,7 +4950,7 @@ function float64ToUint16(d2) {
   return sign3 | expo | sigf & 65535;
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/set.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/set.mjs
 var SetVisitor = class extends Visitor {
 };
 function wrapSet(fn) {
@@ -5207,7 +5207,7 @@ SetVisitor.prototype.visitFixedSizeList = wrapSet(setFixedSizeList);
 SetVisitor.prototype.visitMap = wrapSet(setMap);
 var instance = new SetVisitor();
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/row/struct.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/row/struct.mjs
 var kParent = Symbol.for("parent");
 var kRowIndex = Symbol.for("rowIndex");
 var StructRow = class {
@@ -5315,7 +5315,7 @@ var StructRowProxyHandler = class {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/get.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/get.mjs
 var GetVisitor = class extends Visitor {
 };
 function wrapGet(fn) {
@@ -5499,7 +5499,7 @@ GetVisitor.prototype.visitFixedSizeList = wrapGet(getFixedSizeList);
 GetVisitor.prototype.visitMap = wrapGet(getMap);
 var instance2 = new GetVisitor();
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/row/map.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/row/map.mjs
 var kKeys = Symbol.for("keys");
 var kVals = Symbol.for("vals");
 var kKeysAsStrings = Symbol.for("kKeysAsStrings");
@@ -5616,7 +5616,7 @@ Object.defineProperties(MapRow.prototype, {
   [_kKeysAsStrings]: { writable: true, enumerable: false, configurable: false, value: null }
 });
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/vector.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/vector.mjs
 var tmp;
 function clampRange(source, begin, end, then) {
   const { length: len = 0 } = source;
@@ -5754,7 +5754,7 @@ function compareObject(comparators, obj, keys) {
   return false;
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/bit.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/bit.mjs
 var bit_exports = {};
 __export(bit_exports, {
   BitIterator: () => BitIterator,
@@ -5877,7 +5877,7 @@ function popcnt_uint32(uint32) {
   return (i + (i >>> 4) & 252645135) * 16843009 >>> 24;
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/data.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/data.mjs
 var kUnknownNullCount = -1;
 var Data = class _Data {
   get typeId() {
@@ -6201,7 +6201,7 @@ function makeData(props) {
   return makeDataVisitor.visit(props);
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/chunk.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/chunk.mjs
 var ChunkedIterator = class {
   constructor(numChunks = 0, getChunkIterator) {
     this.numChunks = numChunks;
@@ -6320,7 +6320,7 @@ function wrapChunkedIndexOf(indexOf2) {
   };
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/indexof.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/indexof.mjs
 var IndexOfVisitor = class extends Visitor {
 };
 function nullIndexOf(data, searchElement) {
@@ -6428,7 +6428,7 @@ IndexOfVisitor.prototype.visitFixedSizeList = indexOfValue;
 IndexOfVisitor.prototype.visitMap = indexOfValue;
 var instance3 = new IndexOfVisitor();
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/iterator.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/iterator.mjs
 var IteratorVisitor = class extends Visitor {
 };
 function vectorIterator(vector3) {
@@ -6519,7 +6519,7 @@ IteratorVisitor.prototype.visitFixedSizeList = vectorIterator;
 IteratorVisitor.prototype.visitMap = vectorIterator;
 var instance4 = new IteratorVisitor();
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/vector.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/vector.mjs
 var _a2;
 var visitorsByTypeId = {};
 var vectorPrototypesByTypeId = {};
@@ -6830,7 +6830,7 @@ var MemoizedVector = class _MemoizedVector extends Vector {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/valid.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/valid.mjs
 function createIsValidFunction(nullValues) {
   if (!nullValues || nullValues.length <= 0) {
     return function isValid(value) {
@@ -6860,7 +6860,7 @@ function valueToCase(x4) {
   return `${valueToString(x4)}n`;
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/buffer.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/buffer.mjs
 function roundLengthUpToNearest64Bytes(len, BPE) {
   const bytesMinus1 = Math.ceil(len) * BPE - 1;
   return (bytesMinus1 - bytesMinus1 % 64 + 64 || 64) / BPE;
@@ -6978,7 +6978,7 @@ var OffsetsBufferBuilder = class extends DataBufferBuilder {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder.mjs
 var Builder2 = class {
   /** @nocollapse */
   // @ts-ignore
@@ -7245,7 +7245,7 @@ var VariableWidthBuilder = class extends Builder2 {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/block.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/block.mjs
 var Block = class {
   constructor() {
     this.bb = null;
@@ -7288,7 +7288,7 @@ var Block = class {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/footer.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/footer.mjs
 var Footer = class _Footer {
   constructor() {
     this.bb = null;
@@ -7387,7 +7387,7 @@ var Footer = class _Footer {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/schema.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/schema.mjs
 var Schema2 = class _Schema {
   constructor(fields = [], metadata, dictionaries, metadataVersion = MetadataVersion.V5) {
     this.fields = fields || [];
@@ -7503,7 +7503,7 @@ function generateDictionaryMap(fields, dictionaries = /* @__PURE__ */ new Map())
   return dictionaries;
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/metadata/file.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/metadata/file.mjs
 var Builder3 = Builder;
 var ByteBuffer2 = ByteBuffer;
 var Footer_ = class {
@@ -7618,7 +7618,7 @@ var FileBlock = class _FileBlock {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/interfaces.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/interfaces.mjs
 var ITERATOR_DONE = Object.freeze({ done: true, value: void 0 });
 var ArrowJSON = class {
   constructor(_json) {
@@ -7741,7 +7741,7 @@ var AsyncQueue = class extends ReadableInterop {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/stream.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/stream.mjs
 var AsyncByteQueue = class extends AsyncQueue {
   write(value) {
     if ((value = toUint8Array(value)).byteLength > 0) {
@@ -7916,7 +7916,7 @@ var AsyncByteStreamSource = class {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/file.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/file.mjs
 var RandomAccessFile = class extends ByteStream {
   constructor(buffer, byteLength) {
     super();
@@ -8039,7 +8039,7 @@ var AsyncRandomAccessFile = class extends AsyncByteStream {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/int.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/int.mjs
 var int_exports = {};
 __export(int_exports, {
   BaseInt64: () => BaseInt64,
@@ -8355,7 +8355,7 @@ var Int128 = class _Int128 {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/vectorloader.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/vectorloader.mjs
 var VectorLoader = class extends Visitor {
   constructor(bytes, nodes, buffers, dictionaries, metadataVersion = MetadataVersion.V5) {
     super();
@@ -8507,7 +8507,7 @@ function binaryDataFromJSON(values2) {
   return data;
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/binary.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/binary.mjs
 var BinaryBuilder = class extends VariableWidthBuilder {
   constructor(opts) {
     super(opts);
@@ -8540,7 +8540,7 @@ var BinaryBuilder = class extends VariableWidthBuilder {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/largebinary.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/largebinary.mjs
 var LargeBinaryBuilder = class extends VariableWidthBuilder {
   constructor(opts) {
     super(opts);
@@ -8573,7 +8573,7 @@ var LargeBinaryBuilder = class extends VariableWidthBuilder {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/bool.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/bool.mjs
 var BoolBuilder = class extends Builder2 {
   constructor(options) {
     super(options);
@@ -8584,7 +8584,7 @@ var BoolBuilder = class extends Builder2 {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/date.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/date.mjs
 var DateBuilder = class extends FixedWidthBuilder {
 };
 DateBuilder.prototype._setValue = setDate;
@@ -8595,12 +8595,12 @@ var DateMillisecondBuilder = class extends DateBuilder {
 };
 DateMillisecondBuilder.prototype._setValue = setDateMillisecond;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/decimal.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/decimal.mjs
 var DecimalBuilder = class extends FixedWidthBuilder {
 };
 DecimalBuilder.prototype._setValue = setDecimal;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/dictionary.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/dictionary.mjs
 var DictionaryBuilder = class extends Builder2 {
   constructor({ "type": type2, "nullValues": nulls, "dictionaryHashFunction": hashFn }) {
     super({ type: new Dictionary(type2.dictionary, type2.indices, type2.id, type2.isOrdered) });
@@ -8677,12 +8677,12 @@ var DictionaryBuilder = class extends Builder2 {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/fixedsizebinary.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/fixedsizebinary.mjs
 var FixedSizeBinaryBuilder = class extends FixedWidthBuilder {
 };
 FixedSizeBinaryBuilder.prototype._setValue = setFixedSizeBinary;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/fixedsizelist.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/fixedsizelist.mjs
 var FixedSizeListBuilder = class extends Builder2 {
   setValue(index2, value) {
     const [child] = this.children;
@@ -8701,7 +8701,7 @@ var FixedSizeListBuilder = class extends Builder2 {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/float.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/float.mjs
 var FloatBuilder = class extends FixedWidthBuilder {
   setValue(index2, value) {
     this._values.set(index2, value);
@@ -8717,7 +8717,7 @@ var Float32Builder = class extends FloatBuilder {
 var Float64Builder = class extends FloatBuilder {
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/interval.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/interval.mjs
 var IntervalBuilder = class extends FixedWidthBuilder {
 };
 IntervalBuilder.prototype._setValue = setIntervalValue;
@@ -8728,7 +8728,7 @@ var IntervalYearMonthBuilder = class extends IntervalBuilder {
 };
 IntervalYearMonthBuilder.prototype._setValue = setIntervalYearMonth;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/duration.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/duration.mjs
 var DurationBuilder = class extends FixedWidthBuilder {
 };
 DurationBuilder.prototype._setValue = setDuration;
@@ -8745,7 +8745,7 @@ var DurationNanosecondBuilder = class extends DurationBuilder {
 };
 DurationNanosecondBuilder.prototype._setValue = setDurationNanosecond;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/int.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/int.mjs
 var IntBuilder = class extends FixedWidthBuilder {
   setValue(index2, value) {
     this._values.set(index2, value);
@@ -8768,7 +8768,7 @@ var Uint32Builder = class extends IntBuilder {
 var Uint64Builder = class extends IntBuilder {
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/list.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/list.mjs
 var ListBuilder = class extends VariableWidthBuilder {
   constructor(opts) {
     super(opts);
@@ -8800,7 +8800,7 @@ var ListBuilder = class extends VariableWidthBuilder {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/map.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/map.mjs
 var MapBuilder = class extends VariableWidthBuilder {
   set(index2, value) {
     return super.set(index2, value);
@@ -8839,7 +8839,7 @@ var MapBuilder = class extends VariableWidthBuilder {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/null.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/null.mjs
 var NullBuilder = class extends Builder2 {
   // @ts-ignore
   setValue(index2, value) {
@@ -8850,7 +8850,7 @@ var NullBuilder = class extends Builder2 {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/struct.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/struct.mjs
 var StructBuilder = class extends Builder2 {
   setValue(index2, value) {
     const { children: children2, type: type2 } = this;
@@ -8877,7 +8877,7 @@ var StructBuilder = class extends Builder2 {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/timestamp.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/timestamp.mjs
 var TimestampBuilder = class extends FixedWidthBuilder {
 };
 TimestampBuilder.prototype._setValue = setTimestamp;
@@ -8894,7 +8894,7 @@ var TimestampNanosecondBuilder = class extends TimestampBuilder {
 };
 TimestampNanosecondBuilder.prototype._setValue = setTimestampNanosecond;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/time.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/time.mjs
 var TimeBuilder = class extends FixedWidthBuilder {
 };
 TimeBuilder.prototype._setValue = setTime;
@@ -8911,7 +8911,7 @@ var TimeNanosecondBuilder = class extends TimeBuilder {
 };
 TimeNanosecondBuilder.prototype._setValue = setTimeNanosecond;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/union.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/union.mjs
 var UnionBuilder = class extends Builder2 {
   constructor(options) {
     super(options);
@@ -8968,7 +8968,7 @@ var DenseUnionBuilder = class extends UnionBuilder {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/utf8.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/utf8.mjs
 var Utf8Builder = class extends VariableWidthBuilder {
   constructor(opts) {
     super(opts);
@@ -8990,7 +8990,7 @@ var Utf8Builder = class extends VariableWidthBuilder {
 };
 Utf8Builder.prototype._flushPending = BinaryBuilder.prototype._flushPending;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/largeutf8.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/builder/largeutf8.mjs
 var LargeUtf8Builder = class extends VariableWidthBuilder {
   constructor(opts) {
     super(opts);
@@ -9012,7 +9012,7 @@ var LargeUtf8Builder = class extends VariableWidthBuilder {
 };
 LargeUtf8Builder.prototype._flushPending = LargeBinaryBuilder.prototype._flushPending;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/builderctor.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/builderctor.mjs
 var GetBuilderCtor = class extends Visitor {
   visitNull() {
     return NullBuilder;
@@ -9167,7 +9167,7 @@ var GetBuilderCtor = class extends Visitor {
 };
 var instance5 = new GetBuilderCtor();
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/typecomparator.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/typecomparator.mjs
 var TypeComparator = class extends Visitor {
   compareSchemas(schema, other) {
     return schema === other || other instanceof schema.constructor && this.compareManyFields(schema.fields, other.fields);
@@ -9288,7 +9288,7 @@ function compareTypes(type2, other) {
   return instance6.visit(type2, other);
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/factories.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/factories.mjs
 function makeBuilder(options) {
   const type2 = options.type;
   const builder = new (instance5.getVisitFn(type2)())(options);
@@ -9305,7 +9305,7 @@ function makeBuilder(options) {
   return builder;
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/recordbatch.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/util/recordbatch.mjs
 function distributeVectorsIntoRecordBatches(schema, vecs) {
   return uniformlyDistributeChunksAcrossRecordBatches(schema, vecs.map((v3) => v3.data.concat()));
 }
@@ -9366,7 +9366,7 @@ function distributeChildren(fields, batchLength, children2, columns, memo2) {
   return children2;
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/table.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/table.mjs
 var _a3;
 var Table = class _Table {
   constructor(...args) {
@@ -9649,7 +9649,7 @@ Table[_a3] = ((proto) => {
   return "Table";
 })(Table.prototype);
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/recordbatch.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/recordbatch.mjs
 var _a4;
 var RecordBatch2 = class _RecordBatch {
   constructor(...args) {
@@ -9914,7 +9914,7 @@ var _InternalEmptyPlaceholderRecordBatch = class extends RecordBatch2 {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/message.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/fb/message.mjs
 var Message = class _Message {
   constructor() {
     this.bb = null;
@@ -10005,7 +10005,7 @@ var Message = class _Message {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/typeassembler.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/typeassembler.mjs
 var TypeAssembler = class extends Visitor {
   visit(node, builder) {
     return node == null || builder == null ? void 0 : super.visit(node, builder);
@@ -10126,7 +10126,7 @@ var TypeAssembler = class extends Visitor {
 };
 var instance7 = new TypeAssembler();
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/metadata/json.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/metadata/json.mjs
 function schemaFromJSON(_schema, dictionaries = /* @__PURE__ */ new Map()) {
   return new Schema2(schemaFieldsFromJSON(_schema, dictionaries), customMetadataFromJSON(_schema["metadata"]), dictionaries);
 }
@@ -10270,7 +10270,7 @@ function typeFromJSON(f2, children2) {
   throw new Error(`Unrecognized type: "${typeId}"`);
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/metadata/message.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/metadata/message.mjs
 var Builder4 = Builder;
 var ByteBuffer3 = ByteBuffer;
 var Message2 = class _Message {
@@ -10722,7 +10722,7 @@ var platformIsLittleEndian = (() => {
   return new Int16Array(buffer)[0] === 256;
 })();
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/message.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/message.mjs
 var invalidMessageType = (type2) => `Expected ${MessageHeader[type2]} Message in stream, but was null or length 0.`;
 var nullMessage = (type2) => `Header pointer of flatbuffer-encoded ${MessageHeader[type2]} Message is null or length 0.`;
 var invalidMessageMetadata = (expected, actual) => `Expected to read ${expected} metadata bytes, but only read ${actual}.`;
@@ -10977,7 +10977,7 @@ var magicLength = MAGIC.length;
 var magicAndPadding = magicLength + PADDING;
 var magicX2AndPadding = magicLength * 2 + PADDING;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/reader.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/reader.mjs
 var RecordBatchReader = class _RecordBatchReader extends ReadableInterop {
   constructor(impl) {
     super();
@@ -11612,7 +11612,7 @@ function fromFileHandle(source) {
   });
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/vectorassembler.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/visitor/vectorassembler.mjs
 var VectorAssembler = class _VectorAssembler extends Visitor {
   /** @nocollapse */
   static assemble(...args) {
@@ -11765,7 +11765,7 @@ VectorAssembler.prototype.visitDuration = assembleFlatVector;
 VectorAssembler.prototype.visitFixedSizeList = assembleListVector;
 VectorAssembler.prototype.visitMap = assembleListVector;
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/writer.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/writer.mjs
 var RecordBatchWriter = class extends ReadableInterop {
   /** @nocollapse */
   // @ts-ignore
@@ -12037,7 +12037,7 @@ function writeAllAsync(writer, batches) {
   });
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/whatwg/iterable.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/whatwg/iterable.mjs
 function toDOMStream(source, options) {
   if (isAsyncIterable(source)) {
     return asyncIterableAsReadableDOMStream(source, options);
@@ -12120,7 +12120,7 @@ function asyncIterableAsReadableDOMStream(source, options) {
   }
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/whatwg/builder.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/whatwg/builder.mjs
 function builderThroughDOMStream(options) {
   return new BuilderTransform(options);
 }
@@ -12200,7 +12200,7 @@ var chunkByteLength = (chunk) => {
   return (_a9 = chunk === null || chunk === void 0 ? void 0 : chunk.byteLength) !== null && _a9 !== void 0 ? _a9 : 0;
 };
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/whatwg/reader.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/whatwg/reader.mjs
 function recordBatchReaderThroughDOMStream(writableStrategy, readableStrategy) {
   const queue = new AsyncByteQueue();
   let reader = null;
@@ -12242,7 +12242,7 @@ function recordBatchReaderThroughDOMStream(writableStrategy, readableStrategy) {
   }
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/whatwg/writer.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/io/whatwg/writer.mjs
 function recordBatchWriterThroughDOMStream(writableStrategy, readableStrategy) {
   const writer = new this(writableStrategy);
   const reader = new AsyncByteStream(writer);
@@ -12280,7 +12280,7 @@ function recordBatchWriterThroughDOMStream(writableStrategy, readableStrategy) {
   }
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/serialization.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/ipc/serialization.mjs
 function tableFromIPC(input3) {
   const reader = RecordBatchReader.from(input3);
   if (isPromise(reader)) {
@@ -12292,14 +12292,14 @@ function tableFromIPC(input3) {
   return new Table(reader.readAll());
 }
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/Arrow.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/Arrow.mjs
 var util = Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, bn_exports), int_exports), bit_exports), math_exports), buffer_exports), vector_exports), pretty_exports), {
   compareSchemas,
   compareFields,
   compareTypes
 });
 
-// node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/Arrow.dom.mjs
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/node_modules/apache-arrow/Arrow.dom.mjs
 adapters_default.toDOMStream = toDOMStream;
 Builder2["throughDOM"] = builderThroughDOMStream;
 RecordBatchReader["throughDOM"] = recordBatchReaderThroughDOMStream;
@@ -12309,7 +12309,7 @@ RecordBatchWriter["throughDOM"] = recordBatchWriterThroughDOMStream;
 RecordBatchFileWriter["throughDOM"] = recordBatchWriterThroughDOMStream;
 RecordBatchStreamWriter["throughDOM"] = recordBatchWriterThroughDOMStream;
 
-// node_modules/@uwdata/mosaic-core/src/connectors/socket.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/connectors/socket.js
 function socketConnector(uri = "ws://localhost:3000/") {
   const queue = [];
   let connected = false;
@@ -12394,7 +12394,7 @@ function socketConnector(uri = "ws://localhost:3000/") {
   };
 }
 
-// node_modules/@uwdata/mosaic-sql/src/ref.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/ref.js
 var Ref = class {
   /**
    * Create a new Ref instance.
@@ -12450,7 +12450,7 @@ function column(table3, column3 = null) {
   return new Ref(table3, column3);
 }
 
-// node_modules/@uwdata/mosaic-sql/src/to-sql.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/to-sql.js
 function literalToSQL(value) {
   switch (typeof value) {
     case "boolean":
@@ -12477,7 +12477,7 @@ function literalToSQL(value) {
   }
 }
 
-// node_modules/@uwdata/mosaic-sql/src/expression.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/expression.js
 var isParamLike = (value) => typeof value?.addEventListener === "function";
 function isSQLExpression(value) {
   return value instanceof SQLExpression;
@@ -12597,19 +12597,19 @@ function sql(strings, ...exprs) {
   return new SQLExpression(spans, cols);
 }
 
-// node_modules/@uwdata/mosaic-sql/src/desc.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/desc.js
 function desc(expr) {
   const e = asColumn(expr);
   return sql`${e} DESC NULLS LAST`.annotate({ label: e?.label, desc: true });
 }
 
-// node_modules/@uwdata/mosaic-sql/src/literal.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/literal.js
 var literal = (value) => ({
   value,
   toString: () => literalToSQL(value)
 });
 
-// node_modules/@uwdata/mosaic-sql/src/operators.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/operators.js
 function visit(callback) {
   callback(this.op, this);
   this.children?.forEach((v3) => v3.visit(callback));
@@ -12650,12 +12650,12 @@ function rangeOp(op, a2, range3, exclusive) {
 var isBetween = (a2, range3, exclusive) => rangeOp("BETWEEN", a2, range3, exclusive);
 var isNotBetween = (a2, range3, exclusive) => rangeOp("NOT BETWEEN", a2, range3, exclusive);
 
-// node_modules/@uwdata/mosaic-sql/src/repeat.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/repeat.js
 function repeat(length4, str) {
   return Array.from({ length: length4 }, () => str);
 }
 
-// node_modules/@uwdata/mosaic-sql/src/functions.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/functions.js
 function functionCall(op, type2) {
   return (...values2) => {
     const args = values2.map(asColumn);
@@ -12675,7 +12675,7 @@ var isNaN2 = functionCall("ISNAN");
 var isFinite2 = functionCall("ISFINITE");
 var isInfinite = functionCall("ISINF");
 
-// node_modules/@uwdata/mosaic-sql/src/windows.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/windows.js
 var WindowFunction = class _WindowFunction extends SQLExpression {
   /**
    * Create a new WindowFunction instance.
@@ -12807,7 +12807,7 @@ var first_value = winf("FIRST_VALUE");
 var last_value = winf("LAST_VALUE");
 var nth_value = winf("NTH_VALUE");
 
-// node_modules/@uwdata/mosaic-sql/src/aggregates.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/aggregates.js
 function agg(strings, ...exprs) {
   return sql(strings, ...exprs).annotate({ aggregate: true });
 }
@@ -12959,7 +12959,7 @@ var argmax = aggf("ARG_MAX");
 var stringAgg = aggf("STRING_AGG");
 var arrayAgg = aggf("ARRAY_AGG");
 
-// node_modules/@uwdata/mosaic-sql/src/cast.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/cast.js
 function cast(expr, type2) {
   const arg = asColumn(expr);
   const e = sql`CAST(${arg} AS ${type2})`;
@@ -12980,7 +12980,7 @@ function cast(expr, type2) {
 var castDouble = (expr) => cast(expr, "DOUBLE");
 var castInteger = (expr) => cast(expr, "INTEGER");
 
-// node_modules/@uwdata/mosaic-sql/src/datetime.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/datetime.js
 var epoch_ms = (expr) => {
   return sql`epoch_ms(${asColumn(expr)})`;
 };
@@ -13002,7 +13002,7 @@ var dateDay = (expr) => {
   return sql`MAKE_DATE(2012, 1, DAY(${d2}))`.annotate({ label: "date" });
 };
 
-// node_modules/@uwdata/mosaic-sql/src/spatial.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/spatial.js
 var geojson = functionCall("ST_AsGeoJSON");
 var x = functionCall("ST_X");
 var y = functionCall("ST_Y");
@@ -13010,7 +13010,7 @@ var centroid = functionCall("ST_CENTROID");
 var centroidX = (geom) => x(centroid(geom));
 var centroidY = (geom) => y(centroid(geom));
 
-// node_modules/@uwdata/mosaic-sql/src/Query.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/Query.js
 var Query = class _Query {
   static select(...expr) {
     return new _Query().select(...expr);
@@ -13528,7 +13528,7 @@ function isDoubleQuoted(s2) {
   return s2[0] === '"' && s2[s2.length - 1] === '"';
 }
 
-// node_modules/@uwdata/mosaic-sql/src/scales.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/scales.js
 var identity = (x4) => x4;
 function scaleLinear() {
   return {
@@ -13612,7 +13612,7 @@ function scaleTransform(options) {
   return scale3 ? { ...options, ...scale3(options) } : null;
 }
 
-// node_modules/@uwdata/mosaic-sql/src/load/create.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/load/create.js
 function create(name2, query, {
   replace = false,
   temp = true,
@@ -13621,12 +13621,12 @@ function create(name2, query, {
   return "CREATE" + (replace ? " OR REPLACE " : " ") + (temp ? "TEMP " : "") + (view ? "VIEW" : "TABLE") + (replace ? " " : " IF NOT EXISTS ") + name2 + " AS " + query;
 }
 
-// node_modules/@uwdata/mosaic-sql/src/load/extension.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/load/extension.js
 function loadExtension(name2) {
   return `INSTALL ${name2}; LOAD ${name2}`;
 }
 
-// node_modules/@uwdata/mosaic-sql/src/load/sql-from.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/load/sql-from.js
 function sqlFrom(data, {
   columns = Object.keys(data?.[0] || {})
 } = {}) {
@@ -13648,7 +13648,7 @@ function sqlFrom(data, {
   return subq.join(" UNION ALL ");
 }
 
-// node_modules/@uwdata/mosaic-sql/src/load/load.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-sql/src/load/load.js
 function load(method, tableName, fileName, options = {}, defaults22 = {}) {
   const { select: select2 = ["*"], where, view, temp, replace, ...file } = options;
   const params = parameters({ ...defaults22, ...file });
@@ -13703,7 +13703,7 @@ function toDuckDBValue(value) {
   }
 }
 
-// node_modules/@uwdata/mosaic-core/src/util/index-columns.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/index-columns.js
 function indexColumns(client) {
   if (!client.filterIndexable) return null;
   const q2 = client.query();
@@ -13948,7 +13948,7 @@ function regrInterceptExpr(aux, args, from2) {
   return agg`${ay} - (${m2}) * ${ax}`;
 }
 
-// node_modules/@uwdata/mosaic-core/src/util/hash.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/hash.js
 function fnv_hash(v3) {
   let a2 = 2166136261;
   for (let i = 0, n = v3.length; i < n; ++i) {
@@ -13971,7 +13971,7 @@ function fnv_mix(a2) {
   return a2 & 4294967295;
 }
 
-// node_modules/@uwdata/mosaic-core/src/DataCubeIndexer.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/DataCubeIndexer.js
 var Skip = { skip: true, result: null };
 var DataCubeIndexer = class {
   /**
@@ -14161,7 +14161,7 @@ var DataCubeInfo = class {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/src/util/query-result.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/query-result.js
 var QueryResult = class extends Promise {
   /**
    * Create a new query result Promise.
@@ -14197,7 +14197,7 @@ var QueryResult = class extends Promise {
 };
 QueryResult.prototype.constructor = Promise;
 
-// node_modules/@uwdata/mosaic-core/src/QueryConsolidator.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/QueryConsolidator.js
 function wait(callback) {
   const method = typeof requestAnimationFrame !== "undefined" ? requestAnimationFrame : typeof setImmediate !== "undefined" ? setImmediate : setTimeout;
   return method(callback);
@@ -14357,7 +14357,7 @@ function filterResult(data, map4) {
   return result;
 }
 
-// node_modules/@uwdata/mosaic-core/src/util/cache.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/cache.js
 var requestIdle = typeof requestIdleCallback !== "undefined" ? requestIdleCallback : setTimeout;
 var voidCache = () => ({
   get: () => void 0,
@@ -14409,7 +14409,7 @@ function lruCache({
   };
 }
 
-// node_modules/@uwdata/mosaic-core/src/util/priority-queue.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/priority-queue.js
 function priorityQueue(ranks) {
   const queue = Array.from(
     { length: ranks },
@@ -14485,7 +14485,7 @@ function priorityQueue(ranks) {
   };
 }
 
-// node_modules/@uwdata/mosaic-core/src/QueryManager.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/QueryManager.js
 var Priority = { High: 0, Normal: 1, Low: 2 };
 var QueryManager = class {
   constructor() {
@@ -14606,7 +14606,7 @@ var QueryManager = class {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/src/util/js-type.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/js-type.js
 function jsType(type2) {
   switch (type2) {
     case "BIGINT":
@@ -14656,7 +14656,7 @@ function jsType(type2) {
   }
 }
 
-// node_modules/@uwdata/mosaic-core/src/util/convert-arrow.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/convert-arrow.js
 function isArrowTable(values2) {
   return typeof values2?.getChild === "function";
 }
@@ -14728,7 +14728,7 @@ function decimalToNumber(v3, scale3) {
   return x4 * scale3;
 }
 
-// node_modules/@uwdata/mosaic-core/src/util/field-info.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/field-info.js
 var Count = "count";
 var Nulls = "nulls";
 var Max = "max";
@@ -14785,7 +14785,7 @@ async function getTableInfo(mc, table3) {
   }));
 }
 
-// node_modules/@uwdata/mosaic-core/src/util/void-logger.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/void-logger.js
 function voidLogger() {
   return {
     debug() {
@@ -14801,7 +14801,7 @@ function voidLogger() {
   };
 }
 
-// node_modules/@uwdata/mosaic-core/src/Coordinator.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/Coordinator.js
 var _instance;
 function coordinator(instance15) {
   if (instance15) {
@@ -15033,7 +15033,7 @@ function updateSelection(mc, selection2) {
   }));
 }
 
-// node_modules/@uwdata/mosaic-core/src/util/AsyncDispatch.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/AsyncDispatch.js
 var AsyncDispatch = class {
   /**
    * Create a new asynchronous dispatcher instance.
@@ -15201,7 +15201,7 @@ var DispatchQueue = class {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/src/util/distinct.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/distinct.js
 function distinct(a2, b2) {
   return a2 === b2 ? false : a2 instanceof Date && b2 instanceof Date ? +a2 !== +b2 : Array.isArray(a2) && Array.isArray(b2) ? distinctArray(a2, b2) : true;
 }
@@ -15213,7 +15213,7 @@ function distinctArray(a2, b2) {
   return false;
 }
 
-// node_modules/@uwdata/mosaic-core/src/Param.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/Param.js
 function isParam(x4) {
   return x4 instanceof Param;
 }
@@ -15290,7 +15290,7 @@ var Param = class _Param extends AsyncDispatch {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/src/Selection.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/Selection.js
 function isSelection(x4) {
   return x4 instanceof Selection;
 }
@@ -15564,7 +15564,7 @@ var SelectionResolver = class {
   }
 };
 
-// node_modules/@uwdata/mosaic-core/src/connectors/rest.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/connectors/rest.js
 function restConnector(uri = "http://localhost:3000/") {
   return {
     /**
@@ -15588,7 +15588,7 @@ function restConnector(uri = "http://localhost:3000/") {
   };
 }
 
-// node_modules/apache-arrow/util/buffer.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/buffer.mjs
 var buffer_exports2 = {};
 __export(buffer_exports2, {
   compareArrayLike: () => compareArrayLike2,
@@ -15629,13 +15629,13 @@ __export(buffer_exports2, {
   toUint8ClampedArrayIterator: () => toUint8ClampedArrayIterator2
 });
 
-// node_modules/apache-arrow/util/utf8.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/utf8.mjs
 var decoder2 = new TextDecoder("utf-8");
 var decodeUtf82 = (buffer) => decoder2.decode(buffer);
 var encoder2 = new TextEncoder();
 var encodeUtf82 = (value) => encoder2.encode(value);
 
-// node_modules/apache-arrow/util/compat.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/compat.mjs
 var isNumber2 = (x4) => typeof x4 === "number";
 var isBoolean2 = (x4) => typeof x4 === "boolean";
 var isFunction2 = (x4) => typeof x4 === "function";
@@ -15678,7 +15678,7 @@ var isFlatbuffersByteBuffer2 = (x4) => {
   return isObject2(x4) && isFunction2(x4["clear"]) && isFunction2(x4["bytes"]) && isFunction2(x4["position"]) && isFunction2(x4["setPosition"]) && isFunction2(x4["capacity"]) && isFunction2(x4["getBufferIdentifier"]) && isFunction2(x4["createLong"]);
 };
 
-// node_modules/apache-arrow/util/buffer.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/buffer.mjs
 var SharedArrayBuf2 = typeof SharedArrayBuffer !== "undefined" ? SharedArrayBuffer : ArrayBuffer;
 function collapseContiguousByteRanges2(chunks) {
   const result = chunks[0] ? [chunks[0]] : [];
@@ -15861,7 +15861,7 @@ function compareArrayLike2(a2, b2) {
   return true;
 }
 
-// node_modules/apache-arrow/io/adapters.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/io/adapters.mjs
 var adapters_default2 = {
   fromIterable(source) {
     return pump4(fromIterable2(source));
@@ -16105,7 +16105,7 @@ function fromNodeStream2(stream) {
   });
 }
 
-// node_modules/apache-arrow/fb/metadata-version.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/metadata-version.mjs
 var MetadataVersion2;
 (function(MetadataVersion3) {
   MetadataVersion3[MetadataVersion3["V1"] = 0] = "V1";
@@ -16115,14 +16115,14 @@ var MetadataVersion2;
   MetadataVersion3[MetadataVersion3["V5"] = 4] = "V5";
 })(MetadataVersion2 || (MetadataVersion2 = {}));
 
-// node_modules/apache-arrow/fb/union-mode.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/union-mode.mjs
 var UnionMode2;
 (function(UnionMode3) {
   UnionMode3[UnionMode3["Sparse"] = 0] = "Sparse";
   UnionMode3[UnionMode3["Dense"] = 1] = "Dense";
 })(UnionMode2 || (UnionMode2 = {}));
 
-// node_modules/apache-arrow/fb/precision.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/precision.mjs
 var Precision2;
 (function(Precision3) {
   Precision3[Precision3["HALF"] = 0] = "HALF";
@@ -16130,14 +16130,14 @@ var Precision2;
   Precision3[Precision3["DOUBLE"] = 2] = "DOUBLE";
 })(Precision2 || (Precision2 = {}));
 
-// node_modules/apache-arrow/fb/date-unit.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/date-unit.mjs
 var DateUnit2;
 (function(DateUnit3) {
   DateUnit3[DateUnit3["DAY"] = 0] = "DAY";
   DateUnit3[DateUnit3["MILLISECOND"] = 1] = "MILLISECOND";
 })(DateUnit2 || (DateUnit2 = {}));
 
-// node_modules/apache-arrow/fb/time-unit.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/time-unit.mjs
 var TimeUnit2;
 (function(TimeUnit3) {
   TimeUnit3[TimeUnit3["SECOND"] = 0] = "SECOND";
@@ -16146,7 +16146,7 @@ var TimeUnit2;
   TimeUnit3[TimeUnit3["NANOSECOND"] = 3] = "NANOSECOND";
 })(TimeUnit2 || (TimeUnit2 = {}));
 
-// node_modules/apache-arrow/fb/interval-unit.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/interval-unit.mjs
 var IntervalUnit2;
 (function(IntervalUnit3) {
   IntervalUnit3[IntervalUnit3["YEAR_MONTH"] = 0] = "YEAR_MONTH";
@@ -16154,20 +16154,20 @@ var IntervalUnit2;
   IntervalUnit3[IntervalUnit3["MONTH_DAY_NANO"] = 2] = "MONTH_DAY_NANO";
 })(IntervalUnit2 || (IntervalUnit2 = {}));
 
-// node_modules/apache-arrow/fb/body-compression-method.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/body-compression-method.mjs
 var BodyCompressionMethod2;
 (function(BodyCompressionMethod3) {
   BodyCompressionMethod3[BodyCompressionMethod3["BUFFER"] = 0] = "BUFFER";
 })(BodyCompressionMethod2 || (BodyCompressionMethod2 = {}));
 
-// node_modules/apache-arrow/fb/compression-type.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/compression-type.mjs
 var CompressionType2;
 (function(CompressionType3) {
   CompressionType3[CompressionType3["LZ4_FRAME"] = 0] = "LZ4_FRAME";
   CompressionType3[CompressionType3["ZSTD"] = 1] = "ZSTD";
 })(CompressionType2 || (CompressionType2 = {}));
 
-// node_modules/apache-arrow/fb/body-compression.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/body-compression.mjs
 var BodyCompression2 = class _BodyCompression {
   constructor() {
     this.bb = null;
@@ -16221,7 +16221,7 @@ var BodyCompression2 = class _BodyCompression {
   }
 };
 
-// node_modules/apache-arrow/fb/buffer.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/buffer.mjs
 var Buffer3 = class {
   constructor() {
     this.bb = null;
@@ -16260,7 +16260,7 @@ var Buffer3 = class {
   }
 };
 
-// node_modules/apache-arrow/fb/field-node.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/field-node.mjs
 var FieldNode3 = class {
   constructor() {
     this.bb = null;
@@ -16297,7 +16297,7 @@ var FieldNode3 = class {
   }
 };
 
-// node_modules/apache-arrow/fb/record-batch.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/record-batch.mjs
 var RecordBatch4 = class _RecordBatch {
   constructor() {
     this.bb = null;
@@ -16384,7 +16384,7 @@ var RecordBatch4 = class _RecordBatch {
   }
 };
 
-// node_modules/apache-arrow/fb/dictionary-batch.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/dictionary-batch.mjs
 var DictionaryBatch3 = class _DictionaryBatch {
   constructor() {
     this.bb = null;
@@ -16437,20 +16437,20 @@ var DictionaryBatch3 = class _DictionaryBatch {
   }
 };
 
-// node_modules/apache-arrow/fb/endianness.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/endianness.mjs
 var Endianness2;
 (function(Endianness3) {
   Endianness3[Endianness3["Little"] = 0] = "Little";
   Endianness3[Endianness3["Big"] = 1] = "Big";
 })(Endianness2 || (Endianness2 = {}));
 
-// node_modules/apache-arrow/fb/dictionary-kind.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/dictionary-kind.mjs
 var DictionaryKind2;
 (function(DictionaryKind3) {
   DictionaryKind3[DictionaryKind3["DenseArray"] = 0] = "DenseArray";
 })(DictionaryKind2 || (DictionaryKind2 = {}));
 
-// node_modules/apache-arrow/fb/int.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/int.mjs
 var Int2 = class _Int {
   constructor() {
     this.bb = null;
@@ -16497,7 +16497,7 @@ var Int2 = class _Int {
   }
 };
 
-// node_modules/apache-arrow/fb/dictionary-encoding.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/dictionary-encoding.mjs
 var DictionaryEncoding2 = class _DictionaryEncoding {
   constructor() {
     this.bb = null;
@@ -16570,7 +16570,7 @@ var DictionaryEncoding2 = class _DictionaryEncoding {
   }
 };
 
-// node_modules/apache-arrow/fb/key-value.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/key-value.mjs
 var KeyValue2 = class _KeyValue {
   constructor() {
     this.bb = null;
@@ -16617,7 +16617,7 @@ var KeyValue2 = class _KeyValue {
   }
 };
 
-// node_modules/apache-arrow/fb/binary.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/binary.mjs
 var Binary3 = class _Binary {
   constructor() {
     this.bb = null;
@@ -16648,7 +16648,7 @@ var Binary3 = class _Binary {
   }
 };
 
-// node_modules/apache-arrow/fb/bool.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/bool.mjs
 var Bool3 = class _Bool {
   constructor() {
     this.bb = null;
@@ -16679,7 +16679,7 @@ var Bool3 = class _Bool {
   }
 };
 
-// node_modules/apache-arrow/fb/date.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/date.mjs
 var Date3 = class _Date {
   constructor() {
     this.bb = null;
@@ -16718,7 +16718,7 @@ var Date3 = class _Date {
   }
 };
 
-// node_modules/apache-arrow/fb/decimal.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/decimal.mjs
 var Decimal3 = class _Decimal {
   constructor() {
     this.bb = null;
@@ -16783,7 +16783,7 @@ var Decimal3 = class _Decimal {
   }
 };
 
-// node_modules/apache-arrow/fb/duration.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/duration.mjs
 var Duration3 = class _Duration {
   constructor() {
     this.bb = null;
@@ -16822,7 +16822,7 @@ var Duration3 = class _Duration {
   }
 };
 
-// node_modules/apache-arrow/fb/fixed-size-binary.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/fixed-size-binary.mjs
 var FixedSizeBinary3 = class _FixedSizeBinary {
   constructor() {
     this.bb = null;
@@ -16864,7 +16864,7 @@ var FixedSizeBinary3 = class _FixedSizeBinary {
   }
 };
 
-// node_modules/apache-arrow/fb/fixed-size-list.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/fixed-size-list.mjs
 var FixedSizeList3 = class _FixedSizeList {
   constructor() {
     this.bb = null;
@@ -16906,7 +16906,7 @@ var FixedSizeList3 = class _FixedSizeList {
   }
 };
 
-// node_modules/apache-arrow/fb/floating-point.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/floating-point.mjs
 var FloatingPoint2 = class _FloatingPoint {
   constructor() {
     this.bb = null;
@@ -16945,7 +16945,7 @@ var FloatingPoint2 = class _FloatingPoint {
   }
 };
 
-// node_modules/apache-arrow/fb/interval.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/interval.mjs
 var Interval2 = class _Interval {
   constructor() {
     this.bb = null;
@@ -16984,7 +16984,7 @@ var Interval2 = class _Interval {
   }
 };
 
-// node_modules/apache-arrow/fb/large-binary.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/large-binary.mjs
 var LargeBinary3 = class _LargeBinary {
   constructor() {
     this.bb = null;
@@ -17015,7 +17015,7 @@ var LargeBinary3 = class _LargeBinary {
   }
 };
 
-// node_modules/apache-arrow/fb/large-utf8.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/large-utf8.mjs
 var LargeUtf83 = class _LargeUtf8 {
   constructor() {
     this.bb = null;
@@ -17046,7 +17046,7 @@ var LargeUtf83 = class _LargeUtf8 {
   }
 };
 
-// node_modules/apache-arrow/fb/list.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/list.mjs
 var List3 = class _List {
   constructor() {
     this.bb = null;
@@ -17077,7 +17077,7 @@ var List3 = class _List {
   }
 };
 
-// node_modules/apache-arrow/fb/map.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/map.mjs
 var Map3 = class _Map {
   constructor() {
     this.bb = null;
@@ -17119,7 +17119,7 @@ var Map3 = class _Map {
   }
 };
 
-// node_modules/apache-arrow/fb/null.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/null.mjs
 var Null3 = class _Null {
   constructor() {
     this.bb = null;
@@ -17150,7 +17150,7 @@ var Null3 = class _Null {
   }
 };
 
-// node_modules/apache-arrow/fb/struct-.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/struct-.mjs
 var Struct_2 = class _Struct_ {
   constructor() {
     this.bb = null;
@@ -17181,7 +17181,7 @@ var Struct_2 = class _Struct_ {
   }
 };
 
-// node_modules/apache-arrow/fb/time.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/time.mjs
 var Time2 = class _Time {
   constructor() {
     this.bb = null;
@@ -17228,7 +17228,7 @@ var Time2 = class _Time {
   }
 };
 
-// node_modules/apache-arrow/fb/timestamp.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/timestamp.mjs
 var Timestamp2 = class _Timestamp {
   constructor() {
     this.bb = null;
@@ -17275,7 +17275,7 @@ var Timestamp2 = class _Timestamp {
   }
 };
 
-// node_modules/apache-arrow/fb/union.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/union.mjs
 var Union2 = class _Union {
   constructor() {
     this.bb = null;
@@ -17340,7 +17340,7 @@ var Union2 = class _Union {
   }
 };
 
-// node_modules/apache-arrow/fb/utf8.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/utf8.mjs
 var Utf83 = class _Utf8 {
   constructor() {
     this.bb = null;
@@ -17371,7 +17371,7 @@ var Utf83 = class _Utf8 {
   }
 };
 
-// node_modules/apache-arrow/fb/type.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/type.mjs
 var Type3;
 (function(Type5) {
   Type5[Type5["NONE"] = 0] = "NONE";
@@ -17399,7 +17399,7 @@ var Type3;
   Type5[Type5["RunEndEncoded"] = 22] = "RunEndEncoded";
 })(Type3 || (Type3 = {}));
 
-// node_modules/apache-arrow/fb/field.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/field.mjs
 var Field3 = class _Field {
   constructor() {
     this.bb = null;
@@ -17519,7 +17519,7 @@ var Field3 = class _Field {
   }
 };
 
-// node_modules/apache-arrow/fb/schema.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/schema.mjs
 var Schema3 = class _Schema {
   constructor() {
     this.bb = null;
@@ -17638,7 +17638,7 @@ var Schema3 = class _Schema {
   }
 };
 
-// node_modules/apache-arrow/fb/message-header.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/message-header.mjs
 var MessageHeader2;
 (function(MessageHeader3) {
   MessageHeader3[MessageHeader3["NONE"] = 0] = "NONE";
@@ -17649,7 +17649,7 @@ var MessageHeader2;
   MessageHeader3[MessageHeader3["SparseTensor"] = 5] = "SparseTensor";
 })(MessageHeader2 || (MessageHeader2 = {}));
 
-// node_modules/apache-arrow/enum.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/enum.mjs
 var Type4;
 (function(Type5) {
   Type5[Type5["NONE"] = 0] = "NONE";
@@ -17712,7 +17712,7 @@ var BufferType2;
   BufferType3[BufferType3["TYPE"] = 3] = "TYPE";
 })(BufferType2 || (BufferType2 = {}));
 
-// node_modules/apache-arrow/util/vector.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/vector.mjs
 var vector_exports2 = {};
 __export(vector_exports2, {
   clampRange: () => clampRange2,
@@ -17720,7 +17720,7 @@ __export(vector_exports2, {
   wrapIndex: () => wrapIndex2
 });
 
-// node_modules/apache-arrow/util/pretty.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/pretty.mjs
 var pretty_exports2 = {};
 __export(pretty_exports2, {
   valueToString: () => valueToString2
@@ -17753,7 +17753,7 @@ function valueToString2(x4) {
   return ArrayBuffer.isView(x4) ? `[${x4}]` : JSON.stringify(x4, (_2, y4) => typeof y4 === "bigint" ? `${y4}` : y4);
 }
 
-// node_modules/apache-arrow/util/bn.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/bn.mjs
 var bn_exports2 = {};
 __export(bn_exports2, {
   BN: () => BN2,
@@ -17763,7 +17763,7 @@ __export(bn_exports2, {
   isArrowBigNumSymbol: () => isArrowBigNumSymbol2
 });
 
-// node_modules/apache-arrow/util/bigint.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/bigint.mjs
 function bigIntToNumber2(number7) {
   if (typeof number7 === "bigint" && (number7 < Number.MIN_SAFE_INTEGER || number7 > Number.MAX_SAFE_INTEGER)) {
     throw new TypeError(`${number7} is not safe to convert to a number.`);
@@ -17774,7 +17774,7 @@ function divideBigInts2(number7, divisor) {
   return bigIntToNumber2(number7 / divisor) + bigIntToNumber2(number7 % divisor) / bigIntToNumber2(divisor);
 }
 
-// node_modules/apache-arrow/util/bn.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/bn.mjs
 var isArrowBigNumSymbol2 = Symbol.for("isArrowBigNum");
 function BigNum2(x4, ...xs) {
   if (xs.length === 0) {
@@ -17933,7 +17933,7 @@ var BN2 = class _BN {
   }
 };
 
-// node_modules/apache-arrow/type.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/type.mjs
 var _a5;
 var _b2;
 var _c2;
@@ -18573,7 +18573,7 @@ function strideForType2(type2) {
   }
 }
 
-// node_modules/apache-arrow/visitor.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/visitor.mjs
 var Visitor2 = class {
   visitMany(nodes, ...args) {
     return nodes.map((node, i) => this.visit(node, ...args.map((x4) => x4[i])));
@@ -18972,7 +18972,7 @@ Visitor2.prototype.visitDurationMillisecond = null;
 Visitor2.prototype.visitDurationMicrosecond = null;
 Visitor2.prototype.visitDurationNanosecond = null;
 
-// node_modules/apache-arrow/util/math.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/math.mjs
 var math_exports2 = {};
 __export(math_exports2, {
   float64ToUint16: () => float64ToUint162,
@@ -19017,7 +19017,7 @@ function float64ToUint162(d2) {
   return sign3 | expo | sigf & 65535;
 }
 
-// node_modules/apache-arrow/visitor/set.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/visitor/set.mjs
 var SetVisitor2 = class extends Visitor2 {
 };
 function wrapSet2(fn) {
@@ -19274,7 +19274,7 @@ SetVisitor2.prototype.visitFixedSizeList = wrapSet2(setFixedSizeList2);
 SetVisitor2.prototype.visitMap = wrapSet2(setMap2);
 var instance8 = new SetVisitor2();
 
-// node_modules/apache-arrow/row/struct.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/row/struct.mjs
 var kParent2 = Symbol.for("parent");
 var kRowIndex2 = Symbol.for("rowIndex");
 var StructRow2 = class {
@@ -19382,7 +19382,7 @@ var StructRowProxyHandler2 = class {
   }
 };
 
-// node_modules/apache-arrow/visitor/get.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/visitor/get.mjs
 var GetVisitor2 = class extends Visitor2 {
 };
 function wrapGet2(fn) {
@@ -19566,7 +19566,7 @@ GetVisitor2.prototype.visitFixedSizeList = wrapGet2(getFixedSizeList2);
 GetVisitor2.prototype.visitMap = wrapGet2(getMap2);
 var instance9 = new GetVisitor2();
 
-// node_modules/apache-arrow/row/map.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/row/map.mjs
 var kKeys2 = Symbol.for("keys");
 var kVals2 = Symbol.for("vals");
 var kKeysAsStrings2 = Symbol.for("kKeysAsStrings");
@@ -19683,7 +19683,7 @@ Object.defineProperties(MapRow2.prototype, {
   [_kKeysAsStrings2]: { writable: true, enumerable: false, configurable: false, value: null }
 });
 
-// node_modules/apache-arrow/util/vector.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/vector.mjs
 var tmp2;
 function clampRange2(source, begin, end, then) {
   const { length: len = 0 } = source;
@@ -19821,7 +19821,7 @@ function compareObject2(comparators, obj, keys) {
   return false;
 }
 
-// node_modules/apache-arrow/util/bit.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/bit.mjs
 var bit_exports2 = {};
 __export(bit_exports2, {
   BitIterator: () => BitIterator2,
@@ -19944,7 +19944,7 @@ function popcnt_uint322(uint32) {
   return (i + (i >>> 4) & 252645135) * 16843009 >>> 24;
 }
 
-// node_modules/apache-arrow/data.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/data.mjs
 var kUnknownNullCount2 = -1;
 var Data2 = class _Data {
   get typeId() {
@@ -20268,7 +20268,7 @@ function makeData2(props) {
   return makeDataVisitor2.visit(props);
 }
 
-// node_modules/apache-arrow/util/chunk.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/chunk.mjs
 var ChunkedIterator2 = class {
   constructor(numChunks = 0, getChunkIterator) {
     this.numChunks = numChunks;
@@ -20387,7 +20387,7 @@ function wrapChunkedIndexOf2(indexOf2) {
   };
 }
 
-// node_modules/apache-arrow/visitor/indexof.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/visitor/indexof.mjs
 var IndexOfVisitor2 = class extends Visitor2 {
 };
 function nullIndexOf2(data, searchElement) {
@@ -20495,7 +20495,7 @@ IndexOfVisitor2.prototype.visitFixedSizeList = indexOfValue2;
 IndexOfVisitor2.prototype.visitMap = indexOfValue2;
 var instance10 = new IndexOfVisitor2();
 
-// node_modules/apache-arrow/visitor/iterator.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/visitor/iterator.mjs
 var IteratorVisitor2 = class extends Visitor2 {
 };
 function vectorIterator2(vector3) {
@@ -20586,7 +20586,7 @@ IteratorVisitor2.prototype.visitFixedSizeList = vectorIterator2;
 IteratorVisitor2.prototype.visitMap = vectorIterator2;
 var instance11 = new IteratorVisitor2();
 
-// node_modules/apache-arrow/vector.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/vector.mjs
 var _a6;
 var visitorsByTypeId2 = {};
 var vectorPrototypesByTypeId2 = {};
@@ -20897,7 +20897,7 @@ var MemoizedVector2 = class _MemoizedVector extends Vector2 {
   }
 };
 
-// node_modules/apache-arrow/builder/valid.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/valid.mjs
 function createIsValidFunction2(nullValues) {
   if (!nullValues || nullValues.length <= 0) {
     return function isValid(value) {
@@ -20927,7 +20927,7 @@ function valueToCase2(x4) {
   return `${valueToString2(x4)}n`;
 }
 
-// node_modules/apache-arrow/builder/buffer.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/buffer.mjs
 function roundLengthUpToNearest64Bytes2(len, BPE) {
   const bytesMinus1 = Math.ceil(len) * BPE - 1;
   return (bytesMinus1 - bytesMinus1 % 64 + 64 || 64) / BPE;
@@ -21045,7 +21045,7 @@ var OffsetsBufferBuilder2 = class extends DataBufferBuilder2 {
   }
 };
 
-// node_modules/apache-arrow/builder.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder.mjs
 var Builder5 = class {
   /** @nocollapse */
   // @ts-ignore
@@ -21312,7 +21312,7 @@ var VariableWidthBuilder2 = class extends Builder5 {
   }
 };
 
-// node_modules/apache-arrow/fb/block.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/block.mjs
 var Block2 = class {
   constructor() {
     this.bb = null;
@@ -21355,7 +21355,7 @@ var Block2 = class {
   }
 };
 
-// node_modules/apache-arrow/fb/footer.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/footer.mjs
 var Footer2 = class _Footer {
   constructor() {
     this.bb = null;
@@ -21454,7 +21454,7 @@ var Footer2 = class _Footer {
   }
 };
 
-// node_modules/apache-arrow/schema.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/schema.mjs
 var Schema4 = class _Schema {
   constructor(fields = [], metadata, dictionaries, metadataVersion = MetadataVersion2.V5) {
     this.fields = fields || [];
@@ -21570,7 +21570,7 @@ function generateDictionaryMap2(fields, dictionaries = /* @__PURE__ */ new Map()
   return dictionaries;
 }
 
-// node_modules/apache-arrow/ipc/metadata/file.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/ipc/metadata/file.mjs
 var Builder6 = Builder;
 var ByteBuffer4 = ByteBuffer;
 var Footer_2 = class {
@@ -21685,7 +21685,7 @@ var FileBlock2 = class _FileBlock {
   }
 };
 
-// node_modules/apache-arrow/io/interfaces.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/io/interfaces.mjs
 var ITERATOR_DONE2 = Object.freeze({ done: true, value: void 0 });
 var ArrowJSON2 = class {
   constructor(_json) {
@@ -21808,7 +21808,7 @@ var AsyncQueue2 = class extends ReadableInterop2 {
   }
 };
 
-// node_modules/apache-arrow/io/stream.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/io/stream.mjs
 var AsyncByteQueue2 = class extends AsyncQueue2 {
   write(value) {
     if ((value = toUint8Array2(value)).byteLength > 0) {
@@ -21983,7 +21983,7 @@ var AsyncByteStreamSource2 = class {
   }
 };
 
-// node_modules/apache-arrow/io/file.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/io/file.mjs
 var RandomAccessFile2 = class extends ByteStream2 {
   constructor(buffer, byteLength) {
     super();
@@ -22106,7 +22106,7 @@ var AsyncRandomAccessFile2 = class extends AsyncByteStream2 {
   }
 };
 
-// node_modules/apache-arrow/util/int.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/int.mjs
 var int_exports2 = {};
 __export(int_exports2, {
   BaseInt64: () => BaseInt642,
@@ -22422,7 +22422,7 @@ var Int1282 = class _Int128 {
   }
 };
 
-// node_modules/apache-arrow/visitor/vectorloader.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/visitor/vectorloader.mjs
 var VectorLoader2 = class extends Visitor2 {
   constructor(bytes, nodes, buffers, dictionaries, metadataVersion = MetadataVersion2.V5) {
     super();
@@ -22574,7 +22574,7 @@ function binaryDataFromJSON2(values2) {
   return data;
 }
 
-// node_modules/apache-arrow/builder/binary.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/binary.mjs
 var BinaryBuilder2 = class extends VariableWidthBuilder2 {
   constructor(opts) {
     super(opts);
@@ -22607,7 +22607,7 @@ var BinaryBuilder2 = class extends VariableWidthBuilder2 {
   }
 };
 
-// node_modules/apache-arrow/builder/largebinary.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/largebinary.mjs
 var LargeBinaryBuilder2 = class extends VariableWidthBuilder2 {
   constructor(opts) {
     super(opts);
@@ -22640,7 +22640,7 @@ var LargeBinaryBuilder2 = class extends VariableWidthBuilder2 {
   }
 };
 
-// node_modules/apache-arrow/builder/bool.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/bool.mjs
 var BoolBuilder2 = class extends Builder5 {
   constructor(options) {
     super(options);
@@ -22651,7 +22651,7 @@ var BoolBuilder2 = class extends Builder5 {
   }
 };
 
-// node_modules/apache-arrow/builder/date.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/date.mjs
 var DateBuilder2 = class extends FixedWidthBuilder2 {
 };
 DateBuilder2.prototype._setValue = setDate2;
@@ -22662,12 +22662,12 @@ var DateMillisecondBuilder2 = class extends DateBuilder2 {
 };
 DateMillisecondBuilder2.prototype._setValue = setDateMillisecond2;
 
-// node_modules/apache-arrow/builder/decimal.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/decimal.mjs
 var DecimalBuilder2 = class extends FixedWidthBuilder2 {
 };
 DecimalBuilder2.prototype._setValue = setDecimal2;
 
-// node_modules/apache-arrow/builder/dictionary.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/dictionary.mjs
 var DictionaryBuilder2 = class extends Builder5 {
   constructor({ "type": type2, "nullValues": nulls, "dictionaryHashFunction": hashFn }) {
     super({ type: new Dictionary2(type2.dictionary, type2.indices, type2.id, type2.isOrdered) });
@@ -22744,12 +22744,12 @@ var DictionaryBuilder2 = class extends Builder5 {
   }
 };
 
-// node_modules/apache-arrow/builder/fixedsizebinary.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/fixedsizebinary.mjs
 var FixedSizeBinaryBuilder2 = class extends FixedWidthBuilder2 {
 };
 FixedSizeBinaryBuilder2.prototype._setValue = setFixedSizeBinary2;
 
-// node_modules/apache-arrow/builder/fixedsizelist.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/fixedsizelist.mjs
 var FixedSizeListBuilder2 = class extends Builder5 {
   setValue(index2, value) {
     const [child] = this.children;
@@ -22768,7 +22768,7 @@ var FixedSizeListBuilder2 = class extends Builder5 {
   }
 };
 
-// node_modules/apache-arrow/builder/float.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/float.mjs
 var FloatBuilder2 = class extends FixedWidthBuilder2 {
   setValue(index2, value) {
     this._values.set(index2, value);
@@ -22784,7 +22784,7 @@ var Float32Builder2 = class extends FloatBuilder2 {
 var Float64Builder2 = class extends FloatBuilder2 {
 };
 
-// node_modules/apache-arrow/builder/interval.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/interval.mjs
 var IntervalBuilder2 = class extends FixedWidthBuilder2 {
 };
 IntervalBuilder2.prototype._setValue = setIntervalValue2;
@@ -22795,7 +22795,7 @@ var IntervalYearMonthBuilder2 = class extends IntervalBuilder2 {
 };
 IntervalYearMonthBuilder2.prototype._setValue = setIntervalYearMonth2;
 
-// node_modules/apache-arrow/builder/duration.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/duration.mjs
 var DurationBuilder2 = class extends FixedWidthBuilder2 {
 };
 DurationBuilder2.prototype._setValue = setDuration2;
@@ -22812,7 +22812,7 @@ var DurationNanosecondBuilder2 = class extends DurationBuilder2 {
 };
 DurationNanosecondBuilder2.prototype._setValue = setDurationNanosecond2;
 
-// node_modules/apache-arrow/builder/int.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/int.mjs
 var IntBuilder2 = class extends FixedWidthBuilder2 {
   setValue(index2, value) {
     this._values.set(index2, value);
@@ -22835,7 +22835,7 @@ var Uint32Builder2 = class extends IntBuilder2 {
 var Uint64Builder2 = class extends IntBuilder2 {
 };
 
-// node_modules/apache-arrow/builder/list.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/list.mjs
 var ListBuilder2 = class extends VariableWidthBuilder2 {
   constructor(opts) {
     super(opts);
@@ -22867,7 +22867,7 @@ var ListBuilder2 = class extends VariableWidthBuilder2 {
   }
 };
 
-// node_modules/apache-arrow/builder/map.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/map.mjs
 var MapBuilder2 = class extends VariableWidthBuilder2 {
   set(index2, value) {
     return super.set(index2, value);
@@ -22906,7 +22906,7 @@ var MapBuilder2 = class extends VariableWidthBuilder2 {
   }
 };
 
-// node_modules/apache-arrow/builder/null.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/null.mjs
 var NullBuilder2 = class extends Builder5 {
   // @ts-ignore
   setValue(index2, value) {
@@ -22917,7 +22917,7 @@ var NullBuilder2 = class extends Builder5 {
   }
 };
 
-// node_modules/apache-arrow/builder/struct.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/struct.mjs
 var StructBuilder2 = class extends Builder5 {
   setValue(index2, value) {
     const { children: children2, type: type2 } = this;
@@ -22944,7 +22944,7 @@ var StructBuilder2 = class extends Builder5 {
   }
 };
 
-// node_modules/apache-arrow/builder/timestamp.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/timestamp.mjs
 var TimestampBuilder2 = class extends FixedWidthBuilder2 {
 };
 TimestampBuilder2.prototype._setValue = setTimestamp2;
@@ -22961,7 +22961,7 @@ var TimestampNanosecondBuilder2 = class extends TimestampBuilder2 {
 };
 TimestampNanosecondBuilder2.prototype._setValue = setTimestampNanosecond2;
 
-// node_modules/apache-arrow/builder/time.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/time.mjs
 var TimeBuilder2 = class extends FixedWidthBuilder2 {
 };
 TimeBuilder2.prototype._setValue = setTime2;
@@ -22978,7 +22978,7 @@ var TimeNanosecondBuilder2 = class extends TimeBuilder2 {
 };
 TimeNanosecondBuilder2.prototype._setValue = setTimeNanosecond2;
 
-// node_modules/apache-arrow/builder/union.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/union.mjs
 var UnionBuilder2 = class extends Builder5 {
   constructor(options) {
     super(options);
@@ -23035,7 +23035,7 @@ var DenseUnionBuilder2 = class extends UnionBuilder2 {
   }
 };
 
-// node_modules/apache-arrow/builder/utf8.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/utf8.mjs
 var Utf8Builder2 = class extends VariableWidthBuilder2 {
   constructor(opts) {
     super(opts);
@@ -23057,7 +23057,7 @@ var Utf8Builder2 = class extends VariableWidthBuilder2 {
 };
 Utf8Builder2.prototype._flushPending = BinaryBuilder2.prototype._flushPending;
 
-// node_modules/apache-arrow/builder/largeutf8.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/builder/largeutf8.mjs
 var LargeUtf8Builder2 = class extends VariableWidthBuilder2 {
   constructor(opts) {
     super(opts);
@@ -23079,7 +23079,7 @@ var LargeUtf8Builder2 = class extends VariableWidthBuilder2 {
 };
 LargeUtf8Builder2.prototype._flushPending = LargeBinaryBuilder2.prototype._flushPending;
 
-// node_modules/apache-arrow/visitor/builderctor.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/visitor/builderctor.mjs
 var GetBuilderCtor2 = class extends Visitor2 {
   visitNull() {
     return NullBuilder2;
@@ -23234,7 +23234,7 @@ var GetBuilderCtor2 = class extends Visitor2 {
 };
 var instance12 = new GetBuilderCtor2();
 
-// node_modules/apache-arrow/visitor/typecomparator.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/visitor/typecomparator.mjs
 var TypeComparator2 = class extends Visitor2 {
   compareSchemas(schema, other) {
     return schema === other || other instanceof schema.constructor && this.compareManyFields(schema.fields, other.fields);
@@ -23355,7 +23355,7 @@ function compareTypes2(type2, other) {
   return instance13.visit(type2, other);
 }
 
-// node_modules/apache-arrow/factories.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/factories.mjs
 function makeBuilder2(options) {
   const type2 = options.type;
   const builder = new (instance12.getVisitFn(type2)())(options);
@@ -23372,7 +23372,7 @@ function makeBuilder2(options) {
   return builder;
 }
 
-// node_modules/apache-arrow/util/recordbatch.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/util/recordbatch.mjs
 function distributeVectorsIntoRecordBatches2(schema, vecs) {
   return uniformlyDistributeChunksAcrossRecordBatches2(schema, vecs.map((v3) => v3.data.concat()));
 }
@@ -23433,7 +23433,7 @@ function distributeChildren2(fields, batchLength, children2, columns, memo2) {
   return children2;
 }
 
-// node_modules/apache-arrow/table.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/table.mjs
 var _a7;
 var Table2 = class _Table {
   constructor(...args) {
@@ -23716,7 +23716,7 @@ Table2[_a7] = ((proto) => {
   return "Table";
 })(Table2.prototype);
 
-// node_modules/apache-arrow/recordbatch.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/recordbatch.mjs
 var _a8;
 var RecordBatch5 = class _RecordBatch {
   constructor(...args) {
@@ -23981,7 +23981,7 @@ var _InternalEmptyPlaceholderRecordBatch2 = class extends RecordBatch5 {
   }
 };
 
-// node_modules/apache-arrow/fb/message.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/fb/message.mjs
 var Message3 = class _Message {
   constructor() {
     this.bb = null;
@@ -24072,7 +24072,7 @@ var Message3 = class _Message {
   }
 };
 
-// node_modules/apache-arrow/visitor/typeassembler.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/visitor/typeassembler.mjs
 var TypeAssembler2 = class extends Visitor2 {
   visit(node, builder) {
     return node == null || builder == null ? void 0 : super.visit(node, builder);
@@ -24193,7 +24193,7 @@ var TypeAssembler2 = class extends Visitor2 {
 };
 var instance14 = new TypeAssembler2();
 
-// node_modules/apache-arrow/ipc/metadata/json.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/ipc/metadata/json.mjs
 function schemaFromJSON2(_schema, dictionaries = /* @__PURE__ */ new Map()) {
   return new Schema4(schemaFieldsFromJSON2(_schema, dictionaries), customMetadataFromJSON2(_schema["metadata"]), dictionaries);
 }
@@ -24337,7 +24337,7 @@ function typeFromJSON2(f2, children2) {
   throw new Error(`Unrecognized type: "${typeId}"`);
 }
 
-// node_modules/apache-arrow/ipc/metadata/message.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/ipc/metadata/message.mjs
 var Builder7 = Builder;
 var ByteBuffer5 = ByteBuffer;
 var Message4 = class _Message {
@@ -24789,7 +24789,7 @@ var platformIsLittleEndian2 = (() => {
   return new Int16Array(buffer)[0] === 256;
 })();
 
-// node_modules/apache-arrow/ipc/message.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/ipc/message.mjs
 var invalidMessageType2 = (type2) => `Expected ${MessageHeader2[type2]} Message in stream, but was null or length 0.`;
 var nullMessage2 = (type2) => `Header pointer of flatbuffer-encoded ${MessageHeader2[type2]} Message is null or length 0.`;
 var invalidMessageMetadata2 = (expected, actual) => `Expected to read ${expected} metadata bytes, but only read ${actual}.`;
@@ -25044,7 +25044,7 @@ var magicLength2 = MAGIC2.length;
 var magicAndPadding2 = magicLength2 + PADDING2;
 var magicX2AndPadding2 = magicLength2 * 2 + PADDING2;
 
-// node_modules/apache-arrow/ipc/reader.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/ipc/reader.mjs
 var RecordBatchReader2 = class _RecordBatchReader extends ReadableInterop2 {
   constructor(impl) {
     super();
@@ -25676,7 +25676,7 @@ function fromFileHandle2(source) {
   });
 }
 
-// node_modules/apache-arrow/visitor/vectorassembler.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/visitor/vectorassembler.mjs
 var VectorAssembler2 = class _VectorAssembler extends Visitor2 {
   /** @nocollapse */
   static assemble(...args) {
@@ -25829,7 +25829,7 @@ VectorAssembler2.prototype.visitDuration = assembleFlatVector2;
 VectorAssembler2.prototype.visitFixedSizeList = assembleListVector2;
 VectorAssembler2.prototype.visitMap = assembleListVector2;
 
-// node_modules/apache-arrow/ipc/writer.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/ipc/writer.mjs
 var RecordBatchWriter2 = class extends ReadableInterop2 {
   /** @nocollapse */
   // @ts-ignore
@@ -26114,7 +26114,7 @@ function writeAllAsync2(writer, batches) {
   });
 }
 
-// node_modules/apache-arrow/io/whatwg/iterable.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/io/whatwg/iterable.mjs
 function toDOMStream2(source, options) {
   if (isAsyncIterable2(source)) {
     return asyncIterableAsReadableDOMStream2(source, options);
@@ -26197,7 +26197,7 @@ function asyncIterableAsReadableDOMStream2(source, options) {
   }
 }
 
-// node_modules/apache-arrow/io/whatwg/builder.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/io/whatwg/builder.mjs
 function builderThroughDOMStream2(options) {
   return new BuilderTransform2(options);
 }
@@ -26277,7 +26277,7 @@ var chunkByteLength2 = (chunk) => {
   return (_a9 = chunk === null || chunk === void 0 ? void 0 : chunk.byteLength) !== null && _a9 !== void 0 ? _a9 : 0;
 };
 
-// node_modules/apache-arrow/io/whatwg/reader.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/io/whatwg/reader.mjs
 function recordBatchReaderThroughDOMStream2(writableStrategy, readableStrategy) {
   const queue = new AsyncByteQueue2();
   let reader = null;
@@ -26319,7 +26319,7 @@ function recordBatchReaderThroughDOMStream2(writableStrategy, readableStrategy) 
   }
 }
 
-// node_modules/apache-arrow/io/whatwg/writer.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/io/whatwg/writer.mjs
 function recordBatchWriterThroughDOMStream2(writableStrategy, readableStrategy) {
   const writer = new this(writableStrategy);
   const reader = new AsyncByteStream2(writer);
@@ -26357,19 +26357,19 @@ function recordBatchWriterThroughDOMStream2(writableStrategy, readableStrategy) 
   }
 }
 
-// node_modules/apache-arrow/ipc/serialization.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/ipc/serialization.mjs
 function tableToIPC2(table3, type2 = "stream") {
   return (type2 === "stream" ? RecordBatchStreamWriter2 : RecordBatchFileWriter2).writeAll(table3).toUint8Array(true);
 }
 
-// node_modules/apache-arrow/Arrow.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/Arrow.mjs
 var util2 = Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, bn_exports2), int_exports2), bit_exports2), math_exports2), buffer_exports2), vector_exports2), pretty_exports2), {
   compareSchemas: compareSchemas2,
   compareFields: compareFields2,
   compareTypes: compareTypes2
 });
 
-// node_modules/apache-arrow/Arrow.dom.mjs
+// benchmarks/probes/vendor/node_modules/apache-arrow/Arrow.dom.mjs
 adapters_default2.toDOMStream = toDOMStream2;
 Builder5["throughDOM"] = builderThroughDOMStream2;
 RecordBatchReader2["throughDOM"] = recordBatchReaderThroughDOMStream2;
@@ -26379,7 +26379,7 @@ RecordBatchWriter2["throughDOM"] = recordBatchWriterThroughDOMStream2;
 RecordBatchFileWriter2["throughDOM"] = recordBatchWriterThroughDOMStream2;
 RecordBatchStreamWriter2["throughDOM"] = recordBatchWriterThroughDOMStream2;
 
-// node_modules/@duckdb/duckdb-wasm/dist/duckdb-browser.mjs
+// benchmarks/probes/vendor/node_modules/@duckdb/duckdb-wasm/dist/duckdb-browser.mjs
 var Y = Object.create;
 var N = Object.defineProperty;
 var H = Object.getOwnPropertyDescriptor;
@@ -26994,7 +26994,7 @@ function ce() {
 var je = ce();
 var q = ((n) => (n[n.BUFFER = 0] = "BUFFER", n[n.NODE_FS = 1] = "NODE_FS", n[n.BROWSER_FILEREADER = 2] = "BROWSER_FILEREADER", n[n.BROWSER_FSACCESS = 3] = "BROWSER_FSACCESS", n[n.HTTP = 4] = "HTTP", n[n.S3 = 5] = "S3", n))(q || {});
 
-// node_modules/@uwdata/mosaic-core/src/connectors/wasm.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/connectors/wasm.js
 function wasmConnector(options = {}) {
   const { duckdb, connection, ...opts } = options;
   let db = duckdb;
@@ -27048,7 +27048,7 @@ async function initDatabase({
   return db;
 }
 
-// node_modules/@uwdata/mosaic-core/src/SelectionClause.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/SelectionClause.js
 function clausePoint(field2, value, {
   source,
   clients = source ? /* @__PURE__ */ new Set([source]) : void 0
@@ -27116,7 +27116,7 @@ function clauseMatch(field2, value, {
   return { meta, source, clients, value, predicate };
 }
 
-// node_modules/@uwdata/mosaic-core/src/util/synchronizer.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/synchronizer.js
 function synchronizer() {
   const set3 = /* @__PURE__ */ new Set();
   let done;
@@ -27160,7 +27160,7 @@ function synchronizer() {
   };
 }
 
-// node_modules/@uwdata/mosaic-core/src/util/to-data-columns.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-core/src/util/to-data-columns.js
 function toDataColumns(data) {
   return isArrowTable(data) ? arrowToColumns(data) : arrayToColumns(data);
 }
@@ -27193,7 +27193,7 @@ function arrayToColumns(data) {
   }
 }
 
-// node_modules/@uwdata/vgplot/src/api.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/api.js
 var api_exports = {};
 __export(api_exports, {
   Fixed: () => Fixed,
@@ -27584,12 +27584,12 @@ __export(api_exports, {
   yZero: () => yZero
 });
 
-// node_modules/@uwdata/mosaic-plot/src/symbols.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/symbols.js
 var Fixed = Symbol("Fixed");
 var Transient = Symbol("Transient");
 var Transform = Symbol("Transform");
 
-// node_modules/@observablehq/plot/src/index.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/index.js
 var src_exports = {};
 __export(src_exports, {
   Area: () => Area,
@@ -27760,17 +27760,17 @@ __export(src_exports, {
   windowY: () => windowY
 });
 
-// node_modules/d3-array/src/ascending.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/ascending.js
 function ascending(a2, b2) {
   return a2 == null || b2 == null ? NaN : a2 < b2 ? -1 : a2 > b2 ? 1 : a2 >= b2 ? 0 : NaN;
 }
 
-// node_modules/d3-array/src/descending.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/descending.js
 function descending(a2, b2) {
   return a2 == null || b2 == null ? NaN : b2 < a2 ? -1 : b2 > a2 ? 1 : b2 >= a2 ? 0 : NaN;
 }
 
-// node_modules/d3-array/src/bisector.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/bisector.js
 function bisector(f2) {
   let compare1, compare2, delta;
   if (f2.length !== 2) {
@@ -27814,7 +27814,7 @@ function zero() {
   return 0;
 }
 
-// node_modules/d3-array/src/number.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/number.js
 function number(x4) {
   return x4 === null ? NaN : +x4;
 }
@@ -27835,14 +27835,14 @@ function* numbers(values2, valueof2) {
   }
 }
 
-// node_modules/d3-array/src/bisect.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/bisect.js
 var ascendingBisect = bisector(ascending);
 var bisectRight = ascendingBisect.right;
 var bisectLeft = ascendingBisect.left;
 var bisectCenter = bisector(number).center;
 var bisect_default = bisectRight;
 
-// node_modules/d3-array/src/blur.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/blur.js
 var blur2 = Blur2(blurf);
 var blurImage = Blur2(blurfImage);
 function Blur2(blur3) {
@@ -27932,7 +27932,7 @@ function bluri(radius2) {
   };
 }
 
-// node_modules/d3-array/src/count.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/count.js
 function count2(values2, valueof2) {
   let count4 = 0;
   if (valueof2 === void 0) {
@@ -27952,7 +27952,7 @@ function count2(values2, valueof2) {
   return count4;
 }
 
-// node_modules/d3-array/src/cross.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/cross.js
 function length2(array4) {
   return array4.length | 0;
 }
@@ -27983,13 +27983,13 @@ function cross(...values2) {
   }
 }
 
-// node_modules/d3-array/src/cumsum.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/cumsum.js
 function cumsum(values2, valueof2) {
   var sum4 = 0, index2 = 0;
   return Float64Array.from(values2, valueof2 === void 0 ? (v3) => sum4 += +v3 || 0 : (v3) => sum4 += +valueof2(v3, index2++, values2) || 0);
 }
 
-// node_modules/d3-array/src/variance.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/variance.js
 function variance2(values2, valueof2) {
   let count4 = 0;
   let delta;
@@ -28016,13 +28016,13 @@ function variance2(values2, valueof2) {
   if (count4 > 1) return sum4 / (count4 - 1);
 }
 
-// node_modules/d3-array/src/deviation.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/deviation.js
 function deviation(values2, valueof2) {
   const v3 = variance2(values2, valueof2);
   return v3 ? Math.sqrt(v3) : v3;
 }
 
-// node_modules/d3-array/src/extent.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/extent.js
 function extent(values2, valueof2) {
   let min5;
   let max4;
@@ -28053,7 +28053,7 @@ function extent(values2, valueof2) {
   return [min5, max4];
 }
 
-// node_modules/d3-array/src/fsum.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/fsum.js
 var Adder = class {
   constructor() {
     this._partials = new Float64Array(32);
@@ -28093,7 +28093,7 @@ var Adder = class {
   }
 };
 
-// node_modules/internmap/src/index.js
+// benchmarks/probes/vendor/node_modules/internmap/src/index.js
 var InternMap = class extends Map {
   constructor(entries, key = keyof) {
     super();
@@ -28151,12 +28151,12 @@ function keyof(value) {
   return value !== null && typeof value === "object" ? value.valueOf() : value;
 }
 
-// node_modules/d3-array/src/identity.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/identity.js
 function identity2(x4) {
   return x4;
 }
 
-// node_modules/d3-array/src/group.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/group.js
 function group(values2, ...keys) {
   return nest(values2, identity2, identity2, keys);
 }
@@ -28185,12 +28185,12 @@ function nest(values2, map4, reduce, keys) {
   }(values2, 0);
 }
 
-// node_modules/d3-array/src/permute.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/permute.js
 function permute(source, keys) {
   return Array.from(keys, (key) => source[key]);
 }
 
-// node_modules/d3-array/src/sort.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/sort.js
 function sort(values2, ...F2) {
   if (typeof values2[Symbol.iterator] !== "function") throw new TypeError("values is not iterable");
   values2 = Array.from(values2);
@@ -28226,12 +28226,12 @@ function ascendingDefined(a2, b2) {
   return (a2 == null || !(a2 >= a2)) - (b2 == null || !(b2 >= b2)) || (a2 < b2 ? -1 : a2 > b2 ? 1 : 0);
 }
 
-// node_modules/d3-array/src/groupSort.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/groupSort.js
 function groupSort(values2, reduce, key) {
   return (reduce.length !== 2 ? sort(rollup(values2, reduce, key), ([ak, av], [bk, bv]) => ascending(av, bv) || ascending(ak, bk)) : sort(group(values2, key), ([ak, av], [bk, bv]) => reduce(av, bv) || ascending(ak, bk))).map(([key2]) => key2);
 }
 
-// node_modules/d3-array/src/ticks.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/ticks.js
 var e10 = Math.sqrt(50);
 var e5 = Math.sqrt(10);
 var e2 = Math.sqrt(2);
@@ -28281,7 +28281,7 @@ function tickStep(start2, stop, count4) {
   return (reverse3 ? -1 : 1) * (inc2 < 0 ? 1 / -inc2 : inc2);
 }
 
-// node_modules/d3-array/src/nice.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/nice.js
 function nice(start2, stop, count4) {
   let prestep;
   while (true) {
@@ -28299,12 +28299,12 @@ function nice(start2, stop, count4) {
   }
 }
 
-// node_modules/d3-array/src/threshold/sturges.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/threshold/sturges.js
 function thresholdSturges(values2) {
   return Math.max(1, Math.ceil(Math.log(count2(values2)) / Math.LN2) + 1);
 }
 
-// node_modules/d3-array/src/max.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/max.js
 function max2(values2, valueof2) {
   let max4;
   if (valueof2 === void 0) {
@@ -28324,7 +28324,7 @@ function max2(values2, valueof2) {
   return max4;
 }
 
-// node_modules/d3-array/src/maxIndex.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/maxIndex.js
 function maxIndex(values2, valueof2) {
   let max4;
   let maxIndex2 = -1;
@@ -28346,7 +28346,7 @@ function maxIndex(values2, valueof2) {
   return maxIndex2;
 }
 
-// node_modules/d3-array/src/min.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/min.js
 function min2(values2, valueof2) {
   let min5;
   if (valueof2 === void 0) {
@@ -28366,7 +28366,7 @@ function min2(values2, valueof2) {
   return min5;
 }
 
-// node_modules/d3-array/src/minIndex.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/minIndex.js
 function minIndex(values2, valueof2) {
   let min5;
   let minIndex2 = -1;
@@ -28388,7 +28388,7 @@ function minIndex(values2, valueof2) {
   return minIndex2;
 }
 
-// node_modules/d3-array/src/quickselect.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/quickselect.js
 function quickselect(array4, k3, left2 = 0, right2 = Infinity, compare) {
   k3 = Math.floor(k3);
   left2 = Math.floor(Math.max(0, left2));
@@ -28429,7 +28429,7 @@ function swap(array4, i, j2) {
   array4[j2] = t;
 }
 
-// node_modules/d3-array/src/greatest.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/greatest.js
 function greatest(values2, compare = ascending) {
   let max4;
   let defined2 = false;
@@ -28454,7 +28454,7 @@ function greatest(values2, compare = ascending) {
   return max4;
 }
 
-// node_modules/d3-array/src/quantile.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/quantile.js
 function quantile2(values2, p2, valueof2) {
   values2 = Float64Array.from(numbers(values2, valueof2));
   if (!(n = values2.length) || isNaN(p2 = +p2)) return;
@@ -28471,19 +28471,19 @@ function quantileSorted(values2, p2, valueof2 = number) {
   return value0 + (value1 - value0) * (i - i0);
 }
 
-// node_modules/d3-array/src/threshold/freedmanDiaconis.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/threshold/freedmanDiaconis.js
 function thresholdFreedmanDiaconis(values2, min5, max4) {
   const c4 = count2(values2), d2 = quantile2(values2, 0.75) - quantile2(values2, 0.25);
   return c4 && d2 ? Math.ceil((max4 - min5) / (2 * d2 * Math.pow(c4, -1 / 3))) : 1;
 }
 
-// node_modules/d3-array/src/threshold/scott.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/threshold/scott.js
 function thresholdScott(values2, min5, max4) {
   const c4 = count2(values2), d2 = deviation(values2);
   return c4 && d2 ? Math.ceil((max4 - min5) * Math.cbrt(c4) / (3.49 * d2)) : 1;
 }
 
-// node_modules/d3-array/src/mean.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/mean.js
 function mean2(values2, valueof2) {
   let count4 = 0;
   let sum4 = 0;
@@ -28504,12 +28504,12 @@ function mean2(values2, valueof2) {
   if (count4) return sum4 / count4;
 }
 
-// node_modules/d3-array/src/median.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/median.js
 function median2(values2, valueof2) {
   return quantile2(values2, 0.5, valueof2);
 }
 
-// node_modules/d3-array/src/merge.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/merge.js
 function* flatten(arrays) {
   for (const array4 of arrays) {
     yield* array4;
@@ -28519,7 +28519,7 @@ function merge(arrays) {
   return Array.from(flatten(arrays));
 }
 
-// node_modules/d3-array/src/mode.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/mode.js
 function mode2(values2, valueof2) {
   const counts = new InternMap();
   if (valueof2 === void 0) {
@@ -28547,7 +28547,7 @@ function mode2(values2, valueof2) {
   return modeValue;
 }
 
-// node_modules/d3-array/src/pairs.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/pairs.js
 function pairs(values2, pairof = pair) {
   const pairs2 = [];
   let previous;
@@ -28563,7 +28563,7 @@ function pair(a2, b2) {
   return [a2, b2];
 }
 
-// node_modules/d3-array/src/range.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/range.js
 function range(start2, stop, step) {
   start2 = +start2, stop = +stop, step = (n = arguments.length) < 2 ? (stop = start2, start2 = 0, 1) : n < 3 ? 1 : +step;
   var i = -1, n = Math.max(0, Math.ceil((stop - start2) / step)) | 0, range3 = new Array(n);
@@ -28573,7 +28573,7 @@ function range(start2, stop, step) {
   return range3;
 }
 
-// node_modules/d3-array/src/rank.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/rank.js
 function rank2(values2, valueof2 = ascending) {
   if (typeof values2[Symbol.iterator] !== "function") throw new TypeError("values is not iterable");
   let V2 = Array.from(values2);
@@ -28595,7 +28595,7 @@ function rank2(values2, valueof2 = ascending) {
   return R2;
 }
 
-// node_modules/d3-array/src/least.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/least.js
 function least(values2, compare = ascending) {
   let min5;
   let defined2 = false;
@@ -28620,7 +28620,7 @@ function least(values2, compare = ascending) {
   return min5;
 }
 
-// node_modules/d3-array/src/sum.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/sum.js
 function sum2(values2, valueof2) {
   let sum4 = 0;
   if (valueof2 === void 0) {
@@ -28640,18 +28640,18 @@ function sum2(values2, valueof2) {
   return sum4;
 }
 
-// node_modules/d3-array/src/reverse.js
+// benchmarks/probes/vendor/node_modules/d3-array/src/reverse.js
 function reverse(values2) {
   if (typeof values2[Symbol.iterator] !== "function") throw new TypeError("values is not iterable");
   return Array.from(values2).reverse();
 }
 
-// node_modules/d3-axis/src/identity.js
+// benchmarks/probes/vendor/node_modules/d3-axis/src/identity.js
 function identity_default(x4) {
   return x4;
 }
 
-// node_modules/d3-axis/src/axis.js
+// benchmarks/probes/vendor/node_modules/d3-axis/src/axis.js
 var top = 1;
 var right = 2;
 var bottom = 3;
@@ -28743,7 +28743,7 @@ function axisBottom(scale3) {
   return axis(bottom, scale3);
 }
 
-// node_modules/d3-dispatch/src/dispatch.js
+// benchmarks/probes/vendor/node_modules/d3-dispatch/src/dispatch.js
 var noop = { value: () => {
 } };
 function dispatch() {
@@ -28813,7 +28813,7 @@ function set(type2, name2, callback) {
 }
 var dispatch_default = dispatch;
 
-// node_modules/d3-selection/src/namespaces.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/namespaces.js
 var xhtml = "http://www.w3.org/1999/xhtml";
 var namespaces_default = {
   svg: "http://www.w3.org/2000/svg",
@@ -28823,14 +28823,14 @@ var namespaces_default = {
   xmlns: "http://www.w3.org/2000/xmlns/"
 };
 
-// node_modules/d3-selection/src/namespace.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/namespace.js
 function namespace_default(name2) {
   var prefix2 = name2 += "", i = prefix2.indexOf(":");
   if (i >= 0 && (prefix2 = name2.slice(0, i)) !== "xmlns") name2 = name2.slice(i + 1);
   return namespaces_default.hasOwnProperty(prefix2) ? { space: namespaces_default[prefix2], local: name2 } : name2;
 }
 
-// node_modules/d3-selection/src/creator.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/creator.js
 function creatorInherit(name2) {
   return function() {
     var document2 = this.ownerDocument, uri = this.namespaceURI;
@@ -28847,7 +28847,7 @@ function creator_default(name2) {
   return (fullname.local ? creatorFixed : creatorInherit)(fullname);
 }
 
-// node_modules/d3-selection/src/selector.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selector.js
 function none() {
 }
 function selector_default(selector) {
@@ -28856,7 +28856,7 @@ function selector_default(selector) {
   };
 }
 
-// node_modules/d3-selection/src/selection/select.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/select.js
 function select_default(select2) {
   if (typeof select2 !== "function") select2 = selector_default(select2);
   for (var groups2 = this._groups, m2 = groups2.length, subgroups = new Array(m2), j2 = 0; j2 < m2; ++j2) {
@@ -28870,12 +28870,12 @@ function select_default(select2) {
   return new Selection2(subgroups, this._parents);
 }
 
-// node_modules/d3-selection/src/array.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/array.js
 function array(x4) {
   return x4 == null ? [] : Array.isArray(x4) ? x4 : Array.from(x4);
 }
 
-// node_modules/d3-selection/src/selectorAll.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selectorAll.js
 function empty2() {
   return [];
 }
@@ -28885,7 +28885,7 @@ function selectorAll_default(selector) {
   };
 }
 
-// node_modules/d3-selection/src/selection/selectAll.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/selectAll.js
 function arrayAll(select2) {
   return function() {
     return array(select2.apply(this, arguments));
@@ -28905,7 +28905,7 @@ function selectAll_default(select2) {
   return new Selection2(subgroups, parents);
 }
 
-// node_modules/d3-selection/src/matcher.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/matcher.js
 function matcher_default(selector) {
   return function() {
     return this.matches(selector);
@@ -28917,7 +28917,7 @@ function childMatcher(selector) {
   };
 }
 
-// node_modules/d3-selection/src/selection/selectChild.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/selectChild.js
 var find = Array.prototype.find;
 function childFind(match) {
   return function() {
@@ -28931,7 +28931,7 @@ function selectChild_default(match) {
   return this.select(match == null ? childFirst : childFind(typeof match === "function" ? match : childMatcher(match)));
 }
 
-// node_modules/d3-selection/src/selection/selectChildren.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/selectChildren.js
 var filter = Array.prototype.filter;
 function children() {
   return Array.from(this.children);
@@ -28945,7 +28945,7 @@ function selectChildren_default(match) {
   return this.selectAll(match == null ? children : childrenFilter(typeof match === "function" ? match : childMatcher(match)));
 }
 
-// node_modules/d3-selection/src/selection/filter.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/filter.js
 function filter_default(match) {
   if (typeof match !== "function") match = matcher_default(match);
   for (var groups2 = this._groups, m2 = groups2.length, subgroups = new Array(m2), j2 = 0; j2 < m2; ++j2) {
@@ -28958,12 +28958,12 @@ function filter_default(match) {
   return new Selection2(subgroups, this._parents);
 }
 
-// node_modules/d3-selection/src/selection/sparse.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/sparse.js
 function sparse_default(update2) {
   return new Array(update2.length);
 }
 
-// node_modules/d3-selection/src/selection/enter.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/enter.js
 function enter_default() {
   return new Selection2(this._enter || this._groups.map(sparse_default), this._parents);
 }
@@ -28990,14 +28990,14 @@ EnterNode.prototype = {
   }
 };
 
-// node_modules/d3-selection/src/constant.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/constant.js
 function constant_default(x4) {
   return function() {
     return x4;
   };
 }
 
-// node_modules/d3-selection/src/selection/data.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/data.js
 function bindIndex(parent, group3, enter, update2, exit, data) {
   var i = 0, node, groupLength = group3.length, dataLength = data.length;
   for (; i < dataLength; ++i) {
@@ -29069,12 +29069,12 @@ function arraylike(data) {
   return typeof data === "object" && "length" in data ? data : Array.from(data);
 }
 
-// node_modules/d3-selection/src/selection/exit.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/exit.js
 function exit_default() {
   return new Selection2(this._exit || this._groups.map(sparse_default), this._parents);
 }
 
-// node_modules/d3-selection/src/selection/join.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/join.js
 function join_default(onenter, onupdate, onexit) {
   var enter = this.enter(), update2 = this, exit = this.exit();
   if (typeof onenter === "function") {
@@ -29092,7 +29092,7 @@ function join_default(onenter, onupdate, onexit) {
   return enter && update2 ? enter.merge(update2).order() : update2;
 }
 
-// node_modules/d3-selection/src/selection/merge.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/merge.js
 function merge_default(context) {
   var selection2 = context.selection ? context.selection() : context;
   for (var groups0 = this._groups, groups1 = selection2._groups, m0 = groups0.length, m1 = groups1.length, m2 = Math.min(m0, m1), merges = new Array(m0), j2 = 0; j2 < m2; ++j2) {
@@ -29108,7 +29108,7 @@ function merge_default(context) {
   return new Selection2(merges, this._parents);
 }
 
-// node_modules/d3-selection/src/selection/order.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/order.js
 function order_default() {
   for (var groups2 = this._groups, j2 = -1, m2 = groups2.length; ++j2 < m2; ) {
     for (var group3 = groups2[j2], i = group3.length - 1, next = group3[i], node; --i >= 0; ) {
@@ -29121,7 +29121,7 @@ function order_default() {
   return this;
 }
 
-// node_modules/d3-selection/src/selection/sort.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/sort.js
 function sort_default(compare) {
   if (!compare) compare = ascending2;
   function compareNode(a2, b2) {
@@ -29141,7 +29141,7 @@ function ascending2(a2, b2) {
   return a2 < b2 ? -1 : a2 > b2 ? 1 : a2 >= b2 ? 0 : NaN;
 }
 
-// node_modules/d3-selection/src/selection/call.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/call.js
 function call_default() {
   var callback = arguments[0];
   arguments[0] = this;
@@ -29149,12 +29149,12 @@ function call_default() {
   return this;
 }
 
-// node_modules/d3-selection/src/selection/nodes.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/nodes.js
 function nodes_default() {
   return Array.from(this);
 }
 
-// node_modules/d3-selection/src/selection/node.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/node.js
 function node_default() {
   for (var groups2 = this._groups, j2 = 0, m2 = groups2.length; j2 < m2; ++j2) {
     for (var group3 = groups2[j2], i = 0, n = group3.length; i < n; ++i) {
@@ -29165,19 +29165,19 @@ function node_default() {
   return null;
 }
 
-// node_modules/d3-selection/src/selection/size.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/size.js
 function size_default() {
   let size = 0;
   for (const node of this) ++size;
   return size;
 }
 
-// node_modules/d3-selection/src/selection/empty.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/empty.js
 function empty_default() {
   return !this.node();
 }
 
-// node_modules/d3-selection/src/selection/each.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/each.js
 function each_default(callback) {
   for (var groups2 = this._groups, j2 = 0, m2 = groups2.length; j2 < m2; ++j2) {
     for (var group3 = groups2[j2], i = 0, n = group3.length, node; i < n; ++i) {
@@ -29187,7 +29187,7 @@ function each_default(callback) {
   return this;
 }
 
-// node_modules/d3-selection/src/selection/attr.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/attr.js
 function attrRemove(name2) {
   return function() {
     this.removeAttribute(name2);
@@ -29231,12 +29231,12 @@ function attr_default(name2, value) {
   return this.each((value == null ? fullname.local ? attrRemoveNS : attrRemove : typeof value === "function" ? fullname.local ? attrFunctionNS : attrFunction : fullname.local ? attrConstantNS : attrConstant)(fullname, value));
 }
 
-// node_modules/d3-selection/src/window.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/window.js
 function window_default(node) {
   return node.ownerDocument && node.ownerDocument.defaultView || node.document && node || node.defaultView;
 }
 
-// node_modules/d3-selection/src/selection/style.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/style.js
 function styleRemove(name2) {
   return function() {
     this.style.removeProperty(name2);
@@ -29261,7 +29261,7 @@ function styleValue(node, name2) {
   return node.style.getPropertyValue(name2) || window_default(node).getComputedStyle(node, null).getPropertyValue(name2);
 }
 
-// node_modules/d3-selection/src/selection/property.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/property.js
 function propertyRemove(name2) {
   return function() {
     delete this[name2];
@@ -29283,7 +29283,7 @@ function property_default(name2, value) {
   return arguments.length > 1 ? this.each((value == null ? propertyRemove : typeof value === "function" ? propertyFunction : propertyConstant)(name2, value)) : this.node()[name2];
 }
 
-// node_modules/d3-selection/src/selection/classed.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/classed.js
 function classArray(string2) {
   return string2.trim().split(/^|\s+/);
 }
@@ -29346,7 +29346,7 @@ function classed_default(name2, value) {
   return this.each((typeof value === "function" ? classedFunction : value ? classedTrue : classedFalse)(names, value));
 }
 
-// node_modules/d3-selection/src/selection/text.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/text.js
 function textRemove() {
   this.textContent = "";
 }
@@ -29365,7 +29365,7 @@ function text_default(value) {
   return arguments.length ? this.each(value == null ? textRemove : (typeof value === "function" ? textFunction : textConstant)(value)) : this.node().textContent;
 }
 
-// node_modules/d3-selection/src/selection/html.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/html.js
 function htmlRemove() {
   this.innerHTML = "";
 }
@@ -29384,7 +29384,7 @@ function html_default(value) {
   return arguments.length ? this.each(value == null ? htmlRemove : (typeof value === "function" ? htmlFunction : htmlConstant)(value)) : this.node().innerHTML;
 }
 
-// node_modules/d3-selection/src/selection/raise.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/raise.js
 function raise() {
   if (this.nextSibling) this.parentNode.appendChild(this);
 }
@@ -29392,7 +29392,7 @@ function raise_default() {
   return this.each(raise);
 }
 
-// node_modules/d3-selection/src/selection/lower.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/lower.js
 function lower2() {
   if (this.previousSibling) this.parentNode.insertBefore(this, this.parentNode.firstChild);
 }
@@ -29400,7 +29400,7 @@ function lower_default() {
   return this.each(lower2);
 }
 
-// node_modules/d3-selection/src/selection/append.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/append.js
 function append_default(name2) {
   var create4 = typeof name2 === "function" ? name2 : creator_default(name2);
   return this.select(function() {
@@ -29408,7 +29408,7 @@ function append_default(name2) {
   });
 }
 
-// node_modules/d3-selection/src/selection/insert.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/insert.js
 function constantNull() {
   return null;
 }
@@ -29419,7 +29419,7 @@ function insert_default(name2, before) {
   });
 }
 
-// node_modules/d3-selection/src/selection/remove.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/remove.js
 function remove() {
   var parent = this.parentNode;
   if (parent) parent.removeChild(this);
@@ -29428,7 +29428,7 @@ function remove_default() {
   return this.each(remove);
 }
 
-// node_modules/d3-selection/src/selection/clone.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/clone.js
 function selection_cloneShallow() {
   var clone = this.cloneNode(false), parent = this.parentNode;
   return parent ? parent.insertBefore(clone, this.nextSibling) : clone;
@@ -29441,12 +29441,12 @@ function clone_default(deep) {
   return this.select(deep ? selection_cloneDeep : selection_cloneShallow);
 }
 
-// node_modules/d3-selection/src/selection/datum.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/datum.js
 function datum_default(value) {
   return arguments.length ? this.property("__data__", value) : this.node().__data__;
 }
 
-// node_modules/d3-selection/src/selection/on.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/on.js
 function contextListener(listener) {
   return function(event) {
     listener.call(this, event, this.__data__);
@@ -29509,7 +29509,7 @@ function on_default(typename, value, options) {
   return this;
 }
 
-// node_modules/d3-selection/src/selection/dispatch.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/dispatch.js
 function dispatchEvent(node, type2, params) {
   var window3 = window_default(node), event = window3.CustomEvent;
   if (typeof event === "function") {
@@ -29535,7 +29535,7 @@ function dispatch_default2(type2, params) {
   return this.each((typeof params === "function" ? dispatchFunction : dispatchConstant)(type2, params));
 }
 
-// node_modules/d3-selection/src/selection/iterator.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/iterator.js
 function* iterator_default() {
   for (var groups2 = this._groups, j2 = 0, m2 = groups2.length; j2 < m2; ++j2) {
     for (var group3 = groups2[j2], i = 0, n = group3.length, node; i < n; ++i) {
@@ -29544,7 +29544,7 @@ function* iterator_default() {
   }
 }
 
-// node_modules/d3-selection/src/selection/index.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/selection/index.js
 var root = [null];
 function Selection2(groups2, parents) {
   this._groups = groups2;
@@ -29596,19 +29596,19 @@ Selection2.prototype = selection.prototype = {
 };
 var selection_default = selection;
 
-// node_modules/d3-selection/src/select.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/select.js
 function select_default2(selector) {
   return typeof selector === "string" ? new Selection2([[document.querySelector(selector)]], [document.documentElement]) : new Selection2([[selector]], root);
 }
 
-// node_modules/d3-selection/src/sourceEvent.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/sourceEvent.js
 function sourceEvent_default(event) {
   let sourceEvent;
   while (sourceEvent = event.sourceEvent) event = sourceEvent;
   return event;
 }
 
-// node_modules/d3-selection/src/pointer.js
+// benchmarks/probes/vendor/node_modules/d3-selection/src/pointer.js
 function pointer_default(event, node) {
   event = sourceEvent_default(event);
   if (node === void 0) node = event.currentTarget;
@@ -29628,14 +29628,14 @@ function pointer_default(event, node) {
   return [event.pageX, event.pageY];
 }
 
-// node_modules/d3-drag/src/noevent.js
+// benchmarks/probes/vendor/node_modules/d3-drag/src/noevent.js
 var nonpassivecapture = { capture: true, passive: false };
 function noevent_default(event) {
   event.preventDefault();
   event.stopImmediatePropagation();
 }
 
-// node_modules/d3-drag/src/nodrag.js
+// benchmarks/probes/vendor/node_modules/d3-drag/src/nodrag.js
 function nodrag_default(view) {
   var root2 = view.document.documentElement, selection2 = select_default2(view).on("dragstart.drag", noevent_default, nonpassivecapture);
   if ("onselectstart" in root2) {
@@ -29661,7 +29661,7 @@ function yesdrag(view, noclick) {
   }
 }
 
-// node_modules/d3-color/src/define.js
+// benchmarks/probes/vendor/node_modules/d3-color/src/define.js
 function define_default(constructor, factory, prototype) {
   constructor.prototype = factory.prototype = prototype;
   prototype.constructor = constructor;
@@ -29672,7 +29672,7 @@ function extend(parent, definition) {
   return prototype;
 }
 
-// node_modules/d3-color/src/color.js
+// benchmarks/probes/vendor/node_modules/d3-color/src/color.js
 function Color() {
 }
 var darker = 0.7;
@@ -30009,11 +30009,11 @@ function hsl2rgb(h2, m1, m2) {
   return (h2 < 60 ? m1 + (m2 - m1) * h2 / 60 : h2 < 180 ? m2 : h2 < 240 ? m1 + (m2 - m1) * (240 - h2) / 60 : m1) * 255;
 }
 
-// node_modules/d3-color/src/math.js
+// benchmarks/probes/vendor/node_modules/d3-color/src/math.js
 var radians = Math.PI / 180;
 var degrees = 180 / Math.PI;
 
-// node_modules/d3-color/src/lab.js
+// benchmarks/probes/vendor/node_modules/d3-color/src/lab.js
 var K2 = 18;
 var Xn = 0.96422;
 var Yn = 1;
@@ -30108,7 +30108,7 @@ define_default(Hcl, hcl, extend(Color, {
   }
 }));
 
-// node_modules/d3-color/src/cubehelix.js
+// benchmarks/probes/vendor/node_modules/d3-color/src/cubehelix.js
 var A2 = -0.14861;
 var B = 1.78277;
 var C2 = -0.29227;
@@ -30152,7 +30152,7 @@ define_default(Cubehelix, cubehelix, extend(Color, {
   }
 }));
 
-// node_modules/d3-interpolate/src/basis.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/basis.js
 function basis(t13, v0, v1, v22, v3) {
   var t22 = t13 * t13, t32 = t22 * t13;
   return ((1 - 3 * t13 + 3 * t22 - t32) * v0 + (4 - 6 * t22 + 3 * t32) * v1 + (1 + 3 * t13 + 3 * t22 - 3 * t32) * v22 + t32 * v3) / 6;
@@ -30165,7 +30165,7 @@ function basis_default(values2) {
   };
 }
 
-// node_modules/d3-interpolate/src/basisClosed.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/basisClosed.js
 function basisClosed_default(values2) {
   var n = values2.length;
   return function(t) {
@@ -30174,10 +30174,10 @@ function basisClosed_default(values2) {
   };
 }
 
-// node_modules/d3-interpolate/src/constant.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/constant.js
 var constant_default2 = (x4) => () => x4;
 
-// node_modules/d3-interpolate/src/color.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/color.js
 function linear(a2, d2) {
   return function(t) {
     return a2 + t * d2;
@@ -30202,7 +30202,7 @@ function nogamma(a2, b2) {
   return d2 ? linear(a2, d2) : constant_default2(isNaN(a2) ? b2 : a2);
 }
 
-// node_modules/d3-interpolate/src/rgb.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/rgb.js
 var rgb_default = function rgbGamma(y4) {
   var color3 = gamma(y4);
   function rgb2(start2, end) {
@@ -30242,7 +30242,7 @@ function rgbSpline(spline) {
 var rgbBasis = rgbSpline(basis_default);
 var rgbBasisClosed = rgbSpline(basisClosed_default);
 
-// node_modules/d3-interpolate/src/numberArray.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/numberArray.js
 function numberArray_default(a2, b2) {
   if (!b2) b2 = [];
   var n = a2 ? Math.min(b2.length, a2.length) : 0, c4 = b2.slice(), i;
@@ -30255,7 +30255,7 @@ function isNumberArray(x4) {
   return ArrayBuffer.isView(x4) && !(x4 instanceof DataView);
 }
 
-// node_modules/d3-interpolate/src/array.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/array.js
 function genericArray(a2, b2) {
   var nb = b2 ? b2.length : 0, na = a2 ? Math.min(nb, a2.length) : 0, x4 = new Array(na), c4 = new Array(nb), i;
   for (i = 0; i < na; ++i) x4[i] = value_default(a2[i], b2[i]);
@@ -30266,7 +30266,7 @@ function genericArray(a2, b2) {
   };
 }
 
-// node_modules/d3-interpolate/src/date.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/date.js
 function date_default(a2, b2) {
   var d2 = /* @__PURE__ */ new Date();
   return a2 = +a2, b2 = +b2, function(t) {
@@ -30274,14 +30274,14 @@ function date_default(a2, b2) {
   };
 }
 
-// node_modules/d3-interpolate/src/number.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/number.js
 function number_default(a2, b2) {
   return a2 = +a2, b2 = +b2, function(t) {
     return a2 * (1 - t) + b2 * t;
   };
 }
 
-// node_modules/d3-interpolate/src/object.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/object.js
 function object_default(a2, b2) {
   var i = {}, c4 = {}, k3;
   if (a2 === null || typeof a2 !== "object") a2 = {};
@@ -30299,7 +30299,7 @@ function object_default(a2, b2) {
   };
 }
 
-// node_modules/d3-interpolate/src/string.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/string.js
 var reA = /[-+]?(?:\d+\.?\d*|\.?\d+)(?:[eE][-+]?\d+)?/g;
 var reB = new RegExp(reA.source, "g");
 function zero2(b2) {
@@ -30341,20 +30341,20 @@ function string_default(a2, b2) {
   });
 }
 
-// node_modules/d3-interpolate/src/value.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/value.js
 function value_default(a2, b2) {
   var t = typeof b2, c4;
   return b2 == null || t === "boolean" ? constant_default2(b2) : (t === "number" ? number_default : t === "string" ? (c4 = color(b2)) ? (b2 = c4, rgb_default) : string_default : b2 instanceof color ? rgb_default : b2 instanceof Date ? date_default : isNumberArray(b2) ? numberArray_default : Array.isArray(b2) ? genericArray : typeof b2.valueOf !== "function" && typeof b2.toString !== "function" || isNaN(b2) ? object_default : number_default)(a2, b2);
 }
 
-// node_modules/d3-interpolate/src/round.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/round.js
 function round_default(a2, b2) {
   return a2 = +a2, b2 = +b2, function(t) {
     return Math.round(a2 * (1 - t) + b2 * t);
   };
 }
 
-// node_modules/d3-interpolate/src/transform/decompose.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/transform/decompose.js
 var degrees2 = 180 / Math.PI;
 var identity3 = {
   translateX: 0,
@@ -30380,7 +30380,7 @@ function decompose_default(a2, b2, c4, d2, e, f2) {
   };
 }
 
-// node_modules/d3-interpolate/src/transform/parse.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/transform/parse.js
 var svgNode;
 function parseCss(value) {
   const m2 = new (typeof DOMMatrix === "function" ? DOMMatrix : WebKitCSSMatrix)(value + "");
@@ -30395,7 +30395,7 @@ function parseSvg(value) {
   return decompose_default(value.a, value.b, value.c, value.d, value.e, value.f);
 }
 
-// node_modules/d3-interpolate/src/transform/index.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/transform/index.js
 function interpolateTransform(parse2, pxComma, pxParen, degParen) {
   function pop(s2) {
     return s2.length ? s2.pop() + " " : "";
@@ -30450,7 +30450,7 @@ function interpolateTransform(parse2, pxComma, pxParen, degParen) {
 var interpolateTransformCss = interpolateTransform(parseCss, "px, ", "px)", "deg)");
 var interpolateTransformSvg = interpolateTransform(parseSvg, ", ", ")", ")");
 
-// node_modules/d3-interpolate/src/zoom.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/zoom.js
 var epsilon2 = 1e-12;
 function cosh(x4) {
   return ((x4 = Math.exp(x4)) + 1 / x4) / 2;
@@ -30495,7 +30495,7 @@ var zoom_default = function zoomRho(rho, rho2, rho4) {
   return zoom2;
 }(Math.SQRT2, 2, 4);
 
-// node_modules/d3-interpolate/src/hsl.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/hsl.js
 function hsl2(hue2) {
   return function(start2, end) {
     var h2 = hue2((start2 = hsl(start2)).h, (end = hsl(end)).h), s2 = nogamma(start2.s, end.s), l = nogamma(start2.l, end.l), opacity2 = nogamma(start2.opacity, end.opacity);
@@ -30511,7 +30511,7 @@ function hsl2(hue2) {
 var hsl_default = hsl2(hue);
 var hslLong = hsl2(nogamma);
 
-// node_modules/d3-interpolate/src/lab.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/lab.js
 function lab2(start2, end) {
   var l = nogamma((start2 = lab(start2)).l, (end = lab(end)).l), a2 = nogamma(start2.a, end.a), b2 = nogamma(start2.b, end.b), opacity2 = nogamma(start2.opacity, end.opacity);
   return function(t) {
@@ -30523,7 +30523,7 @@ function lab2(start2, end) {
   };
 }
 
-// node_modules/d3-interpolate/src/hcl.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/hcl.js
 function hcl2(hue2) {
   return function(start2, end) {
     var h2 = hue2((start2 = hcl(start2)).h, (end = hcl(end)).h), c4 = nogamma(start2.c, end.c), l = nogamma(start2.l, end.l), opacity2 = nogamma(start2.opacity, end.opacity);
@@ -30539,7 +30539,7 @@ function hcl2(hue2) {
 var hcl_default = hcl2(hue);
 var hclLong = hcl2(nogamma);
 
-// node_modules/d3-interpolate/src/cubehelix.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/cubehelix.js
 function cubehelix2(hue2) {
   return function cubehelixGamma(y4) {
     y4 = +y4;
@@ -30560,7 +30560,7 @@ function cubehelix2(hue2) {
 var cubehelix_default = cubehelix2(hue);
 var cubehelixLong = cubehelix2(nogamma);
 
-// node_modules/d3-interpolate/src/piecewise.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/piecewise.js
 function piecewise(interpolate, values2) {
   if (values2 === void 0) values2 = interpolate, interpolate = value_default;
   var i = 0, n = values2.length - 1, v3 = values2[0], I2 = new Array(n < 0 ? 0 : n);
@@ -30571,14 +30571,14 @@ function piecewise(interpolate, values2) {
   };
 }
 
-// node_modules/d3-interpolate/src/quantize.js
+// benchmarks/probes/vendor/node_modules/d3-interpolate/src/quantize.js
 function quantize_default(interpolator, n) {
   var samples = new Array(n);
   for (var i = 0; i < n; ++i) samples[i] = interpolator(i / (n - 1));
   return samples;
 }
 
-// node_modules/d3-timer/src/timer.js
+// benchmarks/probes/vendor/node_modules/d3-timer/src/timer.js
 var frame = 0;
 var timeout = 0;
 var interval = 0;
@@ -30680,7 +30680,7 @@ function sleep(time2) {
   }
 }
 
-// node_modules/d3-timer/src/timeout.js
+// benchmarks/probes/vendor/node_modules/d3-timer/src/timeout.js
 function timeout_default(callback, delay, time2) {
   var t = new Timer();
   delay = delay == null ? 0 : +delay;
@@ -30691,7 +30691,7 @@ function timeout_default(callback, delay, time2) {
   return t;
 }
 
-// node_modules/d3-transition/src/transition/schedule.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/schedule.js
 var emptyOn = dispatch_default("start", "end", "cancel", "interrupt");
 var emptyTween = [];
 var CREATED = 0;
@@ -30802,7 +30802,7 @@ function create2(node, id2, self) {
   }
 }
 
-// node_modules/d3-transition/src/interrupt.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/interrupt.js
 function interrupt_default(node, name2) {
   var schedules = node.__transition, schedule, active, empty4 = true, i;
   if (!schedules) return;
@@ -30821,14 +30821,14 @@ function interrupt_default(node, name2) {
   if (empty4) delete node.__transition;
 }
 
-// node_modules/d3-transition/src/selection/interrupt.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/selection/interrupt.js
 function interrupt_default2(name2) {
   return this.each(function() {
     interrupt_default(this, name2);
   });
 }
 
-// node_modules/d3-transition/src/transition/tween.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/tween.js
 function tweenRemove(id2, name2) {
   var tween0, tween1;
   return function() {
@@ -30889,13 +30889,13 @@ function tweenValue(transition2, name2, value) {
   };
 }
 
-// node_modules/d3-transition/src/transition/interpolate.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/interpolate.js
 function interpolate_default(a2, b2) {
   var c4;
   return (typeof b2 === "number" ? number_default : b2 instanceof color ? rgb_default : (c4 = color(b2)) ? (b2 = c4, rgb_default) : string_default)(a2, b2);
 }
 
-// node_modules/d3-transition/src/transition/attr.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/attr.js
 function attrRemove2(name2) {
   return function() {
     this.removeAttribute(name2);
@@ -30945,7 +30945,7 @@ function attr_default2(name2, value) {
   return this.attrTween(name2, typeof value === "function" ? (fullname.local ? attrFunctionNS2 : attrFunction2)(fullname, i, tweenValue(this, "attr." + name2, value)) : value == null ? (fullname.local ? attrRemoveNS2 : attrRemove2)(fullname) : (fullname.local ? attrConstantNS2 : attrConstant2)(fullname, i, value));
 }
 
-// node_modules/d3-transition/src/transition/attrTween.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/attrTween.js
 function attrInterpolate(name2, i) {
   return function(t) {
     this.setAttribute(name2, i.call(this, t));
@@ -30985,7 +30985,7 @@ function attrTween_default(name2, value) {
   return this.tween(key, (fullname.local ? attrTweenNS : attrTween)(fullname, value));
 }
 
-// node_modules/d3-transition/src/transition/delay.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/delay.js
 function delayFunction(id2, value) {
   return function() {
     init(this, id2).delay = +value.apply(this, arguments);
@@ -31001,7 +31001,7 @@ function delay_default(value) {
   return arguments.length ? this.each((typeof value === "function" ? delayFunction : delayConstant)(id2, value)) : get2(this.node(), id2).delay;
 }
 
-// node_modules/d3-transition/src/transition/duration.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/duration.js
 function durationFunction(id2, value) {
   return function() {
     set2(this, id2).duration = +value.apply(this, arguments);
@@ -31017,7 +31017,7 @@ function duration_default(value) {
   return arguments.length ? this.each((typeof value === "function" ? durationFunction : durationConstant)(id2, value)) : get2(this.node(), id2).duration;
 }
 
-// node_modules/d3-transition/src/transition/ease.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/ease.js
 function easeConstant(id2, value) {
   if (typeof value !== "function") throw new Error();
   return function() {
@@ -31029,7 +31029,7 @@ function ease_default(value) {
   return arguments.length ? this.each(easeConstant(id2, value)) : get2(this.node(), id2).ease;
 }
 
-// node_modules/d3-transition/src/transition/easeVarying.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/easeVarying.js
 function easeVarying(id2, value) {
   return function() {
     var v3 = value.apply(this, arguments);
@@ -31042,7 +31042,7 @@ function easeVarying_default(value) {
   return this.each(easeVarying(this._id, value));
 }
 
-// node_modules/d3-transition/src/transition/filter.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/filter.js
 function filter_default2(match) {
   if (typeof match !== "function") match = matcher_default(match);
   for (var groups2 = this._groups, m2 = groups2.length, subgroups = new Array(m2), j2 = 0; j2 < m2; ++j2) {
@@ -31055,7 +31055,7 @@ function filter_default2(match) {
   return new Transition(subgroups, this._parents, this._name, this._id);
 }
 
-// node_modules/d3-transition/src/transition/merge.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/merge.js
 function merge_default2(transition2) {
   if (transition2._id !== this._id) throw new Error();
   for (var groups0 = this._groups, groups1 = transition2._groups, m0 = groups0.length, m1 = groups1.length, m2 = Math.min(m0, m1), merges = new Array(m0), j2 = 0; j2 < m2; ++j2) {
@@ -31071,7 +31071,7 @@ function merge_default2(transition2) {
   return new Transition(merges, this._parents, this._name, this._id);
 }
 
-// node_modules/d3-transition/src/transition/on.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/on.js
 function start(name2) {
   return (name2 + "").trim().split(/^|\s+/).every(function(t) {
     var i = t.indexOf(".");
@@ -31092,7 +31092,7 @@ function on_default2(name2, listener) {
   return arguments.length < 2 ? get2(this.node(), id2).on.on(name2) : this.each(onFunction(id2, name2, listener));
 }
 
-// node_modules/d3-transition/src/transition/remove.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/remove.js
 function removeFunction(id2) {
   return function() {
     var parent = this.parentNode;
@@ -31104,7 +31104,7 @@ function remove_default2() {
   return this.on("end.remove", removeFunction(this._id));
 }
 
-// node_modules/d3-transition/src/transition/select.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/select.js
 function select_default3(select2) {
   var name2 = this._name, id2 = this._id;
   if (typeof select2 !== "function") select2 = selector_default(select2);
@@ -31120,7 +31120,7 @@ function select_default3(select2) {
   return new Transition(subgroups, this._parents, name2, id2);
 }
 
-// node_modules/d3-transition/src/transition/selectAll.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/selectAll.js
 function selectAll_default2(select2) {
   var name2 = this._name, id2 = this._id;
   if (typeof select2 !== "function") select2 = selectorAll_default(select2);
@@ -31140,13 +31140,13 @@ function selectAll_default2(select2) {
   return new Transition(subgroups, parents, name2, id2);
 }
 
-// node_modules/d3-transition/src/transition/selection.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/selection.js
 var Selection3 = selection_default.prototype.constructor;
 function selection_default2() {
   return new Selection3(this._groups, this._parents);
 }
 
-// node_modules/d3-transition/src/transition/style.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/style.js
 function styleNull(name2, interpolate) {
   var string00, string10, interpolate0;
   return function() {
@@ -31187,7 +31187,7 @@ function style_default2(name2, value, priority) {
   return value == null ? this.styleTween(name2, styleNull(name2, i)).on("end.style." + name2, styleRemove2(name2)) : typeof value === "function" ? this.styleTween(name2, styleFunction2(name2, i, tweenValue(this, "style." + name2, value))).each(styleMaybeRemove(this._id, name2)) : this.styleTween(name2, styleConstant2(name2, i, value), priority).on("end.style." + name2, null);
 }
 
-// node_modules/d3-transition/src/transition/styleTween.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/styleTween.js
 function styleInterpolate(name2, i, priority) {
   return function(t) {
     this.style.setProperty(name2, i.call(this, t), priority);
@@ -31211,7 +31211,7 @@ function styleTween_default(name2, value, priority) {
   return this.tween(key, styleTween(name2, value, priority == null ? "" : priority));
 }
 
-// node_modules/d3-transition/src/transition/text.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/text.js
 function textConstant2(value) {
   return function() {
     this.textContent = value;
@@ -31227,7 +31227,7 @@ function text_default2(value) {
   return this.tween("text", typeof value === "function" ? textFunction2(tweenValue(this, "text", value)) : textConstant2(value == null ? "" : value + ""));
 }
 
-// node_modules/d3-transition/src/transition/textTween.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/textTween.js
 function textInterpolate(i) {
   return function(t) {
     this.textContent = i.call(this, t);
@@ -31251,7 +31251,7 @@ function textTween_default(value) {
   return this.tween(key, textTween(value));
 }
 
-// node_modules/d3-transition/src/transition/transition.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/transition.js
 function transition_default() {
   var name2 = this._name, id0 = this._id, id1 = newId();
   for (var groups2 = this._groups, m2 = groups2.length, j2 = 0; j2 < m2; ++j2) {
@@ -31270,7 +31270,7 @@ function transition_default() {
   return new Transition(groups2, this._parents, name2, id1);
 }
 
-// node_modules/d3-transition/src/transition/end.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/end.js
 function end_default() {
   var on0, on1, that = this, id2 = that._id, size = that.size();
   return new Promise(function(resolve, reject) {
@@ -31291,7 +31291,7 @@ function end_default() {
   });
 }
 
-// node_modules/d3-transition/src/transition/index.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/transition/index.js
 var id = 0;
 function Transition(groups2, parents, name2, id2) {
   this._groups = groups2;
@@ -31339,12 +31339,12 @@ Transition.prototype = transition.prototype = {
   [Symbol.iterator]: selection_prototype[Symbol.iterator]
 };
 
-// node_modules/d3-ease/src/cubic.js
+// benchmarks/probes/vendor/node_modules/d3-ease/src/cubic.js
 function cubicInOut(t) {
   return ((t *= 2) <= 1 ? t * t * t : (t -= 2) * t * t + 2) / 2;
 }
 
-// node_modules/d3-transition/src/selection/transition.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/selection/transition.js
 var defaultTiming = {
   time: null,
   // Set on use.
@@ -31378,14 +31378,14 @@ function transition_default2(name2) {
   return new Transition(groups2, this._parents, name2, id2);
 }
 
-// node_modules/d3-transition/src/selection/index.js
+// benchmarks/probes/vendor/node_modules/d3-transition/src/selection/index.js
 selection_default.prototype.interrupt = interrupt_default2;
 selection_default.prototype.transition = transition_default2;
 
-// node_modules/d3-brush/src/constant.js
+// benchmarks/probes/vendor/node_modules/d3-brush/src/constant.js
 var constant_default3 = (x4) => () => x4;
 
-// node_modules/d3-brush/src/event.js
+// benchmarks/probes/vendor/node_modules/d3-brush/src/event.js
 function BrushEvent(type2, {
   sourceEvent,
   target,
@@ -31403,7 +31403,7 @@ function BrushEvent(type2, {
   });
 }
 
-// node_modules/d3-brush/src/noevent.js
+// benchmarks/probes/vendor/node_modules/d3-brush/src/noevent.js
 function nopropagation(event) {
   event.stopImmediatePropagation();
 }
@@ -31412,7 +31412,7 @@ function noevent_default2(event) {
   event.stopImmediatePropagation();
 }
 
-// node_modules/d3-brush/src/brush.js
+// benchmarks/probes/vendor/node_modules/d3-brush/src/brush.js
 var MODE_DRAG = { name: "drag" };
 var MODE_SPACE = { name: "space" };
 var MODE_HANDLE = { name: "handle" };
@@ -31891,7 +31891,7 @@ function brush(dim) {
   return brush3;
 }
 
-// node_modules/d3-path/src/path.js
+// benchmarks/probes/vendor/node_modules/d3-path/src/path.js
 var pi = Math.PI;
 var tau = 2 * pi;
 var epsilon3 = 1e-6;
@@ -31988,26 +31988,26 @@ function pathRound(digits = 3) {
   return new Path(+digits);
 }
 
-// node_modules/d3-contour/src/array.js
+// benchmarks/probes/vendor/node_modules/d3-contour/src/array.js
 var array2 = Array.prototype;
 var slice = array2.slice;
 
-// node_modules/d3-contour/src/ascending.js
+// benchmarks/probes/vendor/node_modules/d3-contour/src/ascending.js
 function ascending_default(a2, b2) {
   return a2 - b2;
 }
 
-// node_modules/d3-contour/src/area.js
+// benchmarks/probes/vendor/node_modules/d3-contour/src/area.js
 function area_default(ring) {
   var i = 0, n = ring.length, area3 = ring[n - 1][1] * ring[0][0] - ring[n - 1][0] * ring[0][1];
   while (++i < n) area3 += ring[i - 1][1] * ring[i][0] - ring[i - 1][0] * ring[i][1];
   return area3;
 }
 
-// node_modules/d3-contour/src/constant.js
+// benchmarks/probes/vendor/node_modules/d3-contour/src/constant.js
 var constant_default4 = (x4) => () => x4;
 
-// node_modules/d3-contour/src/contains.js
+// benchmarks/probes/vendor/node_modules/d3-contour/src/contains.js
 function contains_default(ring, hole) {
   var i = -1, n = hole.length, c4;
   while (++i < n) if (c4 = ringContains(ring, hole[i])) return c4;
@@ -32033,11 +32033,11 @@ function within(p2, q2, r) {
   return p2 <= q2 && q2 <= r || r <= q2 && q2 <= p2;
 }
 
-// node_modules/d3-contour/src/noop.js
+// benchmarks/probes/vendor/node_modules/d3-contour/src/noop.js
 function noop_default() {
 }
 
-// node_modules/d3-contour/src/contours.js
+// benchmarks/probes/vendor/node_modules/d3-contour/src/contours.js
 var cases = [
   [],
   [[[1, 1.5], [0.5, 1]]],
@@ -32205,7 +32205,7 @@ function smooth1(x4, v0, v1, value) {
   return isNaN(d2) ? x4 : x4 + d2 - 0.5;
 }
 
-// node_modules/d3-contour/src/density.js
+// benchmarks/probes/vendor/node_modules/d3-contour/src/density.js
 function defaultX(d2) {
   return d2[0];
 }
@@ -32300,7 +32300,7 @@ function density_default() {
   return density3;
 }
 
-// node_modules/robust-predicates/esm/util.js
+// benchmarks/probes/vendor/node_modules/robust-predicates/esm/util.js
 var epsilon4 = 11102230246251565e-32;
 var splitter = 134217729;
 var resulterrbound = (3 + 8 * epsilon4) * epsilon4;
@@ -32384,7 +32384,7 @@ function vec(n) {
   return new Float64Array(n);
 }
 
-// node_modules/robust-predicates/esm/orient2d.js
+// benchmarks/probes/vendor/node_modules/robust-predicates/esm/orient2d.js
 var ccwerrboundA = (3 + 16 * epsilon4) * epsilon4;
 var ccwerrboundB = (2 + 12 * epsilon4) * epsilon4;
 var ccwerrboundC = (9 + 64 * epsilon4) * epsilon4 * epsilon4;
@@ -32549,7 +32549,7 @@ function orient2d(ax, ay, bx, by, cx, cy) {
   return -orient2dadapt(ax, ay, bx, by, cx, cy, detsum);
 }
 
-// node_modules/robust-predicates/esm/orient3d.js
+// benchmarks/probes/vendor/node_modules/robust-predicates/esm/orient3d.js
 var o3derrboundA = (7 + 56 * epsilon4) * epsilon4;
 var o3derrboundB = (3 + 28 * epsilon4) * epsilon4;
 var o3derrboundC = (26 + 288 * epsilon4) * epsilon4 * epsilon4;
@@ -32573,7 +32573,7 @@ var _12 = vec(12);
 var fin = vec(192);
 var fin2 = vec(192);
 
-// node_modules/robust-predicates/esm/incircle.js
+// benchmarks/probes/vendor/node_modules/robust-predicates/esm/incircle.js
 var iccerrboundA = (10 + 96 * epsilon4) * epsilon4;
 var iccerrboundB = (4 + 48 * epsilon4) * epsilon4;
 var iccerrboundC = (44 + 576 * epsilon4) * epsilon4 * epsilon4;
@@ -32608,7 +32608,7 @@ var _64 = vec(64);
 var fin3 = vec(1152);
 var fin22 = vec(1152);
 
-// node_modules/robust-predicates/esm/insphere.js
+// benchmarks/probes/vendor/node_modules/robust-predicates/esm/insphere.js
 var isperrboundA = (16 + 224 * epsilon4) * epsilon4;
 var isperrboundB = (5 + 72 * epsilon4) * epsilon4;
 var isperrboundC = (71 + 1408 * epsilon4) * epsilon4 * epsilon4;
@@ -32659,7 +32659,7 @@ var ydet = vec(96);
 var zdet = vec(96);
 var fin4 = vec(1152);
 
-// node_modules/delaunator/index.js
+// benchmarks/probes/vendor/node_modules/delaunator/index.js
 var EPSILON = Math.pow(2, -52);
 var EDGE_STACK = new Uint32Array(512);
 var Delaunator = class _Delaunator {
@@ -33080,7 +33080,7 @@ function defaultGetY(p2) {
   return p2[1];
 }
 
-// node_modules/d3-delaunay/src/path.js
+// benchmarks/probes/vendor/node_modules/d3-delaunay/src/path.js
 var epsilon5 = 1e-6;
 var Path2 = class {
   constructor() {
@@ -33118,7 +33118,7 @@ var Path2 = class {
   }
 };
 
-// node_modules/d3-delaunay/src/polygon.js
+// benchmarks/probes/vendor/node_modules/d3-delaunay/src/polygon.js
 var Polygon = class {
   constructor() {
     this._ = [];
@@ -33137,7 +33137,7 @@ var Polygon = class {
   }
 };
 
-// node_modules/d3-delaunay/src/voronoi.js
+// benchmarks/probes/vendor/node_modules/d3-delaunay/src/voronoi.js
 var Voronoi = class {
   constructor(delaunay, [xmin, ymin, xmax, ymax] = [0, 0, 960, 500]) {
     if (!((xmax = +xmax) >= (xmin = +xmin)) || !((ymax = +ymax) >= (ymin = +ymin))) throw new Error("invalid bounds");
@@ -33466,7 +33466,7 @@ var Voronoi = class {
   }
 };
 
-// node_modules/d3-delaunay/src/delaunay.js
+// benchmarks/probes/vendor/node_modules/d3-delaunay/src/delaunay.js
 var tau2 = 2 * Math.PI;
 var pow = Math.pow;
 function pointX(p2) {
@@ -33683,7 +33683,7 @@ function* flatIterable(points2, fx, fy, that) {
   }
 }
 
-// node_modules/d3-format/src/formatDecimal.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/formatDecimal.js
 function formatDecimal_default(x4) {
   return Math.abs(x4 = Math.round(x4)) >= 1e21 ? x4.toLocaleString("en").replace(/,/g, "") : x4.toString(10);
 }
@@ -33696,12 +33696,12 @@ function formatDecimalParts(x4, p2) {
   ];
 }
 
-// node_modules/d3-format/src/exponent.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/exponent.js
 function exponent_default(x4) {
   return x4 = formatDecimalParts(Math.abs(x4)), x4 ? x4[1] : NaN;
 }
 
-// node_modules/d3-format/src/formatGroup.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/formatGroup.js
 function formatGroup_default(grouping, thousands) {
   return function(value, width2) {
     var i = value.length, t = [], j2 = 0, g2 = grouping[0], length4 = 0;
@@ -33715,7 +33715,7 @@ function formatGroup_default(grouping, thousands) {
   };
 }
 
-// node_modules/d3-format/src/formatNumerals.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/formatNumerals.js
 function formatNumerals_default(numerals) {
   return function(value) {
     return value.replace(/[0-9]/g, function(i) {
@@ -33724,7 +33724,7 @@ function formatNumerals_default(numerals) {
   };
 }
 
-// node_modules/d3-format/src/formatSpecifier.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/formatSpecifier.js
 var re2 = /^(?:(.)?([<>=^]))?([+\-( ])?([$#])?(0)?(\d+)?(,)?(\.\d+)?(~)?([a-z%])?$/i;
 function formatSpecifier(specifier) {
   if (!(match = re2.exec(specifier))) throw new Error("invalid format: " + specifier);
@@ -33759,7 +33759,7 @@ FormatSpecifier.prototype.toString = function() {
   return this.fill + this.align + this.sign + this.symbol + (this.zero ? "0" : "") + (this.width === void 0 ? "" : Math.max(1, this.width | 0)) + (this.comma ? "," : "") + (this.precision === void 0 ? "" : "." + Math.max(0, this.precision | 0)) + (this.trim ? "~" : "") + this.type;
 };
 
-// node_modules/d3-format/src/formatTrim.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/formatTrim.js
 function formatTrim_default(s2) {
   out: for (var n = s2.length, i = 1, i0 = -1, i1; i < n; ++i) {
     switch (s2[i]) {
@@ -33779,7 +33779,7 @@ function formatTrim_default(s2) {
   return i0 > 0 ? s2.slice(0, i0) + s2.slice(i1 + 1) : s2;
 }
 
-// node_modules/d3-format/src/formatPrefixAuto.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/formatPrefixAuto.js
 var prefixExponent;
 function formatPrefixAuto_default(x4, p2) {
   var d2 = formatDecimalParts(x4, p2);
@@ -33788,7 +33788,7 @@ function formatPrefixAuto_default(x4, p2) {
   return i === n ? coefficient : i > n ? coefficient + new Array(i - n + 1).join("0") : i > 0 ? coefficient.slice(0, i) + "." + coefficient.slice(i) : "0." + new Array(1 - i).join("0") + formatDecimalParts(x4, Math.max(0, p2 + i - 1))[0];
 }
 
-// node_modules/d3-format/src/formatRounded.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/formatRounded.js
 function formatRounded_default(x4, p2) {
   var d2 = formatDecimalParts(x4, p2);
   if (!d2) return x4 + "";
@@ -33796,7 +33796,7 @@ function formatRounded_default(x4, p2) {
   return exponent < 0 ? "0." + new Array(-exponent).join("0") + coefficient : coefficient.length > exponent + 1 ? coefficient.slice(0, exponent + 1) + "." + coefficient.slice(exponent + 1) : coefficient + new Array(exponent - coefficient.length + 2).join("0");
 }
 
-// node_modules/d3-format/src/formatTypes.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/formatTypes.js
 var formatTypes_default = {
   "%": (x4, p2) => (x4 * 100).toFixed(p2),
   "b": (x4) => Math.round(x4).toString(2),
@@ -33813,12 +33813,12 @@ var formatTypes_default = {
   "x": (x4) => Math.round(x4).toString(16)
 };
 
-// node_modules/d3-format/src/identity.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/identity.js
 function identity_default2(x4) {
   return x4;
 }
 
-// node_modules/d3-format/src/locale.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/locale.js
 var map = Array.prototype.map;
 var prefixes = ["y", "z", "a", "f", "p", "n", "\xB5", "m", "", "k", "M", "G", "T", "P", "E", "Z", "Y"];
 function locale_default(locale3) {
@@ -33892,7 +33892,7 @@ function locale_default(locale3) {
   };
 }
 
-// node_modules/d3-format/src/defaultLocale.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/defaultLocale.js
 var locale;
 var format;
 var formatPrefix;
@@ -33908,23 +33908,23 @@ function defaultLocale(definition) {
   return locale;
 }
 
-// node_modules/d3-format/src/precisionFixed.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/precisionFixed.js
 function precisionFixed_default(step) {
   return Math.max(0, -exponent_default(Math.abs(step)));
 }
 
-// node_modules/d3-format/src/precisionPrefix.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/precisionPrefix.js
 function precisionPrefix_default(step, value) {
   return Math.max(0, Math.max(-8, Math.min(8, Math.floor(exponent_default(value) / 3))) * 3 - exponent_default(Math.abs(step)));
 }
 
-// node_modules/d3-format/src/precisionRound.js
+// benchmarks/probes/vendor/node_modules/d3-format/src/precisionRound.js
 function precisionRound_default(step, max4) {
   step = Math.abs(step), max4 = Math.abs(max4) - step;
   return Math.max(0, exponent_default(max4) - exponent_default(step)) + 1;
 }
 
-// node_modules/d3-geo/src/math.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/math.js
 var epsilon6 = 1e-6;
 var epsilon22 = 1e-12;
 var pi2 = Math.PI;
@@ -33955,11 +33955,11 @@ function asin(x4) {
   return x4 > 1 ? halfPi : x4 < -1 ? -halfPi : Math.asin(x4);
 }
 
-// node_modules/d3-geo/src/noop.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/noop.js
 function noop2() {
 }
 
-// node_modules/d3-geo/src/stream.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/stream.js
 function streamGeometry(geometry, stream) {
   if (geometry && streamGeometryType.hasOwnProperty(geometry.type)) {
     streamGeometryType[geometry.type](geometry, stream);
@@ -34025,7 +34025,7 @@ function stream_default(object, stream) {
   }
 }
 
-// node_modules/d3-geo/src/cartesian.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/cartesian.js
 function spherical(cartesian2) {
   return [atan2(cartesian2[1], cartesian2[0]), asin(cartesian2[2])];
 }
@@ -34050,7 +34050,7 @@ function cartesianNormalizeInPlace(d2) {
   d2[0] /= l, d2[1] /= l, d2[2] /= l;
 }
 
-// node_modules/d3-geo/src/centroid.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/centroid.js
 var W0;
 var W1;
 var X0;
@@ -34161,7 +34161,7 @@ function centroid_default(object) {
   return [atan2(y4, x4) * degrees3, asin(z2 / m2) * degrees3];
 }
 
-// node_modules/d3-geo/src/compose.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/compose.js
 function compose_default(a2, b2) {
   function compose(x4, y4) {
     return x4 = a2(x4, y4), b2(x4[0], x4[1]);
@@ -34172,7 +34172,7 @@ function compose_default(a2, b2) {
   return compose;
 }
 
-// node_modules/d3-geo/src/rotation.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/rotation.js
 function rotationIdentity(lambda, phi) {
   if (abs2(lambda) > pi2) lambda -= Math.round(lambda / tau3) * tau3;
   return [lambda, phi];
@@ -34224,7 +34224,7 @@ function rotation_default(rotate) {
   return forward;
 }
 
-// node_modules/d3-geo/src/circle.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/circle.js
 function circleStream(stream, radius2, delta, direction, t03, t13) {
   if (!delta) return;
   var cosRadius = cos(radius2), sinRadius = sin(radius2), step = direction * delta;
@@ -34248,7 +34248,7 @@ function circleRadius(cosRadius, point6) {
   return ((-point6[2] < 0 ? -radius2 : radius2) + tau3 - epsilon6) % tau3;
 }
 
-// node_modules/d3-geo/src/clip/buffer.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/clip/buffer.js
 function buffer_default() {
   var lines = [], line3;
   return {
@@ -34271,12 +34271,12 @@ function buffer_default() {
   };
 }
 
-// node_modules/d3-geo/src/pointEqual.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/pointEqual.js
 function pointEqual_default(a2, b2) {
   return abs2(a2[0] - b2[0]) < epsilon6 && abs2(a2[1] - b2[1]) < epsilon6;
 }
 
-// node_modules/d3-geo/src/clip/rejoin.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/clip/rejoin.js
 function Intersection(point6, points2, other, entry) {
   this.x = point6;
   this.z = points2;
@@ -34354,7 +34354,7 @@ function link(array4) {
   b2.p = a2;
 }
 
-// node_modules/d3-geo/src/polygonContains.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/polygonContains.js
 function longitude(point6) {
   return abs2(point6[0]) <= pi2 ? point6[0] : sign(point6[0]) * ((abs2(point6[0]) + pi2) % tau3 - pi2);
 }
@@ -34385,7 +34385,7 @@ function polygonContains_default(polygon, point6) {
   return (angle < -epsilon6 || angle < epsilon6 && sum4 < -epsilon22) ^ winding & 1;
 }
 
-// node_modules/d3-geo/src/clip/index.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/clip/index.js
 function clip_default(pointVisible, clipLine, interpolate, start2) {
   return function(sink) {
     var line3 = clipLine(sink), ringBuffer = buffer_default(), ringSink = clipLine(ringBuffer), polygonStarted = false, polygon, segments, ring;
@@ -34479,7 +34479,7 @@ function compareIntersection(a2, b2) {
   return ((a2 = a2.x)[0] < 0 ? a2[1] - halfPi - epsilon6 : halfPi - a2[1]) - ((b2 = b2.x)[0] < 0 ? b2[1] - halfPi - epsilon6 : halfPi - b2[1]);
 }
 
-// node_modules/d3-geo/src/clip/antimeridian.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/clip/antimeridian.js
 var antimeridian_default = clip_default(
   function() {
     return true;
@@ -34555,7 +34555,7 @@ function clipAntimeridianInterpolate(from2, to, direction, stream) {
   }
 }
 
-// node_modules/d3-geo/src/clip/circle.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/clip/circle.js
 function circle_default(radius2) {
   var cr = cos(radius2), delta = 2 * radians2, smallRadius = cr > 0, notHemisphere = abs2(cr) > epsilon6;
   function interpolate(from2, to, direction, stream) {
@@ -34657,7 +34657,7 @@ function circle_default(radius2) {
   return clip_default(visible, clipLine, interpolate, smallRadius ? [0, -radius2] : [-pi2, radius2 - pi2]);
 }
 
-// node_modules/d3-geo/src/clip/line.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/clip/line.js
 function line_default(a2, b2, x06, y06, x12, y12) {
   var ax = a2[0], ay = a2[1], bx = b2[0], by = b2[1], t03 = 0, t13 = 1, dx = bx - ax, dy = by - ay, r;
   r = x06 - ax;
@@ -34705,7 +34705,7 @@ function line_default(a2, b2, x06, y06, x12, y12) {
   return true;
 }
 
-// node_modules/d3-geo/src/clip/rectangle.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/clip/rectangle.js
 var clipMax = 1e9;
 var clipMin = -clipMax;
 function clipRectangle(x06, y06, x12, y12) {
@@ -34828,7 +34828,7 @@ function clipRectangle(x06, y06, x12, y12) {
   };
 }
 
-// node_modules/d3-geo/src/graticule.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/graticule.js
 function graticuleX(y06, y12, dy) {
   var y4 = range(y06, y12 - epsilon6, dy).concat(y12);
   return function(x4) {
@@ -34923,10 +34923,10 @@ function graticule10() {
   return graticule()();
 }
 
-// node_modules/d3-geo/src/identity.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/identity.js
 var identity_default3 = (x4) => x4;
 
-// node_modules/d3-geo/src/path/area.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/path/area.js
 var areaSum = new Adder();
 var areaRingSum = new Adder();
 var x00;
@@ -34968,7 +34968,7 @@ function areaRingEnd() {
 }
 var area_default2 = areaStream;
 
-// node_modules/d3-geo/src/path/bounds.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/path/bounds.js
 var x03 = Infinity;
 var y03 = x03;
 var x1 = -x03;
@@ -34993,7 +34993,7 @@ function boundsPoint(x4, y4) {
 }
 var bounds_default = boundsStream;
 
-// node_modules/d3-geo/src/path/centroid.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/path/centroid.js
 var X02 = 0;
 var Y02 = 0;
 var Z02 = 0;
@@ -35071,7 +35071,7 @@ function centroidPointRing(x4, y4) {
 }
 var centroid_default2 = centroidStream2;
 
-// node_modules/d3-geo/src/path/context.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/path/context.js
 function PathContext(context) {
   this._context = context;
 }
@@ -35114,7 +35114,7 @@ PathContext.prototype = {
   result: noop2
 };
 
-// node_modules/d3-geo/src/path/measure.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/path/measure.js
 var lengthSum = new Adder();
 var lengthRing;
 var x003;
@@ -35153,7 +35153,7 @@ function lengthPoint(x4, y4) {
 }
 var measure_default = lengthStream;
 
-// node_modules/d3-geo/src/path/string.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/path/string.js
 var cacheDigits;
 var cacheAppend;
 var cacheRadius;
@@ -35240,7 +35240,7 @@ function appendRound2(digits) {
   return cacheAppend;
 }
 
-// node_modules/d3-geo/src/path/index.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/path/index.js
 function path_default(projection3, context) {
   let digits = 3, pointRadius = 4.5, projectionStream, contextStream;
   function path2(object) {
@@ -35296,7 +35296,7 @@ function path_default(projection3, context) {
   return path2.projection(projection3).digits(digits).context(context);
 }
 
-// node_modules/d3-geo/src/transform.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/transform.js
 function transform_default(methods) {
   return {
     stream: transformer(methods)
@@ -35334,7 +35334,7 @@ TransformStream.prototype = {
   }
 };
 
-// node_modules/d3-geo/src/projection/fit.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/fit.js
 function fit(projection3, fitBounds, object) {
   var clip = projection3.clipExtent && projection3.clipExtent();
   projection3.scale(150).translate([0, 0]);
@@ -35366,7 +35366,7 @@ function fitHeight(projection3, height2, object) {
   }, object);
 }
 
-// node_modules/d3-geo/src/projection/resample.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/resample.js
 var maxDepth = 16;
 var cosMinDistance = cos(30 * radians2);
 function resample_default(project2, delta2) {
@@ -35443,7 +35443,7 @@ function resample(project2, delta2) {
   };
 }
 
-// node_modules/d3-geo/src/projection/index.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/index.js
 var transformRadians = transformer({
   point: function(x4, y4) {
     this.stream.point(x4 * radians2, y4 * radians2);
@@ -35565,7 +35565,7 @@ function projectionMutator(projectAt) {
   };
 }
 
-// node_modules/d3-geo/src/projection/conic.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/conic.js
 function conicProjection(projectAt) {
   var phi0 = 0, phi1 = pi2 / 3, m2 = projectionMutator(projectAt), p2 = m2(phi0, phi1);
   p2.parallels = function(_2) {
@@ -35574,7 +35574,7 @@ function conicProjection(projectAt) {
   return p2;
 }
 
-// node_modules/d3-geo/src/projection/cylindricalEqualArea.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/cylindricalEqualArea.js
 function cylindricalEqualAreaRaw(phi0) {
   var cosPhi0 = cos(phi0);
   function forward(lambda, phi) {
@@ -35586,7 +35586,7 @@ function cylindricalEqualAreaRaw(phi0) {
   return forward;
 }
 
-// node_modules/d3-geo/src/projection/conicEqualArea.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/conicEqualArea.js
 function conicEqualAreaRaw(y06, y12) {
   var sy0 = sin(y06), n = (sy0 + sin(y12)) / 2;
   if (abs2(n) < epsilon6) return cylindricalEqualAreaRaw(y06);
@@ -35607,12 +35607,12 @@ function conicEqualArea_default() {
   return conicProjection(conicEqualAreaRaw).scale(155.424).center([0, 33.6442]);
 }
 
-// node_modules/d3-geo/src/projection/albers.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/albers.js
 function albers_default() {
   return conicEqualArea_default().parallels([29.5, 45.5]).scale(1070).translate([480, 250]).rotate([96, 0]).center([-0.6, 38.7]);
 }
 
-// node_modules/d3-geo/src/projection/albersUsa.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/albersUsa.js
 function multiplex(streams) {
   var n = streams.length;
   return {
@@ -35694,7 +35694,7 @@ function albersUsa_default() {
   return albersUsa.scale(1070);
 }
 
-// node_modules/d3-geo/src/projection/azimuthal.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/azimuthal.js
 function azimuthalRaw(scale3) {
   return function(x4, y4) {
     var cx = cos(x4), cy = cos(y4), k3 = scale3(cx * cy);
@@ -35715,7 +35715,7 @@ function azimuthalInvert(angle) {
   };
 }
 
-// node_modules/d3-geo/src/projection/azimuthalEqualArea.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/azimuthalEqualArea.js
 var azimuthalEqualAreaRaw = azimuthalRaw(function(cxcy) {
   return sqrt(2 / (1 + cxcy));
 });
@@ -35726,7 +35726,7 @@ function azimuthalEqualArea_default() {
   return projection(azimuthalEqualAreaRaw).scale(124.75).clipAngle(180 - 1e-3);
 }
 
-// node_modules/d3-geo/src/projection/azimuthalEquidistant.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/azimuthalEquidistant.js
 var azimuthalEquidistantRaw = azimuthalRaw(function(c4) {
   return (c4 = acos(c4)) && c4 / sin(c4);
 });
@@ -35737,7 +35737,7 @@ function azimuthalEquidistant_default() {
   return projection(azimuthalEquidistantRaw).scale(79.4188).clipAngle(180 - 1e-3);
 }
 
-// node_modules/d3-geo/src/projection/mercator.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/mercator.js
 function mercatorRaw(lambda, phi) {
   return [lambda, log(tan((halfPi + phi) / 2))];
 }
@@ -35768,7 +35768,7 @@ function mercatorProjection(project2) {
   return reclip();
 }
 
-// node_modules/d3-geo/src/projection/conicConformal.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/conicConformal.js
 function tany(y4) {
   return tan((halfPi + y4) / 2);
 }
@@ -35796,7 +35796,7 @@ function conicConformal_default() {
   return conicProjection(conicConformalRaw).scale(109.5).parallels([30, 30]);
 }
 
-// node_modules/d3-geo/src/projection/equirectangular.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/equirectangular.js
 function equirectangularRaw(lambda, phi) {
   return [lambda, phi];
 }
@@ -35805,7 +35805,7 @@ function equirectangular_default() {
   return projection(equirectangularRaw).scale(152.63);
 }
 
-// node_modules/d3-geo/src/projection/conicEquidistant.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/conicEquidistant.js
 function conicEquidistantRaw(y06, y12) {
   var cy0 = cos(y06), n = y06 === y12 ? sin(y06) : (cy0 - cos(y12)) / (y12 - y06), g2 = cy0 / n + y06;
   if (abs2(n) < epsilon6) return equirectangularRaw;
@@ -35825,7 +35825,7 @@ function conicEquidistant_default() {
   return conicProjection(conicEquidistantRaw).scale(131.154).center([0, 13.9389]);
 }
 
-// node_modules/d3-geo/src/projection/equalEarth.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/equalEarth.js
 var A1 = 1.340264;
 var A22 = -0.081106;
 var A3 = 893e-6;
@@ -35856,7 +35856,7 @@ function equalEarth_default() {
   return projection(equalEarthRaw).scale(177.158);
 }
 
-// node_modules/d3-geo/src/projection/gnomonic.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/gnomonic.js
 function gnomonicRaw(x4, y4) {
   var cy = cos(y4), k3 = cos(x4) * cy;
   return [cy * sin(x4) / k3, sin(y4) / k3];
@@ -35866,7 +35866,7 @@ function gnomonic_default() {
   return projection(gnomonicRaw).scale(144.049).clipAngle(60);
 }
 
-// node_modules/d3-geo/src/projection/orthographic.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/orthographic.js
 function orthographicRaw(x4, y4) {
   return [cos(y4) * sin(x4), sin(y4)];
 }
@@ -35875,7 +35875,7 @@ function orthographic_default() {
   return projection(orthographicRaw).scale(249.5).clipAngle(90 + epsilon6);
 }
 
-// node_modules/d3-geo/src/projection/stereographic.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/stereographic.js
 function stereographicRaw(x4, y4) {
   var cy = cos(y4), k3 = 1 + cos(x4) * cy;
   return [cy * sin(x4) / k3, sin(y4) / k3];
@@ -35887,7 +35887,7 @@ function stereographic_default() {
   return projection(stereographicRaw).scale(250).clipAngle(142);
 }
 
-// node_modules/d3-geo/src/projection/transverseMercator.js
+// benchmarks/probes/vendor/node_modules/d3-geo/src/projection/transverseMercator.js
 function transverseMercatorRaw(lambda, phi) {
   return [log(tan((halfPi + phi) / 2)), -lambda];
 }
@@ -35905,7 +35905,7 @@ function transverseMercator_default() {
   return rotate([0, 0, 90]).scale(159.155);
 }
 
-// node_modules/d3-hierarchy/src/cluster.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/cluster.js
 function defaultSeparation(a2, b2) {
   return a2.parent === b2.parent ? 1 : 2;
 }
@@ -35967,7 +35967,7 @@ function cluster_default() {
   return cluster2;
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/count.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/count.js
 function count3(node) {
   var sum4 = 0, children2 = node.children, i = children2 && children2.length;
   if (!i) sum4 = 1;
@@ -35978,7 +35978,7 @@ function count_default() {
   return this.eachAfter(count3);
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/each.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/each.js
 function each_default2(callback, that) {
   let index2 = -1;
   for (const node of this) {
@@ -35987,7 +35987,7 @@ function each_default2(callback, that) {
   return this;
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/eachBefore.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/eachBefore.js
 function eachBefore_default(callback, that) {
   var node = this, nodes = [node], children2, i, index2 = -1;
   while (node = nodes.pop()) {
@@ -36001,7 +36001,7 @@ function eachBefore_default(callback, that) {
   return this;
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/eachAfter.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/eachAfter.js
 function eachAfter_default(callback, that) {
   var node = this, nodes = [node], next = [], children2, i, n, index2 = -1;
   while (node = nodes.pop()) {
@@ -36018,7 +36018,7 @@ function eachAfter_default(callback, that) {
   return this;
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/find.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/find.js
 function find_default(callback, that) {
   let index2 = -1;
   for (const node of this) {
@@ -36028,7 +36028,7 @@ function find_default(callback, that) {
   }
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/sum.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/sum.js
 function sum_default(value) {
   return this.eachAfter(function(node) {
     var sum4 = +value(node.data) || 0, children2 = node.children, i = children2 && children2.length;
@@ -36037,7 +36037,7 @@ function sum_default(value) {
   });
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/sort.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/sort.js
 function sort_default2(compare) {
   return this.eachBefore(function(node) {
     if (node.children) {
@@ -36046,7 +36046,7 @@ function sort_default2(compare) {
   });
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/path.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/path.js
 function path_default2(end) {
   var start2 = this, ancestor = leastCommonAncestor(start2, end), nodes = [start2];
   while (start2 !== ancestor) {
@@ -36073,7 +36073,7 @@ function leastCommonAncestor(a2, b2) {
   return c4;
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/ancestors.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/ancestors.js
 function ancestors_default() {
   var node = this, nodes = [node];
   while (node = node.parent) {
@@ -36082,12 +36082,12 @@ function ancestors_default() {
   return nodes;
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/descendants.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/descendants.js
 function descendants_default() {
   return Array.from(this);
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/leaves.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/leaves.js
 function leaves_default() {
   var leaves = [];
   this.eachBefore(function(node) {
@@ -36098,7 +36098,7 @@ function leaves_default() {
   return leaves;
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/links.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/links.js
 function links_default() {
   var root2 = this, links = [];
   root2.each(function(node) {
@@ -36109,7 +36109,7 @@ function links_default() {
   return links;
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/iterator.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/iterator.js
 function* iterator_default2() {
   var node = this, current, next = [node], children2, i, n;
   do {
@@ -36125,7 +36125,7 @@ function* iterator_default2() {
   } while (next.length);
 }
 
-// node_modules/d3-hierarchy/src/hierarchy/index.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/hierarchy/index.js
 function hierarchy(data, children2) {
   if (data instanceof Map) {
     data = [void 0, data];
@@ -36188,7 +36188,7 @@ Node.prototype = hierarchy.prototype = {
   [Symbol.iterator]: iterator_default2
 };
 
-// node_modules/d3-hierarchy/src/accessors.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/accessors.js
 function optional(f2) {
   return f2 == null ? null : required(f2);
 }
@@ -36197,7 +36197,7 @@ function required(f2) {
   return f2;
 }
 
-// node_modules/d3-hierarchy/src/stratify.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/stratify.js
 var preroot = { depth: -1 };
 var ambiguous = {};
 var imputed = {};
@@ -36302,7 +36302,7 @@ function slash(path2, i) {
   return false;
 }
 
-// node_modules/d3-hierarchy/src/tree.js
+// benchmarks/probes/vendor/node_modules/d3-hierarchy/src/tree.js
 function defaultSeparation2(a2, b2) {
   return a2.parent === b2.parent ? 1 : 2;
 }
@@ -36450,7 +36450,7 @@ function tree_default() {
   return tree2;
 }
 
-// node_modules/d3-random/src/lcg.js
+// benchmarks/probes/vendor/node_modules/d3-random/src/lcg.js
 var mul = 1664525;
 var inc = 1013904223;
 var eps = 1 / 4294967296;
@@ -36459,7 +36459,7 @@ function lcg(seed = Math.random()) {
   return () => (state = mul * state + inc | 0, eps * (state >>> 0));
 }
 
-// node_modules/d3-scale/src/init.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/init.js
 function initRange(domain, range3) {
   switch (arguments.length) {
     case 0:
@@ -36492,7 +36492,7 @@ function initInterpolator(domain, interpolator) {
   return this;
 }
 
-// node_modules/d3-scale/src/ordinal.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/ordinal.js
 var implicit = Symbol("implicit");
 function ordinal() {
   var index2 = new InternMap(), domain = [], range3 = [], unknown = implicit;
@@ -36526,7 +36526,7 @@ function ordinal() {
   return scale3;
 }
 
-// node_modules/d3-scale/src/band.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/band.js
 function band() {
   var scale3 = ordinal().unknown(void 0), domain = scale3.domain, ordinalRange2 = scale3.range, r0 = 0, r1 = 1, step, bandwidth, round2 = false, paddingInner = 0, paddingOuter = 0, align2 = 0.5;
   delete scale3.unknown;
@@ -36591,19 +36591,19 @@ function point() {
   return pointish(band.apply(null, arguments).paddingInner(1));
 }
 
-// node_modules/d3-scale/src/constant.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/constant.js
 function constants(x4) {
   return function() {
     return x4;
   };
 }
 
-// node_modules/d3-scale/src/number.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/number.js
 function number3(x4) {
   return +x4;
 }
 
-// node_modules/d3-scale/src/continuous.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/continuous.js
 var unit = [0, 1];
 function identity4(x4) {
   return x4;
@@ -36688,7 +36688,7 @@ function continuous() {
   return transformer2()(identity4, identity4);
 }
 
-// node_modules/d3-scale/src/tickFormat.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/tickFormat.js
 function tickFormat(start2, stop, count4, specifier) {
   var step = tickStep(start2, stop, count4), precision;
   specifier = formatSpecifier(specifier == null ? ",f" : specifier);
@@ -36715,7 +36715,7 @@ function tickFormat(start2, stop, count4, specifier) {
   return format(specifier);
 }
 
-// node_modules/d3-scale/src/linear.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/linear.js
 function linearish(scale3) {
   var domain = scale3.domain;
   scale3.ticks = function(count4) {
@@ -36770,7 +36770,7 @@ function linear2() {
   return linearish(scale3);
 }
 
-// node_modules/d3-scale/src/identity.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/identity.js
 function identity5(domain) {
   var unknown;
   function scale3(x4) {
@@ -36790,7 +36790,7 @@ function identity5(domain) {
   return linearish(scale3);
 }
 
-// node_modules/d3-scale/src/nice.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/nice.js
 function nice2(domain, interval2) {
   domain = domain.slice();
   var i0 = 0, i1 = domain.length - 1, x06 = domain[i0], x12 = domain[i1], t;
@@ -36803,7 +36803,7 @@ function nice2(domain, interval2) {
   return domain;
 }
 
-// node_modules/d3-scale/src/log.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/log.js
 function transformLog(x4) {
   return Math.log(x4);
 }
@@ -36916,7 +36916,7 @@ function log2() {
   return scale3;
 }
 
-// node_modules/d3-scale/src/symlog.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/symlog.js
 function transformSymlog(c4) {
   return function(x4) {
     return Math.sign(x4) * Math.log1p(Math.abs(x4 / c4));
@@ -36942,7 +36942,7 @@ function symlog() {
   return initRange.apply(scale3, arguments);
 }
 
-// node_modules/d3-scale/src/pow.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/pow.js
 function transformPow(exponent) {
   return function(x4) {
     return x4 < 0 ? -Math.pow(-x4, exponent) : Math.pow(x4, exponent);
@@ -36973,7 +36973,7 @@ function pow3() {
   return scale3;
 }
 
-// node_modules/d3-scale/src/quantile.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/quantile.js
 function quantile3() {
   var domain = [], range3 = [], thresholds = [], unknown;
   function rescale() {
@@ -37014,7 +37014,7 @@ function quantile3() {
   return initRange.apply(scale3, arguments);
 }
 
-// node_modules/d3-scale/src/threshold.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/threshold.js
 function threshold() {
   var domain = [0.5], range3 = [0, 1], unknown, n = 1;
   function scale3(x4) {
@@ -37039,7 +37039,7 @@ function threshold() {
   return initRange.apply(scale3, arguments);
 }
 
-// node_modules/d3-time/src/interval.js
+// benchmarks/probes/vendor/node_modules/d3-time/src/interval.js
 var t02 = /* @__PURE__ */ new Date();
 var t12 = /* @__PURE__ */ new Date();
 function timeInterval(floori, offseti, count4, field2) {
@@ -37100,7 +37100,7 @@ function timeInterval(floori, offseti, count4, field2) {
   return interval2;
 }
 
-// node_modules/d3-time/src/millisecond.js
+// benchmarks/probes/vendor/node_modules/d3-time/src/millisecond.js
 var millisecond = timeInterval(() => {
 }, (date2, step) => {
   date2.setTime(+date2 + step);
@@ -37121,7 +37121,7 @@ millisecond.every = (k3) => {
 };
 var milliseconds = millisecond.range;
 
-// node_modules/d3-time/src/duration.js
+// benchmarks/probes/vendor/node_modules/d3-time/src/duration.js
 var durationSecond = 1e3;
 var durationMinute = durationSecond * 60;
 var durationHour = durationMinute * 60;
@@ -37130,7 +37130,7 @@ var durationWeek = durationDay * 7;
 var durationMonth = durationDay * 30;
 var durationYear = durationDay * 365;
 
-// node_modules/d3-time/src/second.js
+// benchmarks/probes/vendor/node_modules/d3-time/src/second.js
 var second = timeInterval((date2) => {
   date2.setTime(date2 - date2.getMilliseconds());
 }, (date2, step) => {
@@ -37142,7 +37142,7 @@ var second = timeInterval((date2) => {
 });
 var seconds = second.range;
 
-// node_modules/d3-time/src/minute.js
+// benchmarks/probes/vendor/node_modules/d3-time/src/minute.js
 var timeMinute = timeInterval((date2) => {
   date2.setTime(date2 - date2.getMilliseconds() - date2.getSeconds() * durationSecond);
 }, (date2, step) => {
@@ -37164,7 +37164,7 @@ var utcMinute = timeInterval((date2) => {
 });
 var utcMinutes = utcMinute.range;
 
-// node_modules/d3-time/src/hour.js
+// benchmarks/probes/vendor/node_modules/d3-time/src/hour.js
 var timeHour = timeInterval((date2) => {
   date2.setTime(date2 - date2.getMilliseconds() - date2.getSeconds() * durationSecond - date2.getMinutes() * durationMinute);
 }, (date2, step) => {
@@ -37186,7 +37186,7 @@ var utcHour = timeInterval((date2) => {
 });
 var utcHours = utcHour.range;
 
-// node_modules/d3-time/src/day.js
+// benchmarks/probes/vendor/node_modules/d3-time/src/day.js
 var timeDay = timeInterval(
   (date2) => date2.setHours(0, 0, 0, 0),
   (date2, step) => date2.setDate(date2.getDate() + step),
@@ -37215,7 +37215,7 @@ var unixDay = timeInterval((date2) => {
 });
 var unixDays = unixDay.range;
 
-// node_modules/d3-time/src/week.js
+// benchmarks/probes/vendor/node_modules/d3-time/src/week.js
 function timeWeekday(i) {
   return timeInterval((date2) => {
     date2.setDate(date2.getDate() - (date2.getDay() + 7 - i) % 7);
@@ -37265,7 +37265,7 @@ var utcThursdays = utcThursday.range;
 var utcFridays = utcFriday.range;
 var utcSaturdays = utcSaturday.range;
 
-// node_modules/d3-time/src/month.js
+// benchmarks/probes/vendor/node_modules/d3-time/src/month.js
 var timeMonth = timeInterval((date2) => {
   date2.setDate(1);
   date2.setHours(0, 0, 0, 0);
@@ -37289,7 +37289,7 @@ var utcMonth = timeInterval((date2) => {
 });
 var utcMonths = utcMonth.range;
 
-// node_modules/d3-time/src/year.js
+// benchmarks/probes/vendor/node_modules/d3-time/src/year.js
 var timeYear = timeInterval((date2) => {
   date2.setMonth(0, 1);
   date2.setHours(0, 0, 0, 0);
@@ -37331,7 +37331,7 @@ utcYear.every = (k3) => {
 };
 var utcYears = utcYear.range;
 
-// node_modules/d3-time/src/ticks.js
+// benchmarks/probes/vendor/node_modules/d3-time/src/ticks.js
 function ticker(year, month, week, day, hour, minute) {
   const tickIntervals2 = [
     [second, 1, durationSecond],
@@ -37373,7 +37373,7 @@ function ticker(year, month, week, day, hour, minute) {
 var [utcTicks, utcTickInterval] = ticker(utcYear, utcMonth, utcSunday, unixDay, utcHour, utcMinute);
 var [timeTicks, timeTickInterval] = ticker(timeYear, timeMonth, timeSunday, timeDay, timeHour, timeMinute);
 
-// node_modules/d3-time-format/src/locale.js
+// benchmarks/probes/vendor/node_modules/d3-time-format/src/locale.js
 function localDate(d2) {
   if (0 <= d2.y && d2.y < 100) {
     var date2 = new Date(-1, d2.m, d2.d, d2.H, d2.M, d2.S, d2.L);
@@ -37914,7 +37914,7 @@ function formatUnixTimestampSeconds(d2) {
   return Math.floor(+d2 / 1e3);
 }
 
-// node_modules/d3-time-format/src/defaultLocale.js
+// benchmarks/probes/vendor/node_modules/d3-time-format/src/defaultLocale.js
 var locale2;
 var timeFormat;
 var timeParse;
@@ -37939,7 +37939,7 @@ function defaultLocale2(definition) {
   return locale2;
 }
 
-// node_modules/d3-scale/src/time.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/time.js
 function date(t) {
   return new Date(t);
 }
@@ -37979,17 +37979,17 @@ function time() {
   return initRange.apply(calendar(timeTicks, timeTickInterval, timeYear, timeMonth, timeSunday, timeDay, timeHour, timeMinute, second, timeFormat).domain([new Date(2e3, 0, 1), new Date(2e3, 0, 2)]), arguments);
 }
 
-// node_modules/d3-scale/src/utcTime.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/utcTime.js
 function utcTime() {
   return initRange.apply(calendar(utcTicks, utcTickInterval, utcYear, utcMonth, utcSunday, utcDay, utcHour, utcMinute, second, utcFormat).domain([Date.UTC(2e3, 0, 1), Date.UTC(2e3, 0, 2)]), arguments);
 }
 
-// node_modules/d3-scale/src/sequential.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/sequential.js
 function copy2(source, target) {
   return target.domain(source.domain()).interpolator(source.interpolator()).clamp(source.clamp()).unknown(source.unknown());
 }
 
-// node_modules/d3-scale/src/diverging.js
+// benchmarks/probes/vendor/node_modules/d3-scale/src/diverging.js
 function transformer3() {
   var x06 = 0, x12 = 0.5, x22 = 1, s2 = 1, t03, t13, t22, k10, k21, interpolator = identity4, transform3, clamp = false, unknown;
   function scale3(x4) {
@@ -38049,50 +38049,50 @@ function divergingPow() {
   return initInterpolator.apply(scale3, arguments);
 }
 
-// node_modules/d3-scale-chromatic/src/colors.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/colors.js
 function colors_default(specifier) {
   var n = specifier.length / 6 | 0, colors = new Array(n), i = 0;
   while (i < n) colors[i] = "#" + specifier.slice(i * 6, ++i * 6);
   return colors;
 }
 
-// node_modules/d3-scale-chromatic/src/categorical/category10.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/categorical/category10.js
 var category10_default = colors_default("1f77b4ff7f0e2ca02cd627289467bd8c564be377c27f7f7fbcbd2217becf");
 
-// node_modules/d3-scale-chromatic/src/categorical/Accent.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/categorical/Accent.js
 var Accent_default = colors_default("7fc97fbeaed4fdc086ffff99386cb0f0027fbf5b17666666");
 
-// node_modules/d3-scale-chromatic/src/categorical/Dark2.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/categorical/Dark2.js
 var Dark2_default = colors_default("1b9e77d95f027570b3e7298a66a61ee6ab02a6761d666666");
 
-// node_modules/d3-scale-chromatic/src/categorical/observable10.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/categorical/observable10.js
 var observable10_default = colors_default("4269d0efb118ff725c6cc5b03ca951ff8ab7a463f297bbf59c6b4e9498a0");
 
-// node_modules/d3-scale-chromatic/src/categorical/Paired.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/categorical/Paired.js
 var Paired_default = colors_default("a6cee31f78b4b2df8a33a02cfb9a99e31a1cfdbf6fff7f00cab2d66a3d9affff99b15928");
 
-// node_modules/d3-scale-chromatic/src/categorical/Pastel1.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/categorical/Pastel1.js
 var Pastel1_default = colors_default("fbb4aeb3cde3ccebc5decbe4fed9a6ffffcce5d8bdfddaecf2f2f2");
 
-// node_modules/d3-scale-chromatic/src/categorical/Pastel2.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/categorical/Pastel2.js
 var Pastel2_default = colors_default("b3e2cdfdcdaccbd5e8f4cae4e6f5c9fff2aef1e2cccccccc");
 
-// node_modules/d3-scale-chromatic/src/categorical/Set1.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/categorical/Set1.js
 var Set1_default = colors_default("e41a1c377eb84daf4a984ea3ff7f00ffff33a65628f781bf999999");
 
-// node_modules/d3-scale-chromatic/src/categorical/Set2.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/categorical/Set2.js
 var Set2_default = colors_default("66c2a5fc8d628da0cbe78ac3a6d854ffd92fe5c494b3b3b3");
 
-// node_modules/d3-scale-chromatic/src/categorical/Set3.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/categorical/Set3.js
 var Set3_default = colors_default("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9bc80bdccebc5ffed6f");
 
-// node_modules/d3-scale-chromatic/src/categorical/Tableau10.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/categorical/Tableau10.js
 var Tableau10_default = colors_default("4e79a7f28e2ce1575976b7b259a14fedc949af7aa1ff9da79c755fbab0ab");
 
-// node_modules/d3-scale-chromatic/src/ramp.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/ramp.js
 var ramp_default = (scheme28) => rgbBasis(scheme28[scheme28.length - 1]);
 
-// node_modules/d3-scale-chromatic/src/diverging/BrBG.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/diverging/BrBG.js
 var scheme = new Array(3).concat(
   "d8b365f5f5f55ab4ac",
   "a6611adfc27d80cdc1018571",
@@ -38106,7 +38106,7 @@ var scheme = new Array(3).concat(
 ).map(colors_default);
 var BrBG_default = ramp_default(scheme);
 
-// node_modules/d3-scale-chromatic/src/diverging/PRGn.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/diverging/PRGn.js
 var scheme2 = new Array(3).concat(
   "af8dc3f7f7f77fbf7b",
   "7b3294c2a5cfa6dba0008837",
@@ -38120,7 +38120,7 @@ var scheme2 = new Array(3).concat(
 ).map(colors_default);
 var PRGn_default = ramp_default(scheme2);
 
-// node_modules/d3-scale-chromatic/src/diverging/PiYG.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/diverging/PiYG.js
 var scheme3 = new Array(3).concat(
   "e9a3c9f7f7f7a1d76a",
   "d01c8bf1b6dab8e1864dac26",
@@ -38134,7 +38134,7 @@ var scheme3 = new Array(3).concat(
 ).map(colors_default);
 var PiYG_default = ramp_default(scheme3);
 
-// node_modules/d3-scale-chromatic/src/diverging/PuOr.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/diverging/PuOr.js
 var scheme4 = new Array(3).concat(
   "998ec3f7f7f7f1a340",
   "5e3c99b2abd2fdb863e66101",
@@ -38148,7 +38148,7 @@ var scheme4 = new Array(3).concat(
 ).map(colors_default);
 var PuOr_default = ramp_default(scheme4);
 
-// node_modules/d3-scale-chromatic/src/diverging/RdBu.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/diverging/RdBu.js
 var scheme5 = new Array(3).concat(
   "ef8a62f7f7f767a9cf",
   "ca0020f4a58292c5de0571b0",
@@ -38162,7 +38162,7 @@ var scheme5 = new Array(3).concat(
 ).map(colors_default);
 var RdBu_default = ramp_default(scheme5);
 
-// node_modules/d3-scale-chromatic/src/diverging/RdGy.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/diverging/RdGy.js
 var scheme6 = new Array(3).concat(
   "ef8a62ffffff999999",
   "ca0020f4a582bababa404040",
@@ -38176,7 +38176,7 @@ var scheme6 = new Array(3).concat(
 ).map(colors_default);
 var RdGy_default = ramp_default(scheme6);
 
-// node_modules/d3-scale-chromatic/src/diverging/RdYlBu.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/diverging/RdYlBu.js
 var scheme7 = new Array(3).concat(
   "fc8d59ffffbf91bfdb",
   "d7191cfdae61abd9e92c7bb6",
@@ -38190,7 +38190,7 @@ var scheme7 = new Array(3).concat(
 ).map(colors_default);
 var RdYlBu_default = ramp_default(scheme7);
 
-// node_modules/d3-scale-chromatic/src/diverging/RdYlGn.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/diverging/RdYlGn.js
 var scheme8 = new Array(3).concat(
   "fc8d59ffffbf91cf60",
   "d7191cfdae61a6d96a1a9641",
@@ -38204,7 +38204,7 @@ var scheme8 = new Array(3).concat(
 ).map(colors_default);
 var RdYlGn_default = ramp_default(scheme8);
 
-// node_modules/d3-scale-chromatic/src/diverging/Spectral.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/diverging/Spectral.js
 var scheme9 = new Array(3).concat(
   "fc8d59ffffbf99d594",
   "d7191cfdae61abdda42b83ba",
@@ -38218,7 +38218,7 @@ var scheme9 = new Array(3).concat(
 ).map(colors_default);
 var Spectral_default = ramp_default(scheme9);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/BuGn.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/BuGn.js
 var scheme10 = new Array(3).concat(
   "e5f5f999d8c92ca25f",
   "edf8fbb2e2e266c2a4238b45",
@@ -38230,7 +38230,7 @@ var scheme10 = new Array(3).concat(
 ).map(colors_default);
 var BuGn_default = ramp_default(scheme10);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/BuPu.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/BuPu.js
 var scheme11 = new Array(3).concat(
   "e0ecf49ebcda8856a7",
   "edf8fbb3cde38c96c688419d",
@@ -38242,7 +38242,7 @@ var scheme11 = new Array(3).concat(
 ).map(colors_default);
 var BuPu_default = ramp_default(scheme11);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/GnBu.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/GnBu.js
 var scheme12 = new Array(3).concat(
   "e0f3dba8ddb543a2ca",
   "f0f9e8bae4bc7bccc42b8cbe",
@@ -38254,7 +38254,7 @@ var scheme12 = new Array(3).concat(
 ).map(colors_default);
 var GnBu_default = ramp_default(scheme12);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/OrRd.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/OrRd.js
 var scheme13 = new Array(3).concat(
   "fee8c8fdbb84e34a33",
   "fef0d9fdcc8afc8d59d7301f",
@@ -38266,7 +38266,7 @@ var scheme13 = new Array(3).concat(
 ).map(colors_default);
 var OrRd_default = ramp_default(scheme13);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/PuBuGn.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/PuBuGn.js
 var scheme14 = new Array(3).concat(
   "ece2f0a6bddb1c9099",
   "f6eff7bdc9e167a9cf02818a",
@@ -38278,7 +38278,7 @@ var scheme14 = new Array(3).concat(
 ).map(colors_default);
 var PuBuGn_default = ramp_default(scheme14);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/PuBu.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/PuBu.js
 var scheme15 = new Array(3).concat(
   "ece7f2a6bddb2b8cbe",
   "f1eef6bdc9e174a9cf0570b0",
@@ -38290,7 +38290,7 @@ var scheme15 = new Array(3).concat(
 ).map(colors_default);
 var PuBu_default = ramp_default(scheme15);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/PuRd.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/PuRd.js
 var scheme16 = new Array(3).concat(
   "e7e1efc994c7dd1c77",
   "f1eef6d7b5d8df65b0ce1256",
@@ -38302,7 +38302,7 @@ var scheme16 = new Array(3).concat(
 ).map(colors_default);
 var PuRd_default = ramp_default(scheme16);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/RdPu.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/RdPu.js
 var scheme17 = new Array(3).concat(
   "fde0ddfa9fb5c51b8a",
   "feebe2fbb4b9f768a1ae017e",
@@ -38314,7 +38314,7 @@ var scheme17 = new Array(3).concat(
 ).map(colors_default);
 var RdPu_default = ramp_default(scheme17);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/YlGnBu.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/YlGnBu.js
 var scheme18 = new Array(3).concat(
   "edf8b17fcdbb2c7fb8",
   "ffffcca1dab441b6c4225ea8",
@@ -38326,7 +38326,7 @@ var scheme18 = new Array(3).concat(
 ).map(colors_default);
 var YlGnBu_default = ramp_default(scheme18);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/YlGn.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/YlGn.js
 var scheme19 = new Array(3).concat(
   "f7fcb9addd8e31a354",
   "ffffccc2e69978c679238443",
@@ -38338,7 +38338,7 @@ var scheme19 = new Array(3).concat(
 ).map(colors_default);
 var YlGn_default = ramp_default(scheme19);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/YlOrBr.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/YlOrBr.js
 var scheme20 = new Array(3).concat(
   "fff7bcfec44fd95f0e",
   "ffffd4fed98efe9929cc4c02",
@@ -38350,7 +38350,7 @@ var scheme20 = new Array(3).concat(
 ).map(colors_default);
 var YlOrBr_default = ramp_default(scheme20);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/YlOrRd.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/YlOrRd.js
 var scheme21 = new Array(3).concat(
   "ffeda0feb24cf03b20",
   "ffffb2fecc5cfd8d3ce31a1c",
@@ -38362,7 +38362,7 @@ var scheme21 = new Array(3).concat(
 ).map(colors_default);
 var YlOrRd_default = ramp_default(scheme21);
 
-// node_modules/d3-scale-chromatic/src/sequential-single/Blues.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-single/Blues.js
 var scheme22 = new Array(3).concat(
   "deebf79ecae13182bd",
   "eff3ffbdd7e76baed62171b5",
@@ -38374,7 +38374,7 @@ var scheme22 = new Array(3).concat(
 ).map(colors_default);
 var Blues_default = ramp_default(scheme22);
 
-// node_modules/d3-scale-chromatic/src/sequential-single/Greens.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-single/Greens.js
 var scheme23 = new Array(3).concat(
   "e5f5e0a1d99b31a354",
   "edf8e9bae4b374c476238b45",
@@ -38386,7 +38386,7 @@ var scheme23 = new Array(3).concat(
 ).map(colors_default);
 var Greens_default = ramp_default(scheme23);
 
-// node_modules/d3-scale-chromatic/src/sequential-single/Greys.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-single/Greys.js
 var scheme24 = new Array(3).concat(
   "f0f0f0bdbdbd636363",
   "f7f7f7cccccc969696525252",
@@ -38398,7 +38398,7 @@ var scheme24 = new Array(3).concat(
 ).map(colors_default);
 var Greys_default = ramp_default(scheme24);
 
-// node_modules/d3-scale-chromatic/src/sequential-single/Purples.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-single/Purples.js
 var scheme25 = new Array(3).concat(
   "efedf5bcbddc756bb1",
   "f2f0f7cbc9e29e9ac86a51a3",
@@ -38410,7 +38410,7 @@ var scheme25 = new Array(3).concat(
 ).map(colors_default);
 var Purples_default = ramp_default(scheme25);
 
-// node_modules/d3-scale-chromatic/src/sequential-single/Reds.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-single/Reds.js
 var scheme26 = new Array(3).concat(
   "fee0d2fc9272de2d26",
   "fee5d9fcae91fb6a4acb181d",
@@ -38422,7 +38422,7 @@ var scheme26 = new Array(3).concat(
 ).map(colors_default);
 var Reds_default = ramp_default(scheme26);
 
-// node_modules/d3-scale-chromatic/src/sequential-single/Oranges.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-single/Oranges.js
 var scheme27 = new Array(3).concat(
   "fee6cefdae6be6550d",
   "feeddefdbe85fd8d3cd94701",
@@ -38434,16 +38434,16 @@ var scheme27 = new Array(3).concat(
 ).map(colors_default);
 var Oranges_default = ramp_default(scheme27);
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/cividis.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/cividis.js
 function cividis_default(t) {
   t = Math.max(0, Math.min(1, t));
   return "rgb(" + Math.max(0, Math.min(255, Math.round(-4.54 - t * (35.34 - t * (2381.73 - t * (6402.7 - t * (7024.72 - t * 2710.57))))))) + ", " + Math.max(0, Math.min(255, Math.round(32.49 + t * (170.73 + t * (52.82 - t * (131.46 - t * (176.58 - t * 67.37))))))) + ", " + Math.max(0, Math.min(255, Math.round(81.24 + t * (442.36 - t * (2482.43 - t * (6167.24 - t * (6614.94 - t * 2475.67))))))) + ")";
 }
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/cubehelix.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/cubehelix.js
 var cubehelix_default2 = cubehelixLong(cubehelix(300, 0.5, 0), cubehelix(-240, 0.5, 1));
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/rainbow.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/rainbow.js
 var warm = cubehelixLong(cubehelix(-100, 0.75, 0.35), cubehelix(80, 1.5, 0.8));
 var cool = cubehelixLong(cubehelix(260, 0.75, 0.35), cubehelix(80, 1.5, 0.8));
 var c = cubehelix();
@@ -38456,7 +38456,7 @@ function rainbow_default(t) {
   return c + "";
 }
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/sinebow.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/sinebow.js
 var c2 = rgb();
 var pi_1_3 = Math.PI / 3;
 var pi_2_3 = Math.PI * 2 / 3;
@@ -38469,13 +38469,13 @@ function sinebow_default(t) {
   return c2 + "";
 }
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/turbo.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/turbo.js
 function turbo_default(t) {
   t = Math.max(0, Math.min(1, t));
   return "rgb(" + Math.max(0, Math.min(255, Math.round(34.61 + t * (1172.33 - t * (10793.56 - t * (33300.12 - t * (38394.49 - t * 14825.05))))))) + ", " + Math.max(0, Math.min(255, Math.round(23.31 + t * (557.33 + t * (1225.33 - t * (3574.96 - t * (1073.77 + t * 707.56))))))) + ", " + Math.max(0, Math.min(255, Math.round(27.2 + t * (3211.1 - t * (15327.97 - t * (27814 - t * (22569.18 - t * 6838.66))))))) + ")";
 }
 
-// node_modules/d3-scale-chromatic/src/sequential-multi/viridis.js
+// benchmarks/probes/vendor/node_modules/d3-scale-chromatic/src/sequential-multi/viridis.js
 function ramp(range3) {
   var n = range3.length;
   return function(t) {
@@ -38487,14 +38487,14 @@ var magma = ramp(colors_default("00000401000501010601010802010902020b02020d03030
 var inferno = ramp(colors_default("00000401000501010601010802010a02020c02020e03021004031204031405041706041907051b08051d09061f0a07220b07240c08260d08290e092b10092d110a30120a32140b34150b37160b39180c3c190c3e1b0c411c0c431e0c451f0c48210c4a230c4c240c4f260c51280b53290b552b0b572d0b592f0a5b310a5c320a5e340a5f3609613809623909633b09643d09653e0966400a67420a68440a68450a69470b6a490b6a4a0c6b4c0c6b4d0d6c4f0d6c510e6c520e6d540f6d550f6d57106e59106e5a116e5c126e5d126e5f136e61136e62146e64156e65156e67166e69166e6a176e6c186e6d186e6f196e71196e721a6e741a6e751b6e771c6d781c6d7a1d6d7c1d6d7d1e6d7f1e6c801f6c82206c84206b85216b87216b88226a8a226a8c23698d23698f24699025689225689326679526679727669827669a28659b29649d29649f2a63a02a63a22b62a32c61a52c60a62d60a82e5fa92e5eab2f5ead305dae305cb0315bb1325ab3325ab43359b63458b73557b93556ba3655bc3754bd3853bf3952c03a51c13a50c33b4fc43c4ec63d4dc73e4cc83f4bca404acb4149cc4248ce4347cf4446d04545d24644d34743d44842d54a41d74b3fd84c3ed94d3dda4e3cdb503bdd513ade5238df5337e05536e15635e25734e35933e45a31e55c30e65d2fe75e2ee8602de9612bea632aeb6429eb6628ec6726ed6925ee6a24ef6c23ef6e21f06f20f1711ff1731df2741cf3761bf37819f47918f57b17f57d15f67e14f68013f78212f78410f8850ff8870ef8890cf98b0bf98c0af98e09fa9008fa9207fa9407fb9606fb9706fb9906fb9b06fb9d07fc9f07fca108fca309fca50afca60cfca80dfcaa0ffcac11fcae12fcb014fcb216fcb418fbb61afbb81dfbba1ffbbc21fbbe23fac026fac228fac42afac62df9c72ff9c932f9cb35f8cd37f8cf3af7d13df7d340f6d543f6d746f5d949f5db4cf4dd4ff4df53f4e156f3e35af3e55df2e661f2e865f2ea69f1ec6df1ed71f1ef75f1f179f2f27df2f482f3f586f3f68af4f88ef5f992f6fa96f8fb9af9fc9dfafda1fcffa4"));
 var plasma = ramp(colors_default("0d088710078813078916078a19068c1b068d1d068e20068f2206902406912605912805922a05932c05942e05952f059631059733059735049837049938049a3a049a3c049b3e049c3f049c41049d43039e44039e46039f48039f4903a04b03a14c02a14e02a25002a25102a35302a35502a45601a45801a45901a55b01a55c01a65e01a66001a66100a76300a76400a76600a76700a86900a86a00a86c00a86e00a86f00a87100a87201a87401a87501a87701a87801a87a02a87b02a87d03a87e03a88004a88104a78305a78405a78606a68707a68808a68a09a58b0aa58d0ba58e0ca48f0da4910ea3920fa39410a29511a19613a19814a099159f9a169f9c179e9d189d9e199da01a9ca11b9ba21d9aa31e9aa51f99a62098a72197a82296aa2395ab2494ac2694ad2793ae2892b02991b12a90b22b8fb32c8eb42e8db52f8cb6308bb7318ab83289ba3388bb3488bc3587bd3786be3885bf3984c03a83c13b82c23c81c33d80c43e7fc5407ec6417dc7427cc8437bc9447aca457acb4679cc4778cc4977cd4a76ce4b75cf4c74d04d73d14e72d24f71d35171d45270d5536fd5546ed6556dd7566cd8576bd9586ada5a6ada5b69db5c68dc5d67dd5e66de5f65de6164df6263e06363e16462e26561e26660e3685fe4695ee56a5de56b5de66c5ce76e5be76f5ae87059e97158e97257ea7457eb7556eb7655ec7754ed7953ed7a52ee7b51ef7c51ef7e50f07f4ff0804ef1814df1834cf2844bf3854bf3874af48849f48948f58b47f58c46f68d45f68f44f79044f79143f79342f89441f89540f9973ff9983ef99a3efa9b3dfa9c3cfa9e3bfb9f3afba139fba238fca338fca537fca636fca835fca934fdab33fdac33fdae32fdaf31fdb130fdb22ffdb42ffdb52efeb72dfeb82cfeba2cfebb2bfebd2afebe2afec029fdc229fdc328fdc527fdc627fdc827fdca26fdcb26fccd25fcce25fcd025fcd225fbd324fbd524fbd724fad824fada24f9dc24f9dd25f8df25f8e125f7e225f7e425f6e626f6e826f5e926f5eb27f4ed27f3ee27f3f027f2f227f1f426f1f525f0f724f0f921"));
 
-// node_modules/d3-shape/src/constant.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/constant.js
 function constant_default5(x4) {
   return function constant2() {
     return x4;
   };
 }
 
-// node_modules/d3-shape/src/math.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/math.js
 var cos2 = Math.cos;
 var min4 = Math.min;
 var sin2 = Math.sin;
@@ -38504,7 +38504,7 @@ var pi3 = Math.PI;
 var halfPi2 = pi3 / 2;
 var tau4 = 2 * pi3;
 
-// node_modules/d3-shape/src/path.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/path.js
 function withPath(shape) {
   let digits = 3;
   shape.digits = function(_2) {
@@ -38521,13 +38521,13 @@ function withPath(shape) {
   return () => new Path(digits);
 }
 
-// node_modules/d3-shape/src/array.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/array.js
 var slice2 = Array.prototype.slice;
 function array_default(x4) {
   return typeof x4 === "object" && "length" in x4 ? x4 : Array.from(x4);
 }
 
-// node_modules/d3-shape/src/curve/linear.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/linear.js
 function Linear(context) {
   this._context = context;
 }
@@ -38565,7 +38565,7 @@ function linear_default(context) {
   return new Linear(context);
 }
 
-// node_modules/d3-shape/src/point.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/point.js
 function x3(p2) {
   return p2[0];
 }
@@ -38573,7 +38573,7 @@ function y3(p2) {
   return p2[1];
 }
 
-// node_modules/d3-shape/src/line.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/line.js
 function line_default2(x4, y4) {
   var defined2 = constant_default5(true), context = null, curve = linear_default, output = null, path2 = withPath(line3);
   x4 = typeof x4 === "function" ? x4 : x4 === void 0 ? x3 : constant_default5(x4);
@@ -38608,7 +38608,7 @@ function line_default2(x4, y4) {
   return line3;
 }
 
-// node_modules/d3-shape/src/area.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/area.js
 function area_default3(x06, y06, y12) {
   var x12 = null, defined2 = constant_default5(true), context = null, curve = linear_default, output = null, path2 = withPath(area3);
   x06 = typeof x06 === "function" ? x06 : x06 === void 0 ? x3 : constant_default5(+x06);
@@ -38682,7 +38682,7 @@ function area_default3(x06, y06, y12) {
   return area3;
 }
 
-// node_modules/d3-shape/src/curve/bump.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/bump.js
 var Bump = class {
   constructor(context, x4) {
     this._context = context;
@@ -38729,7 +38729,7 @@ function bumpY(context) {
   return new Bump(context, false);
 }
 
-// node_modules/d3-shape/src/symbol/asterisk.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/asterisk.js
 var sqrt32 = sqrt3(3);
 var asterisk_default = {
   draw(context, size) {
@@ -38745,7 +38745,7 @@ var asterisk_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/circle.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/circle.js
 var circle_default2 = {
   draw(context, size) {
     const r = sqrt3(size / pi3);
@@ -38754,7 +38754,7 @@ var circle_default2 = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/cross.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/cross.js
 var cross_default = {
   draw(context, size) {
     const r = sqrt3(size / 5) / 2;
@@ -38774,7 +38774,7 @@ var cross_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/diamond.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/diamond.js
 var tan30 = sqrt3(1 / 3);
 var tan30_2 = tan30 * 2;
 var diamond_default = {
@@ -38789,7 +38789,7 @@ var diamond_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/diamond2.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/diamond2.js
 var diamond2_default = {
   draw(context, size) {
     const r = sqrt3(size) * 0.62625;
@@ -38801,7 +38801,7 @@ var diamond2_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/plus.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/plus.js
 var plus_default = {
   draw(context, size) {
     const r = sqrt3(size - min4(size / 7, 2)) * 0.87559;
@@ -38812,7 +38812,7 @@ var plus_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/square.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/square.js
 var square_default = {
   draw(context, size) {
     const w = sqrt3(size);
@@ -38821,7 +38821,7 @@ var square_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/square2.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/square2.js
 var square2_default = {
   draw(context, size) {
     const r = sqrt3(size) * 0.4431;
@@ -38833,7 +38833,7 @@ var square2_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/star.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/star.js
 var ka = 0.8908130915292852;
 var kr = sin2(pi3 / 10) / sin2(7 * pi3 / 10);
 var kx = sin2(tau4 / 10) * kr;
@@ -38856,7 +38856,7 @@ var star_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/triangle.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/triangle.js
 var sqrt33 = sqrt3(3);
 var triangle_default = {
   draw(context, size) {
@@ -38868,7 +38868,7 @@ var triangle_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/triangle2.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/triangle2.js
 var sqrt34 = sqrt3(3);
 var triangle2_default = {
   draw(context, size) {
@@ -38882,7 +38882,7 @@ var triangle2_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/wye.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/wye.js
 var c3 = -0.5;
 var s = sqrt3(3) / 2;
 var k2 = 1 / sqrt3(12);
@@ -38906,7 +38906,7 @@ var wye_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol/times.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol/times.js
 var times_default = {
   draw(context, size) {
     const r = sqrt3(size - min4(size / 6, 1.7)) * 0.6189;
@@ -38917,7 +38917,7 @@ var times_default = {
   }
 };
 
-// node_modules/d3-shape/src/symbol.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/symbol.js
 var symbolsFill = [
   circle_default2,
   cross_default,
@@ -38937,11 +38937,11 @@ var symbolsStroke = [
   diamond2_default
 ];
 
-// node_modules/d3-shape/src/noop.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/noop.js
 function noop_default2() {
 }
 
-// node_modules/d3-shape/src/curve/basis.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/basis.js
 function point2(that, x4, y4) {
   that._context.bezierCurveTo(
     (2 * that._x0 + that._x1) / 3,
@@ -39004,7 +39004,7 @@ function basis_default2(context) {
   return new Basis(context);
 }
 
-// node_modules/d3-shape/src/curve/basisClosed.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/basisClosed.js
 function BasisClosed(context) {
   this._context = context;
 }
@@ -39064,7 +39064,7 @@ function basisClosed_default2(context) {
   return new BasisClosed(context);
 }
 
-// node_modules/d3-shape/src/curve/basisOpen.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/basisOpen.js
 function BasisOpen(context) {
   this._context = context;
 }
@@ -39112,7 +39112,7 @@ function basisOpen_default(context) {
   return new BasisOpen(context);
 }
 
-// node_modules/d3-shape/src/curve/bundle.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/bundle.js
 function Bundle(context, beta) {
   this._basis = new Basis(context);
   this._beta = beta;
@@ -39153,7 +39153,7 @@ var bundle_default = function custom(beta) {
   return bundle;
 }(0.85);
 
-// node_modules/d3-shape/src/curve/cardinal.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/cardinal.js
 function point3(that, x4, y4) {
   that._context.bezierCurveTo(
     that._x1 + that._k * (that._x2 - that._x0),
@@ -39223,7 +39223,7 @@ var cardinal_default = function custom2(tension) {
   return cardinal;
 }(0);
 
-// node_modules/d3-shape/src/curve/cardinalClosed.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/cardinalClosed.js
 function CardinalClosed(context, tension) {
   this._context = context;
   this._k = (1 - tension) / 6;
@@ -39288,7 +39288,7 @@ var cardinalClosed_default = function custom3(tension) {
   return cardinal;
 }(0);
 
-// node_modules/d3-shape/src/curve/cardinalOpen.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/cardinalOpen.js
 function CardinalOpen(context, tension) {
   this._context = context;
   this._k = (1 - tension) / 6;
@@ -39342,7 +39342,7 @@ var cardinalOpen_default = function custom4(tension) {
   return cardinal;
 }(0);
 
-// node_modules/d3-shape/src/curve/catmullRom.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/catmullRom.js
 function point4(that, x4, y4) {
   var x12 = that._x1, y12 = that._y1, x22 = that._x2, y22 = that._y2;
   if (that._l01_a > epsilon7) {
@@ -39421,7 +39421,7 @@ var catmullRom_default = function custom5(alpha) {
   return catmullRom;
 }(0.5);
 
-// node_modules/d3-shape/src/curve/catmullRomClosed.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/catmullRomClosed.js
 function CatmullRomClosed(context, alpha) {
   this._context = context;
   this._alpha = alpha;
@@ -39492,7 +39492,7 @@ var catmullRomClosed_default = function custom6(alpha) {
   return catmullRom;
 }(0.5);
 
-// node_modules/d3-shape/src/curve/catmullRomOpen.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/catmullRomOpen.js
 function CatmullRomOpen(context, alpha) {
   this._context = context;
   this._alpha = alpha;
@@ -39552,7 +39552,7 @@ var catmullRomOpen_default = function custom7(alpha) {
   return catmullRom;
 }(0.5);
 
-// node_modules/d3-shape/src/curve/linearClosed.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/linearClosed.js
 function LinearClosed(context) {
   this._context = context;
 }
@@ -39575,7 +39575,7 @@ function linearClosed_default(context) {
   return new LinearClosed(context);
 }
 
-// node_modules/d3-shape/src/curve/monotone.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/monotone.js
 function sign2(x4) {
   return x4 < 0 ? -1 : 1;
 }
@@ -39672,7 +39672,7 @@ function monotoneY(context) {
   return new MonotoneY(context);
 }
 
-// node_modules/d3-shape/src/curve/natural.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/natural.js
 function Natural(context) {
   this._context = context;
 }
@@ -39725,7 +39725,7 @@ function natural_default(context) {
   return new Natural(context);
 }
 
-// node_modules/d3-shape/src/curve/step.js
+// benchmarks/probes/vendor/node_modules/d3-shape/src/curve/step.js
 function Step(context, t) {
   this._context = context;
   this._t = t;
@@ -39781,10 +39781,10 @@ function stepAfter(context) {
   return new Step(context, 1);
 }
 
-// node_modules/d3-zoom/src/constant.js
+// benchmarks/probes/vendor/node_modules/d3-zoom/src/constant.js
 var constant_default6 = (x4) => () => x4;
 
-// node_modules/d3-zoom/src/event.js
+// benchmarks/probes/vendor/node_modules/d3-zoom/src/event.js
 function ZoomEvent(type2, {
   sourceEvent,
   target,
@@ -39800,7 +39800,7 @@ function ZoomEvent(type2, {
   });
 }
 
-// node_modules/d3-zoom/src/transform.js
+// benchmarks/probes/vendor/node_modules/d3-zoom/src/transform.js
 function Transform2(k3, x4, y4) {
   this.k = k3;
   this.x = x4;
@@ -39849,7 +39849,7 @@ function transform(node) {
   return node.__zoom;
 }
 
-// node_modules/d3-zoom/src/noevent.js
+// benchmarks/probes/vendor/node_modules/d3-zoom/src/noevent.js
 function nopropagation2(event) {
   event.stopImmediatePropagation();
 }
@@ -39858,7 +39858,7 @@ function noevent_default3(event) {
   event.stopImmediatePropagation();
 }
 
-// node_modules/d3-zoom/src/zoom.js
+// benchmarks/probes/vendor/node_modules/d3-zoom/src/zoom.js
 function defaultFilter2(event) {
   return (!event.ctrlKey || event.type === "wheel") && !event.button;
 }
@@ -40173,7 +40173,7 @@ function zoom_default2() {
   return zoom2;
 }
 
-// node_modules/@observablehq/plot/src/defined.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/defined.js
 function defined(x4) {
   return x4 != null && !Number.isNaN(x4);
 }
@@ -40196,7 +40196,7 @@ function negative(x4) {
   return x4 < 0 && isFinite(x4) ? x4 : NaN;
 }
 
-// node_modules/isoformat/src/format.js
+// benchmarks/probes/vendor/node_modules/isoformat/src/format.js
 function format2(date2, fallback) {
   if (!(date2 instanceof Date)) date2 = /* @__PURE__ */ new Date(+date2);
   if (isNaN(date2)) return typeof fallback === "function" ? fallback(date2) : fallback;
@@ -40213,14 +40213,14 @@ function pad2(value, width2) {
   return `${value}`.padStart(width2, "0");
 }
 
-// node_modules/isoformat/src/parse.js
+// benchmarks/probes/vendor/node_modules/isoformat/src/parse.js
 var re3 = /^(?:[-+]\d{2})?\d{4}(?:-\d{2}(?:-\d{2})?)?(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{3})?)?(?:Z|[-+]\d{2}:?\d{2})?)?$/;
 function parse(string2, fallback) {
   if (!re3.test(string2 += "")) return typeof fallback === "function" ? fallback(string2) : fallback;
   return new Date(string2);
 }
 
-// node_modules/@observablehq/plot/src/order.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/order.js
 function orderof(values2) {
   if (values2 == null) return;
   const first3 = values2[0];
@@ -40228,7 +40228,7 @@ function orderof(values2) {
   return descending(first3, last2);
 }
 
-// node_modules/@observablehq/plot/src/time.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/time.js
 var durationSecond2 = 1e3;
 var durationMinute2 = durationSecond2 * 60;
 var durationHour2 = durationMinute2 * 60;
@@ -40464,7 +40464,7 @@ function formatConditional(format1, format22, template2) {
   };
 }
 
-// node_modules/@observablehq/plot/src/options.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/options.js
 var TypedArray = Object.getPrototypeOf(Uint8Array);
 var objectToString = Object.prototype.toString;
 function isArray(value) {
@@ -40891,7 +40891,7 @@ function isArrowDateType(type2) {
   type2.unit === 1;
 }
 
-// node_modules/@observablehq/plot/src/scales/index.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/scales/index.js
 var position = Symbol("position");
 var color2 = Symbol("color");
 var radius = Symbol("radius");
@@ -40918,7 +40918,7 @@ function hasNumericRange(kind) {
   return kind === position || kind === radius || kind === length3 || kind === opacity;
 }
 
-// node_modules/@observablehq/plot/src/symbol.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/symbol.js
 var sqrt35 = Math.sqrt(3);
 var sqrt4_3 = 2 / sqrt35;
 var symbolHexagon = {
@@ -40972,7 +40972,7 @@ function maybeSymbolChannel(symbol2) {
   return [symbol2, void 0];
 }
 
-// node_modules/@observablehq/plot/src/transforms/basic.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/basic.js
 function basic({ filter: f1, sort: s1, reverse: r1, transform: t13, initializer: i1, ...options } = {}, transform3) {
   if (t13 === void 0) {
     if (f1 != null) t13 = filterTransform(f1);
@@ -41091,7 +41091,7 @@ function sortValue(value) {
   };
 }
 
-// node_modules/@observablehq/plot/src/transforms/group.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/group.js
 function groupZ(outputs, options) {
   return groupn(null, null, outputs, options);
 }
@@ -41456,7 +41456,7 @@ function find2(test) {
   };
 }
 
-// node_modules/@observablehq/plot/src/channel.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/channel.js
 function createChannel(data, { scale: scale3, type: type2, value, filter: filter3, hint, label: label2 = labelof(value) }, name2) {
   if (hint === void 0 && typeof value?.transform === "function") hint = value.hint;
   return inferChannelScale(name2, {
@@ -41607,7 +41607,7 @@ function getSource(channels, key) {
   return channel.source === null ? null : channel;
 }
 
-// node_modules/@observablehq/plot/src/scales/schemes.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/scales/schemes.js
 var categoricalSchemes = /* @__PURE__ */ new Map([
   ["accent", Accent_default],
   ["category10", category10_default],
@@ -41790,7 +41790,7 @@ function isDivergingScheme(scheme28) {
   return scheme28 != null && divergingSchemes.has(`${scheme28}`.toLowerCase());
 }
 
-// node_modules/@observablehq/plot/src/scales/quantitative.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/scales/quantitative.js
 var flip = (i) => (t) => i(1 - t);
 var unit2 = [0, 1];
 var interpolators = /* @__PURE__ */ new Map([
@@ -42009,7 +42009,7 @@ function interpolatePiecewise(interpolate) {
   return (i, j2) => (t) => interpolate(i + t * (j2 - i));
 }
 
-// node_modules/@observablehq/plot/src/warnings.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/warnings.js
 var warnings = 0;
 var lastMessage;
 function consumeWarnings() {
@@ -42025,7 +42025,7 @@ function warn(message) {
   ++warnings;
 }
 
-// node_modules/@observablehq/plot/src/scales/diverging.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/scales/diverging.js
 function createScaleD(key, scale3, transform3, channels, {
   type: type2,
   nice: nice3,
@@ -42134,7 +42134,7 @@ function transformSymlog2(constant2) {
   };
 }
 
-// node_modules/@observablehq/plot/src/scales/temporal.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/scales/temporal.js
 function createScaleT(key, scale3, channels, options) {
   return createScaleQ(key, scale3, channels, options);
 }
@@ -42145,7 +42145,7 @@ function createScaleUtc(key, channels, options) {
   return createScaleT(key, utcTime(), channels, options);
 }
 
-// node_modules/@observablehq/plot/src/scales/ordinal.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/scales/ordinal.js
 var ordinalImplicit = Symbol("ordinal");
 function createScaleO(key, scale3, channels, { type: type2, interval: interval2, domain, range: range3, reverse: reverse3, hint }) {
   interval2 = maybeRangeInterval(interval2, type2);
@@ -42249,7 +42249,7 @@ function inferSymbolRange(hint) {
   return isNoneish(hint.fill) ? symbolsStroke : symbolsFill;
 }
 
-// node_modules/@observablehq/plot/src/scales.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/scales.js
 function createScales(channelsByScale, {
   label: globalLabel,
   inset: globalInset = 0,
@@ -42681,7 +42681,7 @@ function exposeScale({ scale: scale3, type: type2, domain, range: range3, interp
   };
 }
 
-// node_modules/@observablehq/plot/src/facet.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/facet.js
 function createFacets(channelsByScale, options) {
   const { fx, fy } = createScales(channelsByScale, options);
   const fxDomain2 = fx?.scale.domain();
@@ -42828,7 +42828,7 @@ function facetFilter(facets, { channels: { fx, fy }, groups: groups2 }) {
   return fx && fy ? facets.map(({ x: x4, y: y4 }) => groups2.get(x4)?.get(y4) ?? []) : fx ? facets.map(({ x: x4 }) => groups2.get(x4) ?? []) : facets.map(({ y: y4 }) => groups2.get(y4) ?? []);
 }
 
-// node_modules/@observablehq/plot/src/projection.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/projection.js
 var pi4 = Math.PI;
 var tau5 = 2 * pi4;
 var defaultAspectRatio = 0.618;
@@ -43070,7 +43070,7 @@ function xyProjection({ x: X3, y: Y3 }) {
   }
 }
 
-// node_modules/@observablehq/plot/src/context.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/context.js
 function createContext(options = {}) {
   const { document: document2 = typeof window !== "undefined" ? window.document : void 0, clip } = options;
   return { document: document2, clip: maybeClip(clip) };
@@ -43079,7 +43079,7 @@ function create3(name2, { document: document2 }) {
   return select_default2(creator_default(name2).call(document2.documentElement));
 }
 
-// node_modules/@observablehq/plot/src/memoize.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/memoize.js
 var unset = Symbol("unset");
 function memoize1(compute) {
   return (compute.length === 1 ? memoize1Arg : memoize1Args)(compute);
@@ -43106,7 +43106,7 @@ function memoize1Args(compute) {
   };
 }
 
-// node_modules/@observablehq/plot/src/format.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/format.js
 var numberFormat = memoize1((locale3) => {
   return new Intl.NumberFormat(locale3);
 });
@@ -43137,7 +43137,7 @@ function formatAuto(locale3 = "en-US") {
 }
 var formatDefault = formatAuto();
 
-// node_modules/@observablehq/plot/src/style.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/style.js
 var offset = (typeof window !== "undefined" ? window.devicePixelRatio > 1 : typeof it === "undefined") ? 0 : 0.5;
 var nextClipId = 0;
 var nextPatternId = 0;
@@ -43479,7 +43479,7 @@ function applyFrameAnchor({ frameAnchor }, { width: width2, height: height2, mar
   ];
 }
 
-// node_modules/@observablehq/plot/src/mark.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/mark.js
 var Mark = class {
   constructor(data, channels = {}, options = {}, defaults22) {
     const {
@@ -43628,7 +43628,7 @@ function withTip(options, pointer2) {
   return options?.tip === true ? { ...options, tip: pointer2 } : isObject3(options?.tip) && options.tip.pointer === void 0 ? { ...options, tip: { ...options.tip, pointer: pointer2 } } : options;
 }
 
-// node_modules/@observablehq/plot/src/dimensions.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/dimensions.js
 function createDimensions(scales2, marks2, options = {}) {
   let marginTopDefault = 0.5 - offset, marginRightDefault = 0.5 + offset, marginBottomDefault = 0.5 + offset, marginLeftDefault = 0.5 - offset;
   for (const { marginTop: marginTop3, marginRight: marginRight3, marginBottom: marginBottom3, marginLeft: marginLeft3 } of marks2) {
@@ -43738,7 +43738,7 @@ function aspectRatioLength(k3, scale3) {
   return Math.abs(transform3(max4) - transform3(min5));
 }
 
-// node_modules/@observablehq/plot/src/interactions/pointer.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/interactions/pointer.js
 var states = /* @__PURE__ */ new WeakMap();
 function pointerK(kx2, ky2, { x: x4, y: y4, px, py, maxRadius = 40, channels, render, ...options } = {}) {
   maxRadius = +maxRadius;
@@ -43885,12 +43885,12 @@ function anchorY({ y1: Y13, y2: Y24, y: Y3 = Y13 }, cy) {
   return Y13 && Y24 ? (i) => (Y13[i] + Y24[i]) / 2 : Y3 ? (i) => Y3[i] : () => cy;
 }
 
-// node_modules/@observablehq/plot/src/axes.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/axes.js
 function inferFontVariant(scale3) {
   return isOrdinalScale(scale3) && scale3.interval === void 0 ? void 0 : "tabular-nums";
 }
 
-// node_modules/@observablehq/plot/src/legends/ramp.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/legends/ramp.js
 function legendRamp(color3, options) {
   let {
     label: label2 = color3.label,
@@ -43975,10 +43975,10 @@ function legendRamp(color3, options) {
   return svg.node();
 }
 
-// node_modules/@observablehq/plot/src/math.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/math.js
 var radians3 = Math.PI / 180;
 
-// node_modules/@observablehq/plot/src/marker.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marker.js
 function markers(mark2, { marker, markerStart = marker, markerMid = marker, markerEnd = marker } = {}) {
   mark2.markerStart = maybeMarker(markerStart);
   mark2.markerMid = maybeMarker(markerMid);
@@ -44081,7 +44081,7 @@ function applyMarkersColor(path2, { markerStart, markerMid, markerEnd, stroke },
   if (markerEnd) path2.each(applyMarker("marker-end", markerEnd, orient && ((i) => orient(i) & END)));
 }
 
-// node_modules/@observablehq/plot/src/transforms/inset.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/inset.js
 function maybeInsetX({ inset: inset2, insetLeft, insetRight, ...options } = {}) {
   [insetLeft, insetRight] = maybeInset(inset2, insetLeft, insetRight);
   return { inset: inset2, insetLeft, insetRight, ...options };
@@ -44094,7 +44094,7 @@ function maybeInset(inset2, inset1, inset22) {
   return inset2 === void 0 && inset1 === void 0 && inset22 === void 0 ? offset ? [1, 0] : [0.5, 0.5] : [inset1, inset22];
 }
 
-// node_modules/@observablehq/plot/src/transforms/interval.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/interval.js
 function maybeIntervalValue(value, { interval: interval2 }) {
   value = { ...maybeValue(value) };
   value.interval = maybeInterval(value.interval === void 0 ? interval2 : value.interval);
@@ -44164,7 +44164,7 @@ function maybeIntervalMidY(options = {}) {
   return maybeIntervalMidK("y", maybeInsetY, options);
 }
 
-// node_modules/@observablehq/plot/src/marks/rule.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/rule.js
 var defaults = {
   ariaLabel: "rule",
   fill: null,
@@ -44255,7 +44255,7 @@ function maybeOptionalZero(x4, x12, x22) {
   return [x12, x22];
 }
 
-// node_modules/@observablehq/plot/src/template.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/template.js
 function template(strings, ...parts) {
   let n = parts.length;
   for (let j2 = 0, copy4 = true; j2 < n; ++j2) {
@@ -44278,7 +44278,7 @@ function template(strings, ...parts) {
   };
 }
 
-// node_modules/@observablehq/plot/src/marks/text.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/text.js
 var defaults2 = {
   ariaLabel: "text",
   strokeLinejoin: "round",
@@ -44678,7 +44678,7 @@ function isPictographic(text3, i) {
   return isAscii(text3, i) ? false : (rePictographic.lastIndex = i, rePictographic.test(text3));
 }
 
-// node_modules/@observablehq/plot/src/marks/vector.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/vector.js
 var defaults3 = {
   ariaLabel: "vector",
   fill: "none",
@@ -44792,7 +44792,7 @@ function spike(data, options = {}) {
   return vector(data, { ...rest, shape, stroke, strokeWidth, fill, fillOpacity, anchor });
 }
 
-// node_modules/@observablehq/plot/src/marks/axis.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/axis.js
 function maybeData(data, options) {
   if (arguments.length < 2 && !isIterable3(data)) options = data, data = null;
   if (options === void 0) options = {};
@@ -45387,7 +45387,7 @@ function hasTemporalDomain(scale3) {
   return isTemporal(scale3.domain());
 }
 
-// node_modules/@observablehq/plot/src/legends/swatches.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/legends/swatches.js
 function maybeScale(scale3, key) {
   if (key == null) return key;
   const s2 = scale3(key);
@@ -45502,7 +45502,7 @@ ${extraStyle}`
   ).style("margin-left", marginLeft2 ? `${+marginLeft2}px` : null).style("width", width2 === void 0 ? null : `${+width2}px`).style("font-variant", impliedString(fontVariant, "normal")).call(applyInlineStyles, style2).node();
 }
 
-// node_modules/@observablehq/plot/src/legends.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/legends.js
 var legendRegistry = /* @__PURE__ */ new Map([
   ["symbol", legendSymbols],
   ["color", legendColor],
@@ -45571,7 +45571,7 @@ function createLegends(scales2, context, options) {
   return legends;
 }
 
-// node_modules/@observablehq/plot/src/transforms/identity.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/identity.js
 function maybeIdentityX(options = {}, k3 = "x") {
   return hasX(options) ? options : { ...options, [k3]: identity7 };
 }
@@ -45579,7 +45579,7 @@ function maybeIdentityY(options = {}, k3 = "y") {
   return hasY(options) ? options : { ...options, [k3]: identity7 };
 }
 
-// node_modules/@observablehq/plot/src/transforms/exclusiveFacets.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/exclusiveFacets.js
 function exclusiveFacets(data, facets) {
   if (facets.length === 1) return { data, facets };
   const n = lengthof(data);
@@ -45608,7 +45608,7 @@ function exclusiveFacets(data, facets) {
   return { data, facets };
 }
 
-// node_modules/@observablehq/plot/src/transforms/stack.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/stack.js
 function stackX(stackOptions = {}, options = {}) {
   if (arguments.length === 1) [stackOptions, options] = mergeOptions(stackOptions);
   const { y1: y12, y: y4 = y12, x: x4, ...rest } = options;
@@ -45905,7 +45905,7 @@ function orderZDomain(compare, domain) {
   };
 }
 
-// node_modules/@observablehq/plot/src/marks/rect.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/rect.js
 var defaults4 = {
   ariaLabel: "rect"
 };
@@ -46039,7 +46039,7 @@ function rectY(data, options = {}) {
   return new Rect(data, maybeStackY(maybeTrivialIntervalX(maybeIdentityY(options))));
 }
 
-// node_modules/@observablehq/plot/src/marks/frame.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/frame.js
 var defaults5 = {
   ariaLabel: "frame",
   fill: "none",
@@ -46078,7 +46078,7 @@ function frame2(options) {
   return new Frame(options);
 }
 
-// node_modules/@observablehq/plot/src/marks/tip.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/tip.js
 var defaults6 = {
   ariaLabel: "tip",
   fill: "var(--plot-background)",
@@ -46413,7 +46413,7 @@ function formatLabel(scales2, channels, key, defaultLabel = key) {
   return String(scale3?.label ?? channel?.label ?? defaultLabel);
 }
 
-// node_modules/@observablehq/plot/src/plot.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/plot.js
 function plot(options = {}) {
   const { facet, style: style2, title, subtitle, caption, ariaLabel, ariaDescription } = options;
   const className = maybeClassName(options.className);
@@ -46935,7 +46935,7 @@ function outerRange(scale3) {
   return [x12, x22 + scale3.bandwidth()];
 }
 
-// node_modules/@observablehq/plot/src/curve.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/curve.js
 var curves = /* @__PURE__ */ new Map([
   ["basis", basis_default2],
   ["basis-closed", basisClosed_default2],
@@ -46980,7 +46980,7 @@ function curveAuto(context) {
   return linear_default(context);
 }
 
-// node_modules/@observablehq/plot/src/transforms/bin.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/bin.js
 function binX(outputs = { y: "count" }, options = {}) {
   [outputs, options] = mergeOptions2(outputs, options);
   const { x: x4, y: y4 } = options;
@@ -47354,7 +47354,7 @@ var reduceY22 = {
   }
 };
 
-// node_modules/@observablehq/plot/src/marks/area.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/area.js
 var defaults7 = {
   ariaLabel: "area",
   strokeWidth: 1,
@@ -47406,7 +47406,7 @@ function areaY(data, options) {
   return new Area(data, maybeStackY(maybeIdentityY({ ...rest, x1: x4, x2: void 0 }, x4 === indexOf ? "y2" : "y")));
 }
 
-// node_modules/@observablehq/plot/src/marks/link.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/link.js
 var defaults8 = {
   ariaLabel: "link",
   fill: "none",
@@ -47487,7 +47487,7 @@ function maybeSameValue(x4, x12, x22) {
   return [x12, x22];
 }
 
-// node_modules/@observablehq/plot/src/marks/arrow.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/arrow.js
 var defaults9 = {
   ariaLabel: "arrow",
   fill: "none",
@@ -47608,7 +47608,7 @@ function arrow(data, { x: x4, x1: x12, x2: x22, y: y4, y1: y12, y2: y22, ...opti
   return new Arrow(data, { ...options, x1: x12, x2: x22, y1: y12, y2: y22 });
 }
 
-// node_modules/@observablehq/plot/src/marks/bar.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/bar.js
 var barDefaults = {
   ariaLabel: "bar"
 };
@@ -47713,7 +47713,7 @@ function barY(data, options = {}) {
   return new BarY(data, maybeStackY(maybeIntervalY(maybeIdentityY(options))));
 }
 
-// node_modules/@observablehq/plot/src/marks/cell.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/cell.js
 var defaults10 = {
   ariaLabel: "cell"
 };
@@ -47746,7 +47746,7 @@ function cellY(data, { y: y4 = indexOf, fill, stroke, ...options } = {}) {
   return new Cell(data, { ...options, y: y4, fill, stroke });
 }
 
-// node_modules/@observablehq/plot/src/marks/dot.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/dot.js
 var defaults11 = {
   ariaLabel: "dot",
   fill: "none",
@@ -47846,7 +47846,7 @@ function hexagon(data, options) {
   return dot(data, { ...options, symbol: "hexagon" });
 }
 
-// node_modules/@observablehq/plot/src/marks/line.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/line.js
 var defaults12 = {
   ariaLabel: "line",
   fill: "none",
@@ -47920,7 +47920,7 @@ function lineY(data, { x: x4 = indexOf, y: y4 = identity7, ...options } = {}) {
   return new Line(data, maybeDenseIntervalX({ ...options, x: x4, y: y4 }));
 }
 
-// node_modules/@observablehq/plot/src/marks/auto.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/auto.js
 function autoSpec(data, options) {
   options = normalizeOptions(options);
   const { x: x4, y: y4, color: color3, size } = options;
@@ -48167,7 +48167,7 @@ var impls = {
 };
 var implNames = Object.fromEntries(Object.entries(impls).map(([name2, impl]) => [impl, name2]));
 
-// node_modules/@observablehq/plot/src/transforms/map.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/map.js
 function mapX(mapper, options = {}) {
   let { x: x4, x1: x12, x2: x22 } = options;
   if (x4 === void 0 && x12 === void 0 && x22 === void 0) options = { ...options, x: x4 = identity7 };
@@ -48248,7 +48248,7 @@ var mapCumsum = {
   }
 };
 
-// node_modules/@observablehq/plot/src/transforms/window.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/window.js
 function windowX(windowOptions = {}, options) {
   if (arguments.length === 1) options = windowOptions;
   return mapX(window2(windowOptions), options);
@@ -48524,7 +48524,7 @@ function reduceLast2(k3, s2, strict) {
   };
 }
 
-// node_modules/@observablehq/plot/src/marks/bollinger.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/bollinger.js
 var defaults13 = {
   n: 20,
   k: 2,
@@ -48585,7 +48585,7 @@ function bollinger({ n = defaults13.n, k: k3 = 0, strict = defaults13.strict, an
   return window2({ k: n, reduce: (Y3) => mean2(Y3) + k3 * (deviation(Y3) || 0), strict, anchor });
 }
 
-// node_modules/@observablehq/plot/src/marks/tick.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/tick.js
 var defaults14 = {
   ariaLabel: "tick",
   fill: null,
@@ -48673,7 +48673,7 @@ function tickY(data, { y: y4 = identity7, ...options } = {}) {
   return new TickY(data, { ...options, y: y4 });
 }
 
-// node_modules/@observablehq/plot/src/marks/box.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/box.js
 function boxX(data, {
   x: x4 = identity7,
   y: y4 = null,
@@ -48734,7 +48734,7 @@ function quartile3(values2) {
   return quantile2(values2, 0.75);
 }
 
-// node_modules/@observablehq/plot/src/marks/raster.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/raster.js
 var defaults15 = {
   ariaLabel: "raster",
   stroke: null,
@@ -49145,7 +49145,7 @@ function denseY(y12, y22, width2, height2) {
   };
 }
 
-// node_modules/@observablehq/plot/src/marks/contour.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/contour.js
 var defaults16 = {
   ariaLabel: "contour",
   fill: "none",
@@ -49278,7 +49278,7 @@ function finite3(x4) {
   return isFinite(x4) ? x4 : NaN;
 }
 
-// node_modules/@observablehq/plot/src/marks/crosshair.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/crosshair.js
 function crosshair(data, options) {
   return crosshairK(pointer, data, options);
 }
@@ -49365,7 +49365,7 @@ function textChannel(source, options) {
   });
 }
 
-// node_modules/@observablehq/plot/src/marks/delaunay.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/delaunay.js
 var delaunayLinkDefaults = {
   ariaLabel: "delaunay link",
   fill: "none",
@@ -49585,7 +49585,7 @@ function voronoiMesh(data, options) {
   return delaunayMark(VoronoiMesh, data, options);
 }
 
-// node_modules/@observablehq/plot/src/marks/density.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/density.js
 var defaults17 = {
   ariaLabel: "density",
   fill: "none",
@@ -49700,7 +49700,7 @@ function isDensity(value) {
   return /^density$/i.test(value);
 }
 
-// node_modules/@observablehq/plot/src/marks/difference.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/difference.js
 function differenceX(data, options) {
   return differenceK("x", data, options);
 }
@@ -49827,7 +49827,7 @@ function clipDifference(k3, positive2) {
   };
 }
 
-// node_modules/@observablehq/plot/src/transforms/centroid.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/centroid.js
 function centroid2({ geometry = identity7, ...options } = {}) {
   const getG = memoize1((data) => valueof(data, geometry));
   return initializer(
@@ -49860,7 +49860,7 @@ function geoCentroid({ geometry = identity7, ...options } = {}) {
   };
 }
 
-// node_modules/@observablehq/plot/src/marks/geo.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/geo.js
 var defaults18 = {
   ariaLabel: "geo",
   fill: "none",
@@ -49909,7 +49909,7 @@ function graticule2({ strokeOpacity = 0.1, ...options } = {}) {
   return geo(graticule10(), { strokeOpacity, ...options });
 }
 
-// node_modules/@observablehq/plot/src/transforms/hexbin.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/hexbin.js
 var ox = 0.5;
 var oy = 0;
 function hexbin(outputs = { fill: "count" }, { binWidth, ...options } = {}) {
@@ -50001,7 +50001,7 @@ function hbin(data, I2, X3, Y3, dx) {
   return bins2.values();
 }
 
-// node_modules/@observablehq/plot/src/marks/hexgrid.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/hexgrid.js
 var defaults19 = {
   ariaLabel: "hexgrid",
   fill: "none",
@@ -50033,7 +50033,7 @@ function round(x4) {
   return Math.round(x4 * 1e3) / 1e3;
 }
 
-// node_modules/@observablehq/plot/src/marks/image.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/image.js
 var defaults20 = {
   ariaLabel: "image",
   fill: null,
@@ -50102,7 +50102,7 @@ function image(data, { x: x4, y: y4, ...options } = {}) {
   return new Image(data, { ...options, x: x4, y: y4 });
 }
 
-// node_modules/@observablehq/plot/src/stats.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/stats.js
 function ibetainv(p2, a2, b2) {
   var EPS2 = 1e-8;
   var a1 = a2 - 1;
@@ -50205,7 +50205,7 @@ function qt(p2, dof) {
   return p2 > 0.5 ? x4 : -x4;
 }
 
-// node_modules/@observablehq/plot/src/marks/linearRegression.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/linearRegression.js
 var defaults21 = {
   ariaLabel: "linear-regression",
   fill: "currentColor",
@@ -50327,7 +50327,7 @@ function confidenceIntervalF(I2, X3, Y3, p2, f2) {
   };
 }
 
-// node_modules/@observablehq/plot/src/transforms/tree.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/tree.js
 function treeNode({
   path: path2 = identity7,
   // the delimited path
@@ -50647,7 +50647,7 @@ function treeOutputs(options, maybeTreeValue) {
   return outputs;
 }
 
-// node_modules/@observablehq/plot/src/marks/tree.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/tree.js
 function tree(data, {
   fill,
   stroke,
@@ -50721,7 +50721,7 @@ function cluster(data, options) {
   return tree(data, { ...options, treeLayout: cluster_default });
 }
 
-// node_modules/@observablehq/plot/src/marks/waffle.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/marks/waffle.js
 var waffleDefaults = {
   ariaLabel: "waffle"
 };
@@ -50903,7 +50903,7 @@ function waffleTip(tip2) {
   return tip2 === true ? { maxRadius: Infinity } : isObject3(tip2) && tip2.maxRadius === void 0 ? { ...tip2, maxRadius: Infinity } : void 0;
 }
 
-// node_modules/@observablehq/plot/src/transforms/dodge.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/dodge.js
 var import_interval_tree_1d = __toESM(require_interval_tree(), 1);
 var anchorXLeft = ({ marginLeft: marginLeft2 }) => [1, marginLeft2];
 var anchorXRight = ({ width: width2, marginRight: marginRight2 }) => [-1, width2 - marginRight2];
@@ -51029,7 +51029,7 @@ function compareAscending(a2, b2) {
   return a2 - b2;
 }
 
-// node_modules/@observablehq/plot/src/transforms/normalize.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/normalize.js
 function normalizeX(basis2, options) {
   if (arguments.length === 1) ({ basis: basis2, ...options } = basis2);
   return mapX(normalize3(basis2), options);
@@ -51113,7 +51113,7 @@ var normalizeMedian = normalizeAccessor(median2);
 var normalizeMin = normalizeAccessor(min2);
 var normalizeSum = normalizeAccessor(sum2);
 
-// node_modules/@observablehq/plot/src/transforms/shift.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/shift.js
 function shiftX(interval2, options) {
   return shiftK("x", interval2, options);
 }
@@ -51154,7 +51154,7 @@ function shiftK(x4, interval2, options = {}) {
   return mapped;
 }
 
-// node_modules/@observablehq/plot/src/transforms/select.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/transforms/select.js
 function select(selector, options = {}) {
   if (typeof selector === "string") {
     switch (selector.toLowerCase()) {
@@ -51238,12 +51238,12 @@ function selectChannel(v3, selector, options) {
   });
 }
 
-// node_modules/@observablehq/plot/src/index.js
+// benchmarks/probes/vendor/node_modules/@observablehq/plot/src/index.js
 Mark.prototype.plot = function({ marks: marks2 = [], ...options } = {}) {
   return plot({ ...options, marks: [...marks2, this] });
 };
 
-// node_modules/@uwdata/mosaic-plot/src/plot-attributes.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/plot-attributes.js
 var attributeMap = /* @__PURE__ */ new Map([
   ["style", "style"],
   ["width", "width"],
@@ -51481,7 +51481,7 @@ function setAttributes(attributes2, spec, symbols3) {
   }
 }
 
-// node_modules/@uwdata/mosaic-plot/src/plot-renderer.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/plot-renderer.js
 var OPTIONS_ONLY_MARKS = /* @__PURE__ */ new Set([
   "frame",
   "hexgrid",
@@ -51615,7 +51615,7 @@ function getType(data, channel) {
   }
 }
 
-// node_modules/@uwdata/mosaic-plot/src/plot.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/plot.js
 var DEFAULT_ATTRIBUTES = {
   width: 640,
   marginLeft: 40,
@@ -51769,7 +51769,7 @@ function maybeAspectRatio(plot3, top2, bottom2) {
   return dy * plot3.innerWidth() / (ar * dx) + top2 + bottom2;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/is-color.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/is-color.js
 function isColor2(value) {
   if (typeof value !== "string") return false;
   value = value.toLowerCase().trim();
@@ -51778,7 +51778,7 @@ function isColor2(value) {
   color(value) !== null;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/is-constant-option.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/is-constant-option.js
 var constantOptions = /* @__PURE__ */ new Set([
   "order",
   "sort",
@@ -51821,7 +51821,7 @@ function isConstantOption(value) {
   return constantOptions.has(value);
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/is-symbol.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/is-symbol.js
 var symbols2 = /* @__PURE__ */ new Set([
   "asterisk",
   "circle",
@@ -51842,7 +51842,7 @@ function isSymbol2(value) {
   return symbols2.has(`${value}`.toLowerCase());
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/Mark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/Mark.js
 var isColorChannel = (channel) => channel === "stroke" || channel === "fill";
 var isOpacityChannel = (channel) => /opacity$/i.test(channel);
 var isSymbolChannel = (channel) => channel === "symbol";
@@ -52030,7 +52030,7 @@ function markPlotSpec(type2, detail, channels, data, options = {}) {
   return spec;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/channel-scale.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/channel-scale.js
 function channelScale(mark2, channel) {
   const { plot: plot3 } = mark2;
   let scaleType = plot3.getAttribute(`${channel}Scale`);
@@ -52053,7 +52053,7 @@ function channelScale(mark2, channel) {
   return scaleTransform(options);
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/bin-expr.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/bin-expr.js
 function binExpr(mark2, channel, n, extent4, pad3 = 1, expr) {
   const { field: field2 } = mark2.channelField(channel);
   expr = expr ?? field2;
@@ -52068,7 +52068,7 @@ function binExpr(mark2, channel, n, extent4, pad3 = 1, expr) {
   return [bin3, f2];
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/extent.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/extent.js
 var xext = { x: ["min", "max"] };
 var yext = { y: ["min", "max"] };
 var xyext = { ...xext, ...yext };
@@ -52111,7 +52111,7 @@ function filteredExtent(filter3, column3) {
   return lo != null && hi != null && lo !== hi ? [lo, hi] : void 0;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/ConnectedMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/ConnectedMark.js
 var ConnectedMark = class extends Mark2 {
   constructor(type2, source, encodings) {
     const dim = type2.endsWith("X") ? "y" : type2.endsWith("Y") ? "x" : null;
@@ -52155,7 +52155,7 @@ function m4(input3, bin3, x4, y4, cols = []) {
   ).orderby(cols, x4);
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/grid.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/grid.js
 function array3(size, proto = []) {
   return new proto.constructor(size);
 }
@@ -52232,12 +52232,12 @@ function gridDomainDiscrete(grids) {
   return Array.from(values2).sort(ascending);
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/handle-param.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/handle-param.js
 function handleParam(value, update2) {
   return isParam(value) ? (value.addEventListener("value", update2), value.value) : value;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/density.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/density.js
 function dericheConfig(sigma, negative2 = false) {
   const a2 = new Float64Array(5);
   const bc4 = new Float64Array(4);
@@ -52417,7 +52417,7 @@ function dericheInitZeroPad(dest, src, N2, stride, b2, p2, a2, q2, sum4, h2, sig
   return;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/Grid2DMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/Grid2DMark.js
 var DENSITY = "density";
 var Grid2DMark = class extends Mark2 {
   constructor(type2, source, options) {
@@ -52614,7 +52614,7 @@ function binLinear2d(q2, xp, yp, density3, xn, groupby) {
   return Query.from(Query.unionAll(a2, b2, c4, d2)).select({ index: "i", density: sum("w") }, groupby).groupby("index", groupby).having(neq("density", 0));
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/ContourMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/ContourMark.js
 var ContourMark = class extends Grid2DMark {
   constructor(source, options) {
     const { thresholds = 10, ...channels } = options;
@@ -52704,7 +52704,7 @@ function transform2(geometry, x4, y4) {
   return geometry;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/permute.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/permute.js
 function indices(length4) {
   return Array.from({ length: length4 }, (_2, i) => i);
 }
@@ -52715,7 +52715,7 @@ function permute2(data, order) {
   return idx;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/raster.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/raster.js
 function createCanvas(w, h2) {
   if (typeof document !== "undefined") {
     const c4 = document.createElement("canvas");
@@ -52825,7 +52825,7 @@ function colorScheme(size, scale3, frac) {
   };
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/RasterMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/RasterMark.js
 var RasterMark = class extends Grid2DMark {
   constructor(source, options) {
     super("image", source, options);
@@ -53002,7 +53002,7 @@ function imageData(mark2, w, h2) {
   return mark2.image;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/DenseLineMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/DenseLineMark.js
 var DenseLineMark = class extends RasterMark {
   constructor(source, options) {
     const { normalize: normalize4 = true, ...rest } = options;
@@ -53090,7 +53090,7 @@ function lineDensity(q2, x4, y4, z2, xn, yn, groupby = [], normalize4 = true) {
   }).groupby("index", groupby);
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/Density1DMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/Density1DMark.js
 var Density1DMark = class extends Mark2 {
   constructor(type2, source, options) {
     const { bins: bins2 = 1024, bandwidth = 20, ...channels } = options;
@@ -53168,7 +53168,7 @@ function binLinear1d(q2, p2, density3) {
   return Query.from(Query.unionAll(u4, v3)).select({ index: "i", density: sum("w") }).groupby("index").having(gt("density", 0));
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/Density2DMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/Density2DMark.js
 var Density2DMark = class extends Grid2DMark {
   constructor(source, options) {
     const { type: type2 = "dot", ...channels } = options;
@@ -53249,7 +53249,7 @@ function points(data, bins2, x06, y06, deltaX, deltaY, invertX, invertY, offset2
   return { numRows, columns };
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/util/stats.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/util/stats.js
 function ibetainv2(p2, a2, b2) {
   var EPS2 = 1e-8;
   var a1 = a2 - 1;
@@ -53425,7 +53425,7 @@ function erfinv(x4) {
   return p2 * x4;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/ErrorBarMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/ErrorBarMark.js
 var ErrorBarMark = class extends Mark2 {
   constructor(type2, source, options) {
     const dim = type2.endsWith("X") ? "y" : "x";
@@ -53463,7 +53463,7 @@ var ErrorBarMark = class extends Mark2 {
   }
 };
 
-// node_modules/@uwdata/mosaic-plot/src/marks/GeoMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/GeoMark.js
 var DEFAULT_GEOMETRY_COLUMN = "geom";
 var GeoMark = class extends Mark2 {
   constructor(source, encodings = {}, reqs) {
@@ -53485,7 +53485,7 @@ var GeoMark = class extends Mark2 {
   }
 };
 
-// node_modules/@uwdata/mosaic-plot/src/marks/HexbinMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/HexbinMark.js
 var HexbinMark = class extends Mark2 {
   constructor(source, options) {
     const { type: type2 = "hexagon", binWidth = 20, ...channels } = options;
@@ -53547,7 +53547,7 @@ var HexbinMark = class extends Mark2 {
   }
 };
 
-// node_modules/@uwdata/mosaic-plot/src/marks/RasterTileMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/RasterTileMark.js
 var RasterTileMark = class extends Grid2DMark {
   constructor(source, options) {
     const { origin = [0, 0], dim = "xy", ...markOptions2 } = options;
@@ -53772,7 +53772,7 @@ function tileFloor(value) {
   return floored === value ? floored - 1 : floored;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/marks/RegressionMark.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/marks/RegressionMark.js
 var RegressionMark = class extends Mark2 {
   constructor(source, options) {
     const { ci = 0.95, precision = 4, ...channels } = options;
@@ -53888,7 +53888,7 @@ function areaPoints(fit2, ci, precision, width2) {
   return { numRows: columns.x.length, columns };
 }
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/util/to-kebab-case.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/util/to-kebab-case.js
 function toKebabCase(cc2) {
   const lc = cc2.toLowerCase();
   const n = cc2.length;
@@ -53899,7 +53899,7 @@ function toKebabCase(cc2) {
   return kc;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/util/sanitize-styles.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/util/sanitize-styles.js
 function sanitizeStyles(styles2) {
   const s2 = {};
   for (const name2 in styles2) {
@@ -53908,7 +53908,7 @@ function sanitizeStyles(styles2) {
   return s2;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/Highlight.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/Highlight.js
 function configureMark(mark2) {
   const { channels } = mark2;
   const dims = /* @__PURE__ */ new Set();
@@ -53987,7 +53987,7 @@ async function predicateFunction(mark2, selection2) {
   return !(data.numRows || data.length) ? () => false : v3 ? (i) => v3.get(i) : (i) => data[i].__;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/util/brush.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/util/brush.js
 function wrap(brush3) {
   const brushOn = brush3.on;
   let enabled = true;
@@ -54021,24 +54021,24 @@ function brushY2() {
   return wrap(brushY());
 }
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/util/close-to.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/util/close-to.js
 var EPS = 1e-12;
 function closeTo(a2, b2) {
   return a2 === b2 || a2 && b2 && Math.abs(a2[0] - b2[0]) < EPS && Math.abs(a2[1] - b2[1]) < EPS || false;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/util/get-field.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/util/get-field.js
 function getField(mark2, channel) {
   const field2 = mark2.channelField(channel)?.field;
   return field2?.basis || field2;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/util/invert.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/util/invert.js
 function invert(value, scale3, pixelSize = 1) {
   return scale3.invert(pixelSize * Math.floor(value / pixelSize));
 }
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/util/patchScreenCTM.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/util/patchScreenCTM.js
 function patchScreenCTM() {
   const node = this;
   const getScreenCTM = node.getScreenCTM;
@@ -54048,7 +54048,7 @@ function patchScreenCTM() {
   };
 }
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/Interval1D.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/Interval1D.js
 var Interval1D = class {
   constructor(mark2, {
     channel,
@@ -54117,7 +54117,7 @@ var Interval1D = class {
   }
 };
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/Interval2D.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/Interval2D.js
 var Interval2D = class {
   constructor(mark2, {
     selection: selection2,
@@ -54195,7 +54195,7 @@ var Interval2D = class {
   }
 };
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/Nearest.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/Nearest.js
 var Nearest = class {
   constructor(mark2, {
     selection: selection2,
@@ -54274,7 +54274,7 @@ function findNearest(x4, y4, px, py, sx, sy, maxRadius) {
   return nearest2;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/PanZoom.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/PanZoom.js
 var asc = (a2, b2) => a2 - b2;
 var PanZoom = class {
   constructor(mark2, {
@@ -54368,7 +54368,7 @@ function rescaleY(transform3, scale3) {
   return scale3.range.map(transform3.invertY, transform3).map(scale3.invert, scale3);
 }
 
-// node_modules/@uwdata/mosaic-plot/src/interactors/Toggle.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/interactors/Toggle.js
 var Toggle = class {
   /**
    * @param {*} mark The mark to interact with.
@@ -54455,7 +54455,7 @@ function neq2(a2, b2) {
   return false;
 }
 
-// node_modules/@uwdata/mosaic-plot/src/legend.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/legend.js
 var TOGGLE_SELECTOR = ":scope > div, :scope > span";
 var SWATCH = "swatch";
 var RAMP = "ramp";
@@ -54591,7 +54591,7 @@ function spatialScale(sourceScale, width2) {
   return scale2({ x: { ...rest, type: type2, range: [0, width2] } });
 }
 
-// node_modules/@uwdata/mosaic-plot/src/transforms/bin-step.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/transforms/bin-step.js
 function binStep(span, steps, minstep = 0, logb = Math.LN10) {
   let v3;
   const level = Math.ceil(Math.log(steps) / logb);
@@ -54626,7 +54626,7 @@ function bins(min5, max4, options) {
   return { min: min5, max: max4, steps };
 }
 
-// node_modules/@uwdata/mosaic-plot/src/transforms/time-interval.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/transforms/time-interval.js
 var YEAR = "year";
 var MONTH = "month";
 var DAY = "day";
@@ -54674,7 +54674,7 @@ function timeInterval3(min5, max4, steps) {
   }
 }
 
-// node_modules/@uwdata/mosaic-plot/src/transforms/bin.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-plot/src/transforms/bin.js
 var EXTENT = /* @__PURE__ */ new Set([
   "rectY-x",
   "rectX-y",
@@ -54741,7 +54741,7 @@ function hasTimeScale(mark2, channel) {
   return scale3 === "utc" || scale3 === "time";
 }
 
-// node_modules/@uwdata/mosaic-inputs/src/Menu.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-inputs/src/Menu.js
 var isObject4 = (v3) => {
   return v3 && typeof v3 === "object" && !Array.isArray(v3);
 };
@@ -54874,7 +54874,7 @@ var Menu = class extends MosaicClient {
   }
 };
 
-// node_modules/@uwdata/mosaic-inputs/src/Search.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-inputs/src/Search.js
 var _id = 0;
 var Search = class extends MosaicClient {
   /**
@@ -54983,7 +54983,7 @@ var Search = class extends MosaicClient {
   }
 };
 
-// node_modules/@uwdata/mosaic-inputs/src/Slider.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-inputs/src/Slider.js
 var _id2 = 0;
 var Slider = class extends MosaicClient {
   /**
@@ -55122,7 +55122,7 @@ var Slider = class extends MosaicClient {
   }
 };
 
-// node_modules/@uwdata/mosaic-inputs/src/util/format.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-inputs/src/util/format.js
 var formatLocaleAuto = localize((locale3) => {
   const formatNumber3 = formatLocaleNumber(locale3);
   return (value) => value == null ? "" : typeof value === "number" ? formatNumber3(value) : value instanceof Date ? formatDate(value) : `${value}`;
@@ -55141,7 +55141,7 @@ function localize(f2) {
   return (locale3 = "en") => locale3 === key ? value : value = f2(key = locale3);
 }
 
-// node_modules/@uwdata/mosaic-inputs/src/Table.js
+// benchmarks/probes/vendor/node_modules/@uwdata/mosaic-inputs/src/Table.js
 var _id3 = -1;
 var Table3 = class extends MosaicClient {
   /**
@@ -55362,7 +55362,7 @@ function tableCSS(id2, aligns, widths) {
   return styles2.join(" ");
 }
 
-// node_modules/@uwdata/vgplot/src/connect.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/connect.js
 function connect(ctx, ...clients) {
   const coord = ctx?.context?.coordinator ?? coordinator();
   for (const client of clients) {
@@ -55370,7 +55370,7 @@ function connect(ctx, ...clients) {
   }
 }
 
-// node_modules/@uwdata/vgplot/src/inputs.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/inputs.js
 function input2(ctx, InputClass, options) {
   const input3 = new InputClass(options);
   connect(ctx, input3);
@@ -55389,7 +55389,7 @@ function table2(options) {
   return input2(this, Table3, options);
 }
 
-// node_modules/@uwdata/vgplot/src/layout/concat.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/layout/concat.js
 function concat2({ direction = "vertical", wrap: wrap2 = false }, children2) {
   const div = document.createElement("div");
   div.style.display = "flex";
@@ -55408,7 +55408,7 @@ function hconcat(...plots) {
   return concat2({ direction: "horizontal" }, plots.flat());
 }
 
-// node_modules/@uwdata/vgplot/src/layout/space.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/layout/space.js
 function space({ dim = "width", size = 10 }) {
   const span = document.createElement("span");
   span.style.display = "inline-block";
@@ -55422,7 +55422,7 @@ function hspace(size) {
   return space({ dim: "width", size });
 }
 
-// node_modules/@uwdata/vgplot/src/plot/attributes.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/plot/attributes.js
 var attributes_exports = {};
 __export(attributes_exports, {
   align: () => align,
@@ -55640,7 +55640,7 @@ __export(attributes_exports, {
   yZero: () => yZero
 });
 
-// node_modules/@uwdata/vgplot/src/plot/named-plots.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/plot/named-plots.js
 var NamedPlots = class extends Map {
   request(name2, callback) {
     if (this.has(name2)) {
@@ -55677,7 +55677,7 @@ function setNamedPlot(ctx, name2, plot3) {
   map4.set(name2, plot3);
 }
 
-// node_modules/@uwdata/vgplot/src/plot/attributes.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/plot/attributes.js
 function name(name2) {
   return (plot3) => setNamedPlot(this, name2, plot3);
 }
@@ -55937,12 +55937,12 @@ var projectionInsetTop = attrf("projectionInsetTop");
 var projectionInsetBottom = attrf("projectionInsetBottom");
 var projectionClip = attrf("projectionClip");
 
-// node_modules/@uwdata/vgplot/src/plot/data.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/plot/data.js
 function from(table3, options) {
   return { table: table3, options };
 }
 
-// node_modules/@uwdata/vgplot/src/plot/marks.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/plot/marks.js
 var marks_exports = {};
 __export(marks_exports, {
   area: () => area2,
@@ -56105,7 +56105,7 @@ var geo2 = (...args) => implicitType(GeoMark, ...args);
 var sphere3 = (...args) => mark("sphere", ...args);
 var graticule3 = (...args) => mark("graticule", ...args);
 
-// node_modules/@uwdata/vgplot/src/plot/interactors.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/plot/interactors.js
 var interactors_exports = {};
 __export(interactors_exports, {
   highlight: () => highlight,
@@ -56191,7 +56191,7 @@ function panZoomY(options = {}) {
   return zoom({ ...options, panx: false });
 }
 
-// node_modules/@uwdata/vgplot/src/plot/legends.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/plot/legends.js
 var legends_exports = {};
 __export(legends_exports, {
   colorLegend: () => colorLegend,
@@ -56224,7 +56224,7 @@ function symbolLegend(options) {
   return legend2.call(this, "symbol", options);
 }
 
-// node_modules/@uwdata/vgplot/src/plot/plot.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/plot/plot.js
 function plot2(...directives) {
   const p2 = new Plot();
   directives.flat().forEach((dir) => dir(p2));
@@ -56233,7 +56233,7 @@ function plot2(...directives) {
   return p2.element;
 }
 
-// node_modules/@uwdata/vgplot/src/context.js
+// benchmarks/probes/vendor/node_modules/@uwdata/vgplot/src/context.js
 function createAPIContext({
   coordinator: coordinator2 = coordinator(),
   namedPlots: namedPlots2 = new NamedPlots(),

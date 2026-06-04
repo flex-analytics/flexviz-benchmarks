@@ -6,9 +6,15 @@ import { makeDuckDB, connectorFor, insertArrow, vg } from './dist/mosaic_wasm.js
 const H = window.__benchHelpers;
 try {
   // --- Phase 1: build the native in-browser store (NOT timed). ---
-  const db = await makeDuckDB('./dist/duckdb-eh.wasm', './dist/duckdb-browser-eh.worker.js');
-  const buf = new Uint8Array(await (await fetch('./bench.arrow')).arrayBuffer());
+  const db = await makeDuckDB(
+    './dist/duckdb-coi.wasm',
+    './dist/duckdb-browser-coi.worker.js',
+    './dist/duckdb-browser-coi.pthread.worker.js'
+  );
+  let buf = new Uint8Array(await (await fetch('./bench.arrow')).arrayBuffer());
   await insertArrow(db, 'bench', buf);          // DuckDB-WASM native table = the resident store
+  buf = null;
+  await new Promise((resolve) => setTimeout(resolve, 0));
   vg.coordinator().databaseConnector(connectorFor(db));
   await H.benchStored();                          // signal store built; block until harness samples + releases
   // --- Phase 2: timed render (store already resident). ---

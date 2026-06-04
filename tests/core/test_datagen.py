@@ -1,6 +1,5 @@
 import numpy as np
 import polars as pl
-
 from core.datagen import ensure_disk_dataset, histogram_columns, line_columns
 
 
@@ -30,3 +29,12 @@ def test_parquet_is_streamed_in_row_groups(tmp_path):
     assert pf.metadata.num_rows == 25_000
     df = pl.read_parquet(path)
     assert df.columns == ["x", "y1", "y2"] and df.height == 25_000
+
+
+def test_existing_disk_dataset_is_regenerated_when_columns_are_missing(tmp_path):
+    path = ensure_disk_dataset(tmp_path / "ds", "histogram", 1000, 1, 42, "disk-parquet", True)
+    assert pl.read_parquet(path).columns == ["value1"]
+
+    path = ensure_disk_dataset(tmp_path / "ds", "histogram", 1000, 2, 42, "disk-parquet", False)
+
+    assert pl.read_parquet(path).columns == ["value1", "value2"]
