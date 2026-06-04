@@ -52,10 +52,17 @@ def main() -> None:
     a = parse_args()
     sizes = [int(s) for s in a.sizes.split(",") if s.strip()]
     traces = [int(s) for s in a.n_traces.split(",") if s.strip()]
+    if not sizes or any(v <= 0 for v in sizes):
+        raise ValueError("--sizes must be a non-empty comma-separated list of positive ints")
+    if not traces or any(v <= 0 for v in traces):
+        raise ValueError("--n-traces must be a non-empty comma-separated list of positive ints")
     sources = [s.strip() for s in a.data_sources.split(",") if s.strip()]
     names = [s.strip() for s in a.contenders.split(",") if s.strip()]
     max_traces = max(traces)
     registry = build_registry(a.flexviz_repo)
+    unknown = [n for n in names if n not in registry]
+    if unknown:
+        raise ValueError(f"Unknown contenders: {unknown}. Valid: {sorted(registry)}")
     out_path = a.json_out or Path(f"results/ttfr_{a.chart}.json")
 
     summaries, all_trials = [], {}

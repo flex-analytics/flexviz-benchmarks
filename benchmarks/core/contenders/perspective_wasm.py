@@ -16,7 +16,8 @@ def histogram_range(frame_or_path, col: str = "value1") -> tuple[float, float]:
         import duckdb
 
         path = str(frame_or_path).replace("'", "''")
-        lo, hi = duckdb.connect().execute(f"SELECT min({col}), max({col}) FROM '{path}'").fetchone()
+        with duckdb.connect() as con:
+            lo, hi = con.execute(f"SELECT min({col}), max({col}) FROM '{path}'").fetchone()
         return float(lo), float(hi)
     s = frame_or_path[col]
     return float(s.min()), float(s.max())
@@ -33,7 +34,9 @@ def restore_config(chart: str, n_traces: int, bins: int, hist_range=None) -> dic
     vals = [f"value{t + 1}" for t in range(n_traces)]
     lo, hi = hist_range if hist_range is not None else (0.0, 1.0)
     width = (hi - lo) / bins if hi > lo else 1.0
-    expr = f'floor(("value1" - {lo!r}) / {width!r})'
+    # Clamp to bins-1: value1 == hi floors to `bins`, which would add a spurious
+    # (bins+1)-th group; the last bin is closed on the right (matches np.histogram).
+    expr = f'min({bins - 1}, floor(("value1" - {lo!r}) / {width!r}))'
     return {
         "plugin": "Y Bar",
         "expressions": {"bin": expr},

@@ -63,7 +63,7 @@ Flags: `--no-memory`, `--fixed-n-traces`, `--fixed-rows`, `--out-dir` (default: 
 **`benchmarks/config.py`** is the single file for shared defaults across all benchmark scripts:
 - `SIZES` — row counts in the size matrix
 - `N_TRACES` — trace counts per chart
-- `DATA_SOURCES` — data source types (`"in-memory"`, `"disk-parquet"`, `"disk-csv"`, `"disk-ipc"`; future: `"db"`)
+- `DATA_SOURCES` — data source types (default: `"in-memory"`, `"disk-parquet"`; also available: `"disk-csv"`, `"disk-ipc"`; future: `"db"`)
 - `CONTENDERS` — the 7-tool roster: `"flexviz"`, `"mosaic-server"`, `"mosaic-wasm"`, `"perspective-server"`, `"perspective-wasm"`, `"vaex"`, `"datashader"`
 - `CLIENT_ONLY` — client/WASM tools (`"mosaic-wasm"`, `"perspective-wasm"`) that compute in the browser and run **in-memory only** (the driver skips them on disk sources)
 - `WARMUP`, `REPEATS`, `SEED` — trial execution settings

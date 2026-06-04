@@ -50,3 +50,5 @@ class StaticServer:
     def __exit__(self, *exc: object) -> None:
         if self._httpd:
             self._httpd.shutdown()
+            self._httpd.server_close()
+            self._httpd = None

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Any, Protocol
@@ -73,6 +74,10 @@ class PageServerMixin:
         if self._server:
             self._server.__exit__()
             self._server = None
+        if self._dir:
+            # rmtree unlinks the `dist` symlink itself; it never recurses into VENDOR_DIST.
+            shutil.rmtree(self._dir, ignore_errors=True)
+            self._dir = None
 
 
 def frame_columns(chart: str, n_traces: int) -> list[str]:

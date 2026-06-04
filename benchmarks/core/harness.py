@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import random
+import shutil
 import tempfile
 from collections.abc import Callable
 from typing import Any
@@ -30,6 +31,7 @@ class RenderProbe:
     def __exit__(self, *exc: object) -> None:
         self._ctx.close()
         self._pw.stop()
+        shutil.rmtree(self._udd, ignore_errors=True)
 
     def run_trial(
         self,

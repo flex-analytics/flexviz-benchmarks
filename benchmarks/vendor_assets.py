@@ -11,8 +11,9 @@ VENDOR = Path(__file__).parent / "probes" / "vendor"
 
 
 def main() -> None:
-    if not (VENDOR / "node_modules").exists():
-        subprocess.run(["npm", "ci"], cwd=VENDOR, check=True)
+    # Always `npm ci` (not conditional on node_modules/): a re-vendor must build from the
+    # exact lockfile so the committed dist/ is reproducible, even with stale node_modules.
+    subprocess.run(["npm", "ci"], cwd=VENDOR, check=True)
     subprocess.run(["node", "build.mjs"], cwd=VENDOR, check=True)
     manifest = json.loads((VENDOR / "manifest.json").read_text())
     print(f"manifest: {len(manifest)} assets")
