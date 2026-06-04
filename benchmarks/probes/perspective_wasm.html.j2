@@ -1,0 +1,24 @@
+<!doctype html><meta charset=utf-8>
+<style>body{margin:0}perspective-viewer{width:900px;height:400px}</style>
+<perspective-viewer id="v"></perspective-viewer>
+<script src="./contract.js"></script>
+<script type="module">
+import { perspective } from './dist/perspective.js';
+const H = window.__benchHelpers;
+try {
+  // --- Phase 1: build the native in-browser WASM Table (NOT timed). ---
+  let buf = await (await fetch('./bench.arrow')).arrayBuffer();
+  const worker = await perspective.worker();
+  const table = await worker.table(buf);          // WASM Table = the resident store
+  buf = null;
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await H.benchStored();                            // signal store built; block until harness samples + releases
+  // --- Phase 2: timed render. ---
+  const viewer = document.getElementById('v');
+  const t0 = performance.now();
+  await viewer.load(table);
+  await viewer.restore({{RESTORE_JSON}});         // {plugin, columns, group_by, aggregates}
+  await viewer.flush();
+  H.benchDone({ total_ms: performance.now() - t0 });
+} catch (e) { H.benchError(e); }
+</script>

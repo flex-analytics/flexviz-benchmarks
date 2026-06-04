@@ -31,29 +31,42 @@ DETAIL_TIMING_METRICS: list[tuple[str, str]] = [
     ("transfer_median_ms", "Transfer"),
     ("render_median_ms", "Render"),
 ]
+# Browser-side memory metrics, reported in a separate table (build_browser_memory_table):
+# the per-render delta, plus the resident in-browser store + its build peak for the
+# client/WASM engines (zero for server engines, whose store lives in the backend).
 BROWSER_MEMORY_METRICS: list[tuple[str, str]] = [
-    ("peak_browser_median_mb", "Browser peak"),
+    ("browser_timed_peak_median_mb", "Browser render peak"),
+    ("resident_footprint_median_mb", "Resident store"),
+    ("preload_peak_median_mb", "Preload peak"),
 ]
 
-# Browser peak memory is reported in a separate table (see build_browser_memory_table),
-# so only backend peak is visualized as a chart column.
+# Backend render-memory delta is visualized as a chart column.
 MEMORY_METRICS: list[tuple[str, str]] = [
-    ("peak_backend_median_mb", "backend peak"),
+    ("backend_timed_peak_median_mb", "backend render peak"),
 ]
 
+# Vibrant Tailwind-style palette. Paired engines share a hue (lighter tint for
+# the WASM variant; markers also distinguish server vs wasm). vaex uses amber
+# (not green) so it stays clear of datashader's cyan and avoids the red/green
+# clash that fails for deutan/protan colorblindness; amber separates from red by
+# luminance under CVD.
 TOOL_COLOR: dict[str, str] = {
-    "flexviz": "#2563eb",
-    "mosaic": "#dc2626",
-    "vaex": "#16a34a",
-    "pygwalker": "#d97706",
-    "graphic-walker": "#d97706",
+    "flexviz": "#2563eb",          # blue
+    "mosaic-server": "#dc2626",    # red
+    "mosaic-wasm": "#f87171",      # light red
+    "perspective-server": "#7c3aed",  # violet
+    "perspective-wasm": "#c4b5fd",    # light violet
+    "vaex": "#f59e0b",             # amber
+    "datashader": "#0891b2",       # cyan
 }
 TOOL_MARKER: dict[str, str] = {
     "flexviz": "circle",
-    "mosaic": "square",
+    "mosaic-server": "square",
+    "mosaic-wasm": "square-open",
+    "perspective-server": "diamond",
+    "perspective-wasm": "diamond-open",
     "vaex": "triangle-up",
-    "pygwalker": "diamond",
-    "graphic-walker": "diamond",
+    "datashader": "cross",
 }
 SOURCE_DASH: dict[str, str] = {
     "disk-parquet": "solid",
@@ -110,6 +123,7 @@ def load_json(path: Path) -> dict[str, Any]:
         "trials": raw.get("trials", {}),
         "config": raw.get("config", {}),
         "notes": raw.get("notes", []),
+        "failures": raw.get("failures", []),
     }
 
 
@@ -122,8 +136,14 @@ def compute_bands(trials_json: dict) -> dict[tuple, tuple[float, float]]:
     import statistics as _stats
 
     _METRICS = (
-        "total_ms", "query_ms", "transfer_ms", "render_ms",
-        "peak_backend_mb", "peak_browser_mb",
+        "total_ms",
+        "query_ms",
+        "transfer_ms",
+        "render_ms",
+        "backend_timed_peak_mb",
+        "browser_timed_peak_mb",
+        "resident_footprint_mb",
+        "preload_peak_mb",
     )
     bands: dict[tuple, tuple[float, float]] = {}
 
@@ -216,25 +236,34 @@ def build_figure(
                 ys = [s.get(m_field) for s in tool_data]
                 hover = [
                     f"{tool} / {src}<br>{x_key}={x}<br>{m_field}={y:.2f}<br>n={s['trials']}"
-                    if y is not None else ""
+                    if y is not None
+                    else ""
                     for x, y, s in zip(xs, ys, tool_data)
                 ]
 
                 fig.add_trace(
                     go.Scatter(
-                        x=xs, y=ys,
+                        x=xs,
+                        y=ys,
                         mode="lines+markers",
                         name=f"{tool} · {src}",
                         legendgroup=legend_key,
                         showlegend=show_this,
-                        line=dict(color=TOOL_COLOR.get(tool), width=1.5,
-                                  dash=SOURCE_DASH.get(src, "solid")),
-                        marker=dict(symbol=TOOL_MARKER.get(tool, "circle"),
-                                    color=TOOL_COLOR.get(tool), size=6),
+                        line=dict(
+                            color=TOOL_COLOR.get(tool),
+                            width=1.5,
+                            dash=SOURCE_DASH.get(src, "solid"),
+                        ),
+                        marker=dict(
+                            symbol=TOOL_MARKER.get(tool, "circle"),
+                            color=TOOL_COLOR.get(tool),
+                            size=6,
+                        ),
                         hovertext=hover,
                         hoverinfo="text",
                     ),
-                    row=1, col=col,
+                    row=1,
+                    col=col,
                 )
 
                 # p25/p75 band traces — trial fields omit "_median" vs summary fields
@@ -254,7 +283,8 @@ def build_figure(
                     fill_color = _hex_to_rgba(TOOL_COLOR.get(tool, "#888888"), 0.15)
                     fig.add_trace(
                         go.Scatter(
-                            x=xs, y=p25s,
+                            x=xs,
+                            y=p25s,
                             mode="lines",
                             name=f"{tool} · {src} p25",
                             legendgroup=legend_key,
@@ -262,11 +292,13 @@ def build_figure(
                             line=dict(width=0),
                             hoverinfo="skip",
                         ),
-                        row=1, col=col,
+                        row=1,
+                        col=col,
                     )
                     fig.add_trace(
                         go.Scatter(
-                            x=xs, y=p75s,
+                            x=xs,
+                            y=p75s,
                             mode="lines",
                             fill="tonexty",
                             fillcolor=fill_color,
@@ -276,7 +308,8 @@ def build_figure(
                             line=dict(width=0),
                             hoverinfo="skip",
                         ),
-                        row=1, col=col,
+                        row=1,
+                        col=col,
                     )
 
     def _axis_key(col: int) -> str:
@@ -316,6 +349,7 @@ def build_figure(
     fig.update_yaxes(automargin=True)
 
     if add_toggle:
+
         def _xaxis_name(c: int) -> str:
             return "xaxis" if c == 1 else f"xaxis{c}"
 
@@ -323,24 +357,26 @@ def build_figure(
         linear_args = {f"{_xaxis_name(c)}.type": "linear" for c in range(1, n_cols + 1)}
 
         fig.update_layout(
-            updatemenus=[dict(
-                type="buttons",
-                direction="right",
-                x=1.0,
-                xanchor="right",
-                y=1.24,
-                yanchor="bottom",
-                showactive=True,
-                bgcolor="rgba(255, 255, 255, 0.95)",
-                bordercolor="#d1d5db",
-                borderwidth=1,
-                font=dict(size=11, color="#1f2937"),
-                pad=dict(r=6, t=4, b=4, l=6),
-                buttons=[
-                    dict(label="Log", method="relayout", args=[log_args]),
-                    dict(label="Linear", method="relayout", args=[linear_args]),
-                ],
-            )]
+            updatemenus=[
+                dict(
+                    type="buttons",
+                    direction="right",
+                    x=1.0,
+                    xanchor="right",
+                    y=1.24,
+                    yanchor="bottom",
+                    showactive=True,
+                    bgcolor="rgba(255, 255, 255, 0.95)",
+                    bordercolor="#d1d5db",
+                    borderwidth=1,
+                    font=dict(size=11, color="#1f2937"),
+                    pad=dict(r=6, t=4, b=4, l=6),
+                    buttons=[
+                        dict(label="Log", method="relayout", args=[log_args]),
+                        dict(label="Linear", method="relayout", args=[linear_args]),
+                    ],
+                )
+            ]
         )
 
     return fig
@@ -494,105 +530,83 @@ _METHODOLOGY_HTML = """\
 <div class="card">
   <h2>Tools &amp; Methodology</h2>
 
+  <p>Seven tools across three classes. <strong>TTFR</strong> is clocked entirely in the
+  browser, from the request that triggers each tool&rsquo;s pipeline to a paint-proven
+  first render (a double <code>requestAnimationFrame</code> after the engine&rsquo;s
+  ready signal). Engines render the same bounded histogram workload
+  (<code>bins</code> bars/trace). For line charts, FlexViz/Mosaic/Vaex/Datashader use the
+  bounded ~1000-point line/envelope workload; Perspective line is explicitly reported as
+  its shipped raw-<code>x</code> Y Line workload because it does not implement that
+  scalable envelope in this benchmark. The same-engine
+  <strong>server&nbsp;vs&nbsp;WASM</strong> pairs (Mosaic, Perspective) isolate
+  compute-location as a single variable.</p>
+
+  <p><strong>Source semantics.</strong> For an <em>in-memory</em> source the data is
+  resident in each engine&rsquo;s native store before timing (the timed window is query
+  + render only). For a <em>disk</em> source the engine holds only a handle to the file;
+  the read + parse + query + render all happen inside the timed window, re-read each
+  trial with no cross-trial cache. Client/WASM engines (mosaic-wasm, perspective-wasm)
+  have no out-of-core path and run <strong>in-memory only</strong>.</p>
+
   <div class="tool-desc-grid">
     <div class="tool-desc-item">
-      <h3>FlexViz</h3>
-      <p><em>Server-rendered.</em> A Python FastAPI server receives a dashboard spec,
-      runs the query server-side with Polars, and returns a Plotly JSON update over
-      HTTP (<code>/update</code>). The browser renders the result using
-      <code>Plotly.react</code>. Timing is split via
-      <code>PerformanceResourceTiming</code>.</p>
+      <h3>Class A &mdash; server-compute, browser-render</h3>
+      <p><em>FlexViz, Mosaic-server, Perspective-server.</em> The backend computes the
+      small result (envelope / bins / viewport) and the browser draws it.
+      <strong>FlexViz</strong>: Polars over HTTP <code>/update</code>, Plotly
+      <code>react</code>; timing split via <code>PerformanceResourceTiming</code>.
+      <strong>Mosaic-server</strong>: a DuckDB WebSocket server with a <em>native</em>
+      <code>CREATE TABLE</code> for in-memory (fixes the prior registered-frame re-scan
+      paradox) or a parquet view for disk; vgplot renders. <strong>Perspective-server</strong>:
+      a <code>perspective-python</code> server holds the table and streams only the
+      current viewport to <code>&lt;perspective-viewer&gt;</code>; build cost surfaces via a
+      <code>Server-Timing</code> header.</p>
     </div>
     <div class="tool-desc-item">
-      <h3>Mosaic</h3>
-      <p><em>Browser-rendered with server DuckDB.</em> A Node.js DuckDB WebSocket
-      server handles SQL aggregation queries. The browser uses Mosaic&rsquo;s
-      <code>socketConnector</code> to fetch results and renders with Observable Plot.
-      WebSocket traffic is invisible to <code>PerformanceResourceTiming</code>, so
-      the query/transfer/render breakdown cannot be measured.</p>
+      <h3>Class B &mdash; client-compute (WASM), browser-render</h3>
+      <p><em>Mosaic-wasm, Perspective-wasm (in-memory only).</em> The dataset ships to
+      the browser as an Arrow buffer and the engine&rsquo;s native store is built
+      <em>there</em> before timing &mdash; a DuckDB-WASM table (Mosaic) or a WASM
+      <code>Table</code> (Perspective). The store-build phase is measured separately
+      (a <code>__bench_stored</code> handshake) so it lands in resident memory, not render
+      time. JS engines are vendored offline (esbuild / prebuilt bundles); no CDN is hit.</p>
     </div>
     <div class="tool-desc-item">
-      <h3>Vaex</h3>
-      <p><em>HTML artifact.</em> Python generates a static SVG chart using Vaex,
-      embeds it in a self-contained HTML file served locally. There is no
-      client-server round-trip; <code>query_ms</code> reflects Python rendering
-      time and <code>transfer_ms</code> is not applicable.</p>
-    </div>
-    <div class="tool-desc-item">
-      <h3>Graphic Walker</h3>
-      <p><em>Kernel-computed HTML artifact.</em> Python builds a Graphic Walker
-      visualization spec, runs kernel-side computation over the selected columns,
-      and serves the resulting SVG chart in a self-contained HTML page.
-      <code>query_ms</code> reflects Graphic Walker kernel computation and SVG generation;
-      <code>transfer_ms</code> is not applicable.</p>
+      <h3>Class C &mdash; server-rasterize, browser-displays-image</h3>
+      <p><em>Vaex, Datashader.</em> A live <code>GET /render.png</code> endpoint runs the
+      aggregation + raster <em>on each request</em> (no pre-baking, nonce defeats caching);
+      the probe is an <code>&lt;img&gt;</code> and the clock runs request &rarr;
+      <code>img.decode()</code> + paint. <strong>Vaex</strong> bins with
+      <code>df.count/mean(binby=&hellip;)</code> &rarr; matplotlib Agg PNG;
+      <strong>Datashader</strong> uses <code>Canvas.line</code> &rarr; <code>tf.shade</code>
+      (histogram = numpy-oracle bin counts as a step line). <code>query_ms</code> is the
+      server raster time; <code>transfer_ms</code> the image body transfer.</p>
     </div>
   </div>
 
   <div class="measure-section">
-    <h3>Measurement Coverage</h3>
-    <table class="measure-table">
-      <thead>
-        <tr>
-          <th>Metric</th>
-          <th>FlexViz</th>
-          <th>Mosaic</th>
-          <th>Vaex</th>
-          <th>Graphic Walker</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><code>total_ms</code></td>
-          <td class="yes">&#10003;</td>
-          <td class="yes">&#10003;</td>
-          <td class="yes">&#10003;</td>
-          <td class="yes">&#10003;</td>
-        </tr>
-        <tr>
-          <td><code>query_ms</code></td>
-          <td class="yes">&#10003; server-side Polars query</td>
-          <td class="no">&#8212; WebSocket (not in ResourceTiming)</td>
-          <td class="yes">&#10003; Python SVG generation</td>
-          <td class="yes">&#10003; Graphic Walker kernel computation<br>and SVG generation</td>
-        </tr>
-        <tr>
-          <td><code>transfer_ms</code></td>
-          <td class="yes">&#10003; HTTP body receive</td>
-          <td class="no">&#8212; WebSocket</td>
-          <td class="no">&#8212; no transfer phase</td>
-          <td class="no">&#8212; no transfer phase</td>
-        </tr>
-        <tr>
-          <td><code>render_ms</code></td>
-          <td class="yes">&#10003; <code>Plotly.react</code> duration</td>
-          <td class="no">&#8212; WebSocket</td>
-          <td class="yes">&#10003; browser page load</td>
-          <td class="yes">&#10003; browser page load<br>(SVG artifact)</td>
-        </tr>
-        <tr>
-          <td><code>peak_backend_mb</code></td>
-          <td class="yes">&#10003; Process RSS peak (psutil sampling;<br>includes native Polars/Arrow/Rust)</td>
-          <td class="yes">&#10003; DuckDB subprocess RSS peak<br>(psutil sampling during query)</td>
-          <td class="yes">&#10003; Process RSS peak (psutil sampling;<br>covers SVG generation)</td>
-          <td class="yes">&#10003; Process RSS peak (psutil sampling;<br>covers kernel computation and SVG generation)</td>
-        </tr>
-        <tr>
-          <td><code>peak_browser_mb</code></td>
-          <td class="yes">&#10003; JS heap delta<br>(Plotly.js render)</td>
-          <td class="yes">&#10003; JS heap delta<br>(Mosaic render)</td>
-          <td class="yes">&#10003; JS heap delta<br>(SVG DOM)</td>
-          <td class="yes">&#10003; JS heap delta<br>(SVG DOM)</td>
-        </tr>
-      </tbody>
-    </table>
-    <p class="footnote">
-      <code>peak_backend_mb</code> is the peak resident set size (RSS) over the
-      trial, sampled via psutil and reported above a pre-trial baseline. Unlike
-      tracemalloc, RSS includes native (Polars / Arrow / DuckDB / Rust)
-      allocations. The headless browser runs in a separate process and is excluded
-      here &mdash; its memory is reported as <code>peak_browser_mb</code> in the
-      browser-peak table below each chart.
-    </p>
+    <h3>Memory</h3>
+    <p>All memory numbers are <strong>RSS deltas</strong> (peak-minus-baseline) over a
+    process tree, sampled with psutil at ~5&nbsp;ms. RSS &mdash; not USS &mdash; because
+    <code>memory_full_info()</code> raises <code>AccessDenied</code> for child processes
+    on macOS (SIP), which would make the DuckDB child and the whole Chromium tree
+    unreadable; RSS is readable for descendants. Baselines are taken <em>on the group
+    being sampled</em> (out-of-process backends are spawned empty first), and deltas
+    cancel the roughly-constant shared framework pages. Three metrics:</p>
+    <ul class="footnote" style="line-height:1.5">
+      <li><code>backend_timed_peak_mb</code> &mdash; incremental backend-tree RSS during
+      the timed render window (the headline render-memory number). In-process for FlexViz
+      and the rasterizers; the spawned DuckDB / Perspective child for the server engines.</li>
+      <li><code>browser_timed_peak_mb</code> &mdash; incremental Chromium renderer-tree
+      RSS during render. Unlike a JS-heap delta this captures Perspective&rsquo;s WASM heap
+      and canvas/GPU buffers.</li>
+      <li><code>resident_footprint_mb</code> / <code>preload_peak_mb</code> &mdash; size and
+      build-peak of the engine&rsquo;s in-memory native store (backend group for server
+      engines; the browser store-phase for client/WASM engines; zero on disk sources).</li>
+    </ul>
+    <p class="footnote">Known limitation: RSS over-counts shared pages in absolute terms
+    (cancelled by the delta) and can miss sub-5&nbsp;ms spikes; a reused browser is
+    attributed only its per-trial delta, not its absolute footprint.</p>
   </div>
 </div>"""
 
@@ -619,8 +633,7 @@ def _build_metric_table(
     dimension_values = sorted({summary[x_key] for summary in data_filtered})
     row_keys = sorted({(summary["tool"], summary["source"]) for summary in data_filtered})
     by_row_and_dimension = {
-        (summary["tool"], summary["source"], summary[x_key]): summary
-        for summary in data_filtered
+        (summary["tool"], summary["source"], summary[x_key]): summary for summary in data_filtered
     }
 
     dimension_headers = "".join(
@@ -641,13 +654,7 @@ def _build_metric_table(
             for summary in [by_row_and_dimension.get((tool, source, value))]
             for field, _ in metrics
         )
-        rows_html += (
-            "<tr>"
-            f"<td>{escape(tool)}</td>"
-            f"<td>{escape(source)}</td>"
-            f"{metric_cells}"
-            "</tr>"
-        )
+        rows_html += f"<tr><td>{escape(tool)}</td><td>{escape(source)}</td>{metric_cells}</tr>"
 
     return f"""\
 <div class="timing-detail">
@@ -704,11 +711,39 @@ def build_browser_memory_table(
     )
 
 
+def build_failures_table(failures: list[dict[str, Any]]) -> str:
+    if not failures:
+        return ""
+    rows = []
+    for failure in failures:
+        rows.append(
+            "<tr>"
+            f"<td>{escape(str(failure.get('tool', '')))}</td>"
+            f"<td>{int(failure.get('rows', 0)):,}</td>"
+            f"<td>{escape(str(failure.get('n_traces', '')))}</td>"
+            f"<td>{escape(str(failure.get('source', '')))}</td>"
+            f"<td>{escape(str(failure.get('error', '')))}</td>"
+            "</tr>"
+        )
+    return (
+        '<div class="card">'
+        "<h2>Ceiling Failures</h2>"
+        '<table class="timing-detail-table">'
+        "<thead><tr>"
+        "<th>Tool</th><th>Rows</th><th>Traces</th><th>Source</th><th>Error</th>"
+        "</tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table>"
+        "</div>"
+    )
+
+
 def build_page(
     fig1: go.Figure,
     fig2: go.Figure,
     config: dict[str, Any],
     notes: list[str],
+    failures: list[dict[str, Any]],
     dims: dict[str, list],
     *,
     fixed_n_traces: int,
@@ -716,12 +751,16 @@ def build_page(
     summaries: list[dict[str, Any]] | None = None,
 ) -> str:
     fig1_html = fig1.to_html(
-        full_html=False, div_id="fig1",
-        include_plotlyjs="cdn", config={"responsive": True},
+        full_html=False,
+        div_id="fig1",
+        include_plotlyjs="cdn",
+        config={"responsive": True},
     )
     fig2_html = fig2.to_html(
-        full_html=False, div_id="fig2",
-        include_plotlyjs=False, config={"responsive": True},
+        full_html=False,
+        div_id="fig2",
+        include_plotlyjs=False,
+        config={"responsive": True},
     )
 
     sizes_str = ", ".join(_format_size(s) for s in config.get("sizes", dims.get("rows", [])))
@@ -734,14 +773,17 @@ def build_page(
 
     extra_meta = ""
     if "bins" in config:
-        extra_meta += f'<div class="meta-item"><label>Bins</label><span>{config["bins"]}</span></div>'
+        extra_meta += (
+            f'<div class="meta-item"><label>Bins</label><span>{config["bins"]}</span></div>'
+        )
     if "n_points" in config:
         extra_meta += f'<div class="meta-item"><label>Points/trace</label><span>{config["n_points"]}</span></div>'
 
     notes_html = ""
     if notes:
-        items = "".join(f"<li>{n}</li>" for n in notes)
+        items = "".join(f"<li>{escape(n)}</li>" for n in notes)
         notes_html = f'<ul class="notes-list">{items}</ul>'
+    failures_html = build_failures_table(failures)
 
     fixed_rows_fmt = f"{fixed_rows:,}"
     plural_s = "s" if fixed_n_traces != 1 else ""
@@ -830,6 +872,8 @@ def build_page(
 
   {_METHODOLOGY_HTML}
 
+  {failures_html}
+
   <div class="section-card">
     <h2>Rows Scaling &mdash; n_traces={fixed_n_traces}</h2>
     <p>How render time and memory grow as dataset size increases, with the number of traces fixed at {fixed_n_traces}. Use the Log / Linear toggle to switch the x-axis scale.</p>
@@ -894,6 +938,7 @@ def main() -> None:
     trials_json = data["trials"]
     config = data["config"]
     notes = data["notes"]
+    failures = data["failures"]
 
     dims = _detect_dimensions(summaries)
     bands = compute_bands(trials_json)
@@ -904,7 +949,8 @@ def main() -> None:
     metrics = TIMING_METRICS + (MEMORY_METRICS if not args.no_memory else [])
 
     fig1 = build_figure(
-        summaries, bands,
+        summaries,
+        bands,
         x_key="rows",
         row_filter={"n_traces": fixed_n_traces},
         metrics=metrics,
@@ -914,7 +960,8 @@ def main() -> None:
         title="Rows Scaling",
     )
     fig2 = build_figure(
-        summaries, bands,
+        summaries,
+        bands,
         x_key="n_traces",
         row_filter={"rows": fixed_rows},
         metrics=metrics,
@@ -925,7 +972,12 @@ def main() -> None:
     )
 
     page_html = build_page(
-        fig1, fig2, config, notes, dims,
+        fig1,
+        fig2,
+        config,
+        notes,
+        failures,
+        dims,
         fixed_n_traces=fixed_n_traces,
         fixed_rows=fixed_rows,
         summaries=summaries,
@@ -939,6 +991,7 @@ def main() -> None:
 
     if args.show:
         import webbrowser
+
         webbrowser.open(out_path.resolve().as_uri())
 
 

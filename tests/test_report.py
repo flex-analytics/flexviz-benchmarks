@@ -14,6 +14,7 @@ from report import (
     _format_size,
     _hex_to_rgba,
     build_browser_memory_table,
+    build_failures_table,
     build_figure,
     build_page,
     build_timing_table,
@@ -22,36 +23,54 @@ from report import (
     main,
 )
 
+
+def _mem(backend, browser, resident=0.0, preload=0.0):
+    return {
+        "backend_timed_peak_median_mb": backend,
+        "browser_timed_peak_median_mb": browser,
+        "resident_footprint_median_mb": resident,
+        "preload_peak_median_mb": preload,
+    }
+
+
 SAMPLE_SUMMARY = [
     # flexviz — rows scaling
     {"rows": 1000, "n_traces": 1, "tool": "flexviz", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 100.0, "total_mean_ms": 100.0, "total_stdev_ms": 5.0,
      "query_median_ms": 60.0, "transfer_median_ms": 10.0, "render_median_ms": 30.0,
-     "peak_backend_median_mb": 50.0, "peak_browser_median_mb": 20.0},
+     **_mem(50.0, 20.0, 30.0, 35.0)},
     {"rows": 2000, "n_traces": 1, "tool": "flexviz", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 150.0, "total_mean_ms": 150.0, "total_stdev_ms": 8.0,
      "query_median_ms": 90.0, "transfer_median_ms": 15.0, "render_median_ms": 45.0,
-     "peak_backend_median_mb": 80.0, "peak_browser_median_mb": 30.0},
+     **_mem(80.0, 30.0, 45.0, 50.0)},
     # flexviz — traces scaling
     {"rows": 2000, "n_traces": 2, "tool": "flexviz", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 200.0, "total_mean_ms": 200.0, "total_stdev_ms": 10.0,
      "query_median_ms": 120.0, "transfer_median_ms": 20.0, "render_median_ms": 60.0,
-     "peak_backend_median_mb": 100.0, "peak_browser_median_mb": 40.0},
-    # mosaic — rows scaling
-    {"rows": 1000, "n_traces": 1, "tool": "mosaic", "source": "disk-parquet", "trials": 3,
+     **_mem(100.0, 40.0, 60.0, 65.0)},
+    # mosaic-server — rows scaling
+    {"rows": 1000, "n_traces": 1, "tool": "mosaic-server", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 200.0, "total_mean_ms": 200.0, "total_stdev_ms": 10.0,
      "query_median_ms": 120.0, "transfer_median_ms": 20.0, "render_median_ms": 60.0,
-     "peak_backend_median_mb": 100.0, "peak_browser_median_mb": 40.0},
-    {"rows": 2000, "n_traces": 1, "tool": "mosaic", "source": "disk-parquet", "trials": 3,
+     **_mem(100.0, 40.0, 0.0, 0.0)},
+    {"rows": 2000, "n_traces": 1, "tool": "mosaic-server", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 250.0, "total_mean_ms": 250.0, "total_stdev_ms": 12.0,
      "query_median_ms": 150.0, "transfer_median_ms": 25.0, "render_median_ms": 75.0,
-     "peak_backend_median_mb": 120.0, "peak_browser_median_mb": 50.0},
-    # mosaic — traces scaling
-    {"rows": 2000, "n_traces": 2, "tool": "mosaic", "source": "disk-parquet", "trials": 3,
+     **_mem(120.0, 50.0, 0.0, 0.0)},
+    # mosaic-server — traces scaling
+    {"rows": 2000, "n_traces": 2, "tool": "mosaic-server", "source": "disk-parquet", "trials": 3,
      "total_median_ms": 280.0, "total_mean_ms": 280.0, "total_stdev_ms": 14.0,
      "query_median_ms": 170.0, "transfer_median_ms": 28.0, "render_median_ms": 82.0,
-     "peak_backend_median_mb": 130.0, "peak_browser_median_mb": 55.0},
+     **_mem(130.0, 55.0, 0.0, 0.0)},
 ]
+
+
+def _trial(total, query, transfer, render, backend, browser, resident=0.0, preload=0.0):
+    return {
+        "total_ms": total, "query_ms": query, "transfer_ms": transfer, "render_ms": render,
+        "backend_timed_peak_mb": backend, "browser_timed_peak_mb": browser,
+        "resident_footprint_mb": resident, "preload_peak_mb": preload,
+    }
 
 
 SAMPLE_TRIALS = {
@@ -59,20 +78,14 @@ SAMPLE_TRIALS = {
         "1": {
             "disk-parquet": {
                 "flexviz": [
-                    {"total_ms": 90.0, "query_ms": 50.0, "transfer_ms": 8.0, "render_ms": 25.0,
-                     "peak_backend_mb": 45.0, "peak_browser_mb": 18.0},
-                    {"total_ms": 100.0, "query_ms": 60.0, "transfer_ms": 10.0, "render_ms": 30.0,
-                     "peak_backend_mb": 50.0, "peak_browser_mb": 20.0},
-                    {"total_ms": 110.0, "query_ms": 70.0, "transfer_ms": 12.0, "render_ms": 35.0,
-                     "peak_backend_mb": 55.0, "peak_browser_mb": 22.0},
+                    _trial(90.0, 50.0, 8.0, 25.0, 45.0, 18.0, 28.0, 33.0),
+                    _trial(100.0, 60.0, 10.0, 30.0, 50.0, 20.0, 30.0, 35.0),
+                    _trial(110.0, 70.0, 12.0, 35.0, 55.0, 22.0, 32.0, 37.0),
                 ],
-                "mosaic": [
-                    {"total_ms": 190.0, "query_ms": 110.0, "transfer_ms": 18.0, "render_ms": 55.0,
-                     "peak_backend_mb": 95.0, "peak_browser_mb": 38.0},
-                    {"total_ms": 200.0, "query_ms": 120.0, "transfer_ms": 20.0, "render_ms": 60.0,
-                     "peak_backend_mb": 100.0, "peak_browser_mb": 40.0},
-                    {"total_ms": 210.0, "query_ms": 130.0, "transfer_ms": 22.0, "render_ms": 65.0,
-                     "peak_backend_mb": 105.0, "peak_browser_mb": 42.0},
+                "mosaic-server": [
+                    _trial(190.0, 110.0, 18.0, 55.0, 95.0, 38.0),
+                    _trial(200.0, 120.0, 20.0, 60.0, 100.0, 40.0),
+                    _trial(210.0, 130.0, 22.0, 65.0, 105.0, 42.0),
                 ],
             }
         }
@@ -81,40 +94,28 @@ SAMPLE_TRIALS = {
         "1": {
             "disk-parquet": {
                 "flexviz": [
-                    {"total_ms": 140.0, "query_ms": 80.0, "transfer_ms": 13.0, "render_ms": 40.0,
-                     "peak_backend_mb": 75.0, "peak_browser_mb": 28.0},
-                    {"total_ms": 150.0, "query_ms": 90.0, "transfer_ms": 15.0, "render_ms": 45.0,
-                     "peak_backend_mb": 80.0, "peak_browser_mb": 30.0},
-                    {"total_ms": 160.0, "query_ms": 100.0, "transfer_ms": 17.0, "render_ms": 50.0,
-                     "peak_backend_mb": 85.0, "peak_browser_mb": 32.0},
+                    _trial(140.0, 80.0, 13.0, 40.0, 75.0, 28.0),
+                    _trial(150.0, 90.0, 15.0, 45.0, 80.0, 30.0),
+                    _trial(160.0, 100.0, 17.0, 50.0, 85.0, 32.0),
                 ],
-                "mosaic": [
-                    {"total_ms": 240.0, "query_ms": 140.0, "transfer_ms": 23.0, "render_ms": 72.0,
-                     "peak_backend_mb": 115.0, "peak_browser_mb": 48.0},
-                    {"total_ms": 250.0, "query_ms": 150.0, "transfer_ms": 25.0, "render_ms": 75.0,
-                     "peak_backend_mb": 120.0, "peak_browser_mb": 50.0},
-                    {"total_ms": 260.0, "query_ms": 160.0, "transfer_ms": 27.0, "render_ms": 78.0,
-                     "peak_backend_mb": 125.0, "peak_browser_mb": 52.0},
+                "mosaic-server": [
+                    _trial(240.0, 140.0, 23.0, 72.0, 115.0, 48.0),
+                    _trial(250.0, 150.0, 25.0, 75.0, 120.0, 50.0),
+                    _trial(260.0, 160.0, 27.0, 78.0, 125.0, 52.0),
                 ],
             }
         },
         "2": {
             "disk-parquet": {
                 "flexviz": [
-                    {"total_ms": 190.0, "query_ms": 115.0, "transfer_ms": 19.0, "render_ms": 58.0,
-                     "peak_backend_mb": 95.0, "peak_browser_mb": 38.0},
-                    {"total_ms": 200.0, "query_ms": 120.0, "transfer_ms": 20.0, "render_ms": 60.0,
-                     "peak_backend_mb": 100.0, "peak_browser_mb": 40.0},
-                    {"total_ms": 210.0, "query_ms": 125.0, "transfer_ms": 21.0, "render_ms": 62.0,
-                     "peak_backend_mb": 105.0, "peak_browser_mb": 42.0},
+                    _trial(190.0, 115.0, 19.0, 58.0, 95.0, 38.0),
+                    _trial(200.0, 120.0, 20.0, 60.0, 100.0, 40.0),
+                    _trial(210.0, 125.0, 21.0, 62.0, 105.0, 42.0),
                 ],
-                "mosaic": [
-                    {"total_ms": 270.0, "query_ms": 163.0, "transfer_ms": 26.0, "render_ms": 79.0,
-                     "peak_backend_mb": 125.0, "peak_browser_mb": 53.0},
-                    {"total_ms": 280.0, "query_ms": 170.0, "transfer_ms": 28.0, "render_ms": 82.0,
-                     "peak_backend_mb": 130.0, "peak_browser_mb": 55.0},
-                    {"total_ms": 290.0, "query_ms": 177.0, "transfer_ms": 30.0, "render_ms": 85.0,
-                     "peak_backend_mb": 135.0, "peak_browser_mb": 57.0},
+                "mosaic-server": [
+                    _trial(270.0, 163.0, 26.0, 79.0, 125.0, 53.0),
+                    _trial(280.0, 170.0, 28.0, 82.0, 130.0, 55.0),
+                    _trial(290.0, 177.0, 30.0, 85.0, 135.0, 57.0),
                 ],
             }
         },
@@ -134,24 +135,22 @@ class TestComputeBands:
         assert p75 > 100.0
         assert p25 < p75
 
-    def test_uses_peak_backend_mb_key(self):
+    def test_uses_backend_timed_peak_key(self):
         bands = compute_bands(SAMPLE_TRIALS)
-        assert (1000, 1, "disk-parquet", "flexviz", "peak_backend_mb") in bands
-        assert (1000, 1, "disk-parquet", "flexviz", "peak_python_mb") not in bands
+        assert (1000, 1, "disk-parquet", "flexviz", "backend_timed_peak_mb") in bands
+        assert (1000, 1, "disk-parquet", "flexviz", "peak_backend_mb") not in bands
 
     def test_all_metrics_present(self):
         bands = compute_bands(SAMPLE_TRIALS)
         for metric in ("total_ms", "query_ms", "transfer_ms", "render_ms",
-                       "peak_backend_mb", "peak_browser_mb"):
+                       "backend_timed_peak_mb", "browser_timed_peak_mb"):
             assert (1000, 1, "disk-parquet", "flexviz", metric) in bands
 
     def test_nullable_metric_with_all_none_omitted(self):
         trials_with_none = {
             "1000": {"1": {"disk-parquet": {"flexviz": [
-                {"total_ms": 100.0, "query_ms": None, "transfer_ms": None,
-                 "render_ms": None, "peak_backend_mb": 50.0, "peak_browser_mb": 20.0},
-                {"total_ms": 110.0, "query_ms": None, "transfer_ms": None,
-                 "render_ms": None, "peak_backend_mb": 55.0, "peak_browser_mb": 22.0},
+                _trial(100.0, None, None, None, 50.0, 20.0),
+                _trial(110.0, None, None, None, 55.0, 22.0),
             ]}}}
         }
         bands = compute_bands(trials_with_none)
@@ -161,7 +160,13 @@ class TestComputeBands:
 
 class TestLoadJson:
     def test_returns_summary(self):
-        payload = {"summary": [{"rows": 1, "n_traces": 1}], "trials": {}, "config": {}, "notes": []}
+        payload = {
+            "summary": [{"rows": 1, "n_traces": 1}],
+            "trials": {},
+            "config": {},
+            "notes": [],
+            "failures": [{"tool": "x", "error": "boom"}],
+        }
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(payload, f)
             path = Path(f.name)
@@ -170,6 +175,7 @@ class TestLoadJson:
             assert data["summary"] == payload["summary"]
             assert "trials" in data
             assert "config" in data
+            assert data["failures"] == payload["failures"]
         finally:
             os.unlink(path)
 
@@ -183,8 +189,26 @@ class TestLoadJson:
             assert data["trials"] == {}
             assert data["config"] == {}
             assert data["notes"] == []
+            assert data["failures"] == []
         finally:
             os.unlink(path)
+
+
+def test_build_failures_table_renders_ceiling_reasons():
+    html = build_failures_table(
+        [
+            {
+                "rows": 10_000_000,
+                "n_traces": 5,
+                "source": "in-memory",
+                "tool": "perspective-wasm",
+                "error": "std::bad_alloc",
+            }
+        ]
+    )
+    assert "perspective-wasm" in html
+    assert "std::bad_alloc" in html
+    assert "10,000,000" in html
 
 
 class TestHexToRgba:
@@ -342,64 +366,11 @@ class TestBuildFigure:
         assert "transfer" not in subplot_titles
         assert "render" not in subplot_titles
 
-    def test_graphic_walker_uses_explicit_tool_style(self):
-        summaries = [
-            {
-                "rows": 1000,
-                "n_traces": 1,
-                "tool": "graphic-walker",
-                "source": "disk-parquet",
-                "trials": 3,
-                "total_median_ms": 100.0,
-                "query_median_ms": 60.0,
-                "transfer_median_ms": None,
-                "render_median_ms": 40.0,
-                "peak_backend_median_mb": 10.0,
-                "peak_browser_median_mb": 5.0,
-            },
-            {
-                "rows": 2000,
-                "n_traces": 1,
-                "tool": "graphic-walker",
-                "source": "disk-parquet",
-                "trials": 3,
-                "total_median_ms": 150.0,
-                "query_median_ms": 90.0,
-                "transfer_median_ms": None,
-                "render_median_ms": 60.0,
-                "peak_backend_median_mb": 12.0,
-                "peak_browser_median_mb": 6.0,
-            },
-        ]
-        trials = {
-            "1000": {
-                "1": {
-                    "disk-parquet": {
-                        "graphic-walker": [
-                            {"total_ms": 90.0, "query_ms": 50.0, "transfer_ms": None,
-                             "render_ms": 35.0, "peak_backend_mb": 9.0, "peak_browser_mb": 4.0},
-                            {"total_ms": 100.0, "query_ms": 60.0, "transfer_ms": None,
-                             "render_ms": 40.0, "peak_backend_mb": 10.0, "peak_browser_mb": 5.0},
-                        ]
-                    }
-                }
-            },
-            "2000": {
-                "1": {
-                    "disk-parquet": {
-                        "graphic-walker": [
-                            {"total_ms": 140.0, "query_ms": 80.0, "transfer_ms": None,
-                             "render_ms": 55.0, "peak_backend_mb": 11.0, "peak_browser_mb": 5.5},
-                            {"total_ms": 150.0, "query_ms": 90.0, "transfer_ms": None,
-                             "render_ms": 60.0, "peak_backend_mb": 12.0, "peak_browser_mb": 6.0},
-                        ]
-                    }
-                }
-            },
-        }
+    def test_tool_uses_explicit_tool_style(self):
+        # mosaic-server has an explicit color/marker in TOOL_COLOR/TOOL_MARKER.
         fig = build_figure(
-            summaries,
-            compute_bands(trials),
+            SAMPLE_SUMMARY,
+            compute_bands(SAMPLE_TRIALS),
             x_key="rows",
             row_filter={"n_traces": 1},
             metrics=TIMING_METRICS,
@@ -408,13 +379,12 @@ class TestBuildFigure:
             x_log=True,
             title="Rows Scaling",
         )
-
-        main_trace = next(t for t in fig.data if t.name == "graphic-walker · disk-parquet")
-        band_trace = next(t for t in fig.data if t.name == "graphic-walker · disk-parquet p75")
-        assert main_trace.line.color == "#d97706"
-        assert main_trace.marker.color == "#d97706"
-        assert main_trace.marker.symbol == "diamond"
-        assert band_trace.fillcolor == "rgba(217, 119, 6, 0.15)"
+        main_trace = next(t for t in fig.data if t.name == "mosaic-server · disk-parquet")
+        band_trace = next(t for t in fig.data if t.name == "mosaic-server · disk-parquet p75")
+        assert main_trace.line.color == "#dc2626"
+        assert main_trace.marker.color == "#dc2626"
+        assert main_trace.marker.symbol == "square"
+        assert band_trace.fillcolor == "rgba(220, 38, 38, 0.15)"
 
 
 SAMPLE_CONFIG = {
@@ -445,7 +415,7 @@ class TestBuildPage:
             metrics=TIMING_METRICS, show_legend=False,
             add_toggle=False, x_log=False, title="Traces Scaling",
         )
-        return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, dims,
+        return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, [], dims,
                           fixed_n_traces=1, fixed_rows=2000, summaries=SAMPLE_SUMMARY)
 
     def test_returns_string(self):
@@ -489,14 +459,14 @@ class TestBuildPage:
         page = self._make_page()
         assert page.count('class="memory-detail-table"') == 2
         assert "Browser peak memory (MB)" in page
-        assert ">Browser peak</th>" in page
+        assert ">Browser render peak</th>" in page
 
 
 class TestBrowserMemoryTable:
     def test_memory_metrics_excludes_browser(self):
         fields = [field for field, _ in MEMORY_METRICS]
-        assert "peak_backend_median_mb" in fields
-        assert "peak_browser_median_mb" not in fields
+        assert "backend_timed_peak_median_mb" in fields
+        assert "browser_timed_peak_median_mb" not in fields
 
     def test_browser_peak_not_visualized_in_figure(self):
         fig = build_figure(
@@ -506,8 +476,8 @@ class TestBrowserMemoryTable:
             show_legend=True, add_toggle=False, x_log=True, title="Rows Scaling",
         )
         subplot_titles = [a.text for a in fig.layout.annotations]
-        assert "backend peak" in subplot_titles
-        assert "browser peak" not in subplot_titles
+        assert "backend render peak" in subplot_titles
+        assert "browser render peak" not in subplot_titles
 
     def test_table_has_browser_values(self):
         table = build_browser_memory_table(
@@ -515,13 +485,11 @@ class TestBrowserMemoryTable:
         )
         compact = "".join(table.split())
         assert 'class="memory-detail-table"' in compact
-        assert '<thclass="metric">Browserpeak</th>' in compact
+        assert '<thclass="metric">Browserrenderpeak</th>' in compact
         # flexviz browser peaks: 20.0 MB @1000 rows, 30.0 MB @2000 rows
-        assert (
-            "<td>flexviz</td><td>disk-parquet</td>"
-            '<tdclass="metric">20.00</td>'
-            '<tdclass="metric">30.00</td>'
-        ) in compact
+        assert "<td>flexviz</td><td>disk-parquet</td>" in compact
+        assert '<tdclass="metric">20.00</td>' in compact
+        assert '<tdclass="metric">30.00</td>' in compact
 
     def test_empty_when_no_data(self):
         assert build_browser_memory_table(
@@ -595,7 +563,7 @@ class TestBuildPageMethodologyCard:
             metrics=TIMING_METRICS, show_legend=False,
             add_toggle=False, x_log=False, title="Traces Scaling",
         )
-        return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, dims,
+        return build_page(fig1, fig2, SAMPLE_CONFIG, SAMPLE_NOTES, [], dims,
                           fixed_n_traces=1, fixed_rows=2000, summaries=SAMPLE_SUMMARY)
 
     def test_methodology_card_present(self):
@@ -603,15 +571,14 @@ class TestBuildPageMethodologyCard:
 
     def test_all_tools_described(self):
         page = self._make_page()
-        for tool in ("FlexViz", "Mosaic", "Vaex", "Graphic Walker"):
+        for tool in ("FlexViz", "Mosaic", "Perspective", "Vaex", "Datashader"):
             assert tool in page
-        assert "PyGWalker</h3>" not in page
-        assert "<th>PyGWalker</th>" not in page
+        assert "Graphic Walker" not in page
+        assert "PyGWalker" not in page
 
-    def test_measurability_table_present(self):
+    def test_methodology_describes_classes_and_memory(self):
         page = self._make_page()
-        assert "peak_backend_mb" in page
-        assert "transfer_ms" in page
-        assert "WebSocket" in page
-        assert "Graphic Walker kernel computation" in page
-        assert "SVG DOM" in page
+        assert "server" in page
+        assert "WASM" in page
+        assert "img.decode" in page
+        assert "RSS deltas" in page

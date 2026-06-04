@@ -34,6 +34,17 @@
       peak_browser_mb: Math.max(0, (heapAfter - heapBefore) / 1048576),
       payload_bytes:   entry ? (entry.transferSize || 0) : null,
     };
+
+    // Bridge to the unified contract (double-rAF paint proof).
+    if (window.__benchHelpers) {
+      window.__benchHelpers.benchDone({
+        total_ms: window.__benchTimings.total_ms,
+        query_ms: window.__benchTimings.query_ms,
+        transfer_ms: window.__benchTimings.transfer_ms,
+        render_ms: window.__benchTimings.render_ms,
+        payload_bytes: window.__benchTimings.payload_bytes,
+      });
+    }
   }
 
   function hookPlotly(plotly) {
