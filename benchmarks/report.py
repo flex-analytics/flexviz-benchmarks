@@ -45,14 +45,19 @@ MEMORY_METRICS: list[tuple[str, str]] = [
     ("backend_timed_peak_median_mb", "backend render peak"),
 ]
 
+# Vibrant Tailwind-style palette. Paired engines share a hue (lighter tint for
+# the WASM variant; markers also distinguish server vs wasm). vaex uses amber
+# (not green) so it stays clear of datashader's cyan and avoids the red/green
+# clash that fails for deutan/protan colorblindness; amber separates from red by
+# luminance under CVD.
 TOOL_COLOR: dict[str, str] = {
-    "flexviz": "#2563eb",
-    "mosaic-server": "#dc2626",
-    "mosaic-wasm": "#f87171",
-    "perspective-server": "#7c3aed",
-    "perspective-wasm": "#c4b5fd",
-    "vaex": "#16a34a",
-    "datashader": "#0891b2",
+    "flexviz": "#2563eb",          # blue
+    "mosaic-server": "#dc2626",    # red
+    "mosaic-wasm": "#f87171",      # light red
+    "perspective-server": "#7c3aed",  # violet
+    "perspective-wasm": "#c4b5fd",    # light violet
+    "vaex": "#f59e0b",             # amber
+    "datashader": "#0891b2",       # cyan
 }
 TOOL_MARKER: dict[str, str] = {
     "flexviz": "circle",
