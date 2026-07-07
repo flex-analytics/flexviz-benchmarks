@@ -20,30 +20,93 @@ def tree_rss_mb(proc: psutil.Process) -> float:
     return total / 1024 / 1024
 
 
-def tree_rss_mb_excluding(proc: psutil.Process, excluded: psutil.Process | None) -> float:
-    """Tree RSS for `proc`, excluding `excluded` and its descendants."""
-    if excluded is None:
-        return tree_rss_mb(proc)
-    excluded_pids = {excluded.pid}
+def tree_pss_mb(root: psutil.Process) -> float:
+    """Tree PSS (proportional set size). Summing RSS over a Chromium tree double-counts
+    shared pages ~2.5x (validated); PSS is the honest steady-state footprint. A
+    smaps_rollup walk costs ~ms per process, so use for point reads, never sampling.
+    Falls back to tree RSS where /proc/<pid>/smaps_rollup is unavailable (macOS)."""
+    total_kb = 0
     try:
-        excluded_pids.update(c.pid for c in excluded.children(recursive=True))
-    except psutil.Error:
-        pass
-
-    total = 0
-    try:
-        if proc.pid not in excluded_pids:
-            total += proc.memory_info().rss
-        for c in proc.children(recursive=True):
-            if c.pid in excluded_pids:
-                continue
-            try:
-                total += c.memory_info().rss
-            except psutil.Error:
-                pass
+        procs = [root, *root.children(recursive=True)]
     except psutil.Error:
         return 0.0
-    return total / 1024 / 1024
+    for p in procs:
+        try:
+            with open(f"/proc/{p.pid}/smaps_rollup") as f:
+                for line in f:
+                    if line.startswith("Pss:"):
+                        total_kb += int(line.split()[1])
+                        break
+        except OSError:
+            return tree_rss_mb(root)
+    return total_kb / 1024
+
+
+def vm_hwm_mb(pid: int) -> float:
+    """Kernel RSS high-water mark — exact, catches transients no sampler can."""
+    with open(f"/proc/{pid}/status") as f:
+        for line in f:
+            if line.startswith("VmHWM:"):
+                return int(line.split()[1]) / 1024
+    raise OSError(f"no VmHWM in /proc/{pid}/status")
+
+
+def reset_vm_hwm(pid: int) -> None:
+    """Reset a process's VmHWM to its current RSS (Linux >= 4.0; same-UID external
+    writes work — validated). Makes subsequent vm_hwm_mb reads window-local."""
+    with open(f"/proc/{pid}/clear_refs", "w") as f:
+        f.write("5")
+
+
+def _proc_rss_mb(proc: psutil.Process) -> float:
+    return proc.memory_info().rss / 1024 / 1024
+
+
+class PeakWindow:
+    """Peak + end RSS delta of ONE process across start()..stop().
+
+    Primary path is kernel VmHWM with an external clear_refs reset (exact, zero
+    sampling cost); where /proc is not writable it falls back to the RSS sampler.
+    Deltas stay None if the process dies mid-window (a failed trial, not a zero).
+    ponytail: single-process backends assumed; sum over children if one ever forks.
+    """
+
+    def __init__(self, proc: psutil.Process) -> None:
+        self._proc = proc
+        self._sampler: ProcessTreeSampler | None = None
+        self._base: float | None = None
+        self.peak_delta_mb: float | None = None
+        self.end_delta_mb: float | None = None
+
+    def start(self) -> PeakWindow:
+        try:
+            reset_vm_hwm(self._proc.pid)
+        except OSError:
+            self._sampler = ProcessTreeSampler(
+                lambda: self._proc, sample_func=lambda: _proc_rss_mb(self._proc)
+            ).__enter__()
+        try:
+            self._base = _proc_rss_mb(self._proc)
+        except psutil.Error:
+            self._base = None
+        return self
+
+    def stop(self) -> None:
+        if self._sampler is not None:
+            self._sampler.__exit__()
+            peak = self._sampler.peak_mb
+        else:
+            try:
+                peak = vm_hwm_mb(self._proc.pid)
+            except OSError:
+                return
+        try:
+            end = _proc_rss_mb(self._proc)
+        except psutil.Error:
+            return
+        if self._base is not None:
+            self.peak_delta_mb = peak - self._base
+            self.end_delta_mb = end - self._base
 
 
 def _iter_descendants() -> list[psutil.Process]:
@@ -66,7 +129,8 @@ def find_process_by_cmdline_tag(tag: str) -> psutil.Process | None:
 
 class ProcessTreeSampler:
     """Samples peak tree RSS for a named process group at a fixed interval.
-    Use mark()/footprint to capture preload vs timed deltas (see harness)."""
+    One psutil tree walk costs ~8ms on a live Chromium tree, so the effective
+    interval is interval_s + walk cost; peaks are lower bounds, VmHWM is exact."""
 
     def __init__(self, root_getter, *, interval_s: float = 0.005, sample_func=None) -> None:
         self._root_getter = root_getter

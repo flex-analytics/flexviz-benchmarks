@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import os
 import socket
 import sys
 import time
 from pathlib import Path
 
 import polars as pl
-import psutil
 
 from core.contenders.base import PROBES
 
@@ -26,10 +24,15 @@ class FlexVizContender:
     def __init__(self, flexviz_repo: Path) -> None:
         self._repo = flexviz_repo
         self._url = ""
-        self.backend_root = psutil.Process(os.getpid())  # FlexViz server runs in-process
+        # In-driver hosting serves the timing pass only; memory is measured on the
+        # cold ChildBackend-hosted trial, where backend_root is the fresh child.
+        self.backend_root = None
 
     def start_backend(self, *, chart, source, n_traces, bins, n_points) -> None:
-        return None  # in-process; the FlexViz server thread starts lazily in preload()
+        # Start the EMPTY server (imports flexviz + spins the thread) before preload,
+        # so a memory trial's baseline includes the engine and preload measures only
+        # the store. Idempotent (class-level port) — a no-op on later timing trials.
+        self._ensure_server()
 
     def _ensure_server(self) -> int:
         if FlexVizContender._port:

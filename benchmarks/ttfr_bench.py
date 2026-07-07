@@ -23,6 +23,7 @@ from config import (  # noqa: E402
     WARMUP,
 )
 from core.contenders import build_registry  # noqa: E402
+from core.contenders.child import IN_PROCESS, ChildBackend  # noqa: E402
 from core.datagen import ensure_disk_dataset, frame_for  # noqa: E402
 from core.harness import RenderProbe, run_repeated_trials  # noqa: E402
 from core.model import summarize, trial_to_dict  # noqa: E402
@@ -52,15 +53,32 @@ def benchmark_notes(chart: str, contenders: list[str]) -> list[str]:
     notes = []
     if chart == "line" and any(n.startswith("perspective-") for n in contenders):
         notes.append(
-            "Perspective line uses its shipped Y Line viewer grouped by raw x values; "
-            "it is reported as a raw, non-downsampled line workload and is not directly "
-            "comparable to the 1000-point envelope line workload."
+            "Perspective line renders a mean-per-bin aggregated line (~n_points x-bins via an "
+            "expression, avg(y) per trace) — perspective-native and comparable to the other "
+            "tools' ~1000-point line workloads. (Grouping by raw continuous x is a misuse: one "
+            "group per distinct float, 6.7s at 1M rows and bad_alloc beyond.)"
+        )
+    if chart == "line" and "datashader" in contenders:
+        notes.append(
+            "Datashader renders the full raw line (no downsampling) — its native workload — "
+            "over a dask-partitioned frame (one partition per core), per its performance docs."
+        )
+    if chart == "histogram" and any(n.startswith("mosaic-") for n in contenders):
+        notes.append(
+            "Mosaic bins with vg.bin({steps}) treat steps as a niced maximum, not an exact "
+            "count: for this data span it renders ~92 bins where other tools render exactly "
+            "`bins`; the query cost is equivalent (one GROUP BY over the data)."
         )
     if chart == "histogram" and "vaex" in contenders:
         notes.append(
             "Vaex in-memory histogram timings can be dominated by fixed Matplotlib/PNG/browser "
-            "overhead at these output sizes; its in-memory resident footprint is also understated "
-            "because vaex.from_arrays can reference already-resident input arrays."
+            "overhead at these output sizes."
+        )
+    if chart == "histogram" and "datashader" in contenders:
+        notes.append(
+            "Datashader has no native 1-D histogram: bin counts come from the shared numpy "
+            "oracle and datashader rasterizes the per-bin step line — its histogram timing is "
+            "numpy binning + raster, not datashader aggregation."
         )
     return notes
 
@@ -82,14 +100,16 @@ def main() -> None:
         raise ValueError(f"Unknown contenders: {unknown}. Valid: {sorted(registry)}")
     out_path = a.json_out or Path(f"results/ttfr_{a.chart}.json")
 
-    summaries, all_trials = [], {}
+    summaries, all_trials, all_memory_trials = [], {}, {}
     failures = []
     notes = benchmark_notes(a.chart, names)
     with RenderProbe(headless=not a.no_headless) as probe:
         for rows in sizes:
             all_trials[rows] = {}
+            all_memory_trials[rows] = {}
             for n_traces in traces:
                 all_trials[rows][n_traces] = {}
+                all_memory_trials[rows][n_traces] = {}
                 for source in sources:
                     eligible = [
                         n for n in names if not (n in CLIENT_ONLY and source != "in-memory")
@@ -109,21 +129,65 @@ def main() -> None:
                         flush=True,
                     )
 
-                    def _ceiling(name, err, rows=rows, nt=n_traces, src=source):
+                    def _record_failure(name, err, kind, rows=rows, nt=n_traces, src=source):
                         failures.append(
                             {
                                 "rows": rows,
                                 "n_traces": nt,
                                 "source": src,
                                 "tool": name,
+                                "kind": kind,
                                 "error": str(err),
                             }
                         )
                         print(
-                            f"  [ceiling] {name} failed at rows={rows:,} traces={nt} "
-                            f"{src}: {err} — skipping it for this cell",
+                            f"  [{kind}] {name} failed at rows={rows:,} traces={nt} {src}: {err}",
                             flush=True,
                         )
+
+                    # --- Memory pass: ONE cold trial per contender, process-isolated ---
+                    # (fresh child backend; in-process engines hosted via ChildBackend).
+                    # Warm in-process repeats collapse peak-minus-baseline deltas via
+                    # allocator reuse, so memory is never taken from the timing repeats.
+                    memory_trials = {}
+                    for name in eligible:
+                        if name in IN_PROCESS:
+
+                            def mem_factory(n=name):
+                                return ChildBackend(n, a.flexviz_repo)
+
+                            # the child materializes the frame itself from the IPC file,
+                            # so the referenced source frame is charged to the engine
+                            mem_frame = (
+                                ensure_disk_dataset(
+                                    base,
+                                    a.chart,
+                                    rows,
+                                    max_traces,
+                                    a.seed,
+                                    "disk-ipc",
+                                    a.regenerate_datasets,
+                                )
+                                if source == "in-memory"
+                                else frame_or_path
+                            )
+                        else:
+                            mem_factory, mem_frame = registry[name], frame_or_path
+                        for attempt in ("memory-flake", "memory"):
+                            try:
+                                memory_trials[name] = probe.run_trial(
+                                    mem_factory(),
+                                    chart=a.chart,
+                                    source=source,
+                                    frame_or_path=mem_frame,
+                                    n_traces=n_traces,
+                                    bins=a.bins,
+                                    n_points=a.n_points,
+                                    memory=True,
+                                )
+                                break
+                            except Exception as e:  # noqa: BLE001 — no memory metrics, timing continues
+                                _record_failure(name, e, attempt)
 
                     trials = run_repeated_trials(
                         contenders,
@@ -136,19 +200,25 @@ def main() -> None:
                                 n_traces=nt,
                                 bins=a.bins,
                                 n_points=a.n_points,
+                                memory=False,
                             )
                         ),
                         warmup=a.warmup,
                         repeats=a.repeats,
                         seed=a.seed,
                         seed_offset=rows + n_traces,
-                        on_error=_ceiling,
+                        on_error=_record_failure,
                     )
                     all_trials[rows][n_traces][source] = {
                         tool: [trial_to_dict(t) for t in ts] for tool, ts in trials.items()
                     }
+                    all_memory_trials[rows][n_traces][source] = {
+                        tool: trial_to_dict(t) for tool, t in memory_trials.items()
+                    }
                     for tool, ts in trials.items():
-                        summaries.append(summarize(rows, n_traces, tool, source, ts))
+                        summaries.append(
+                            summarize(rows, n_traces, tool, source, ts, memory_trials.get(tool))
+                        )
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
@@ -166,6 +236,10 @@ def main() -> None:
                 "summary": [asdict(s) for s in summaries],
                 "trials": {
                     str(r): {str(t): src for t, src in tm.items()} for r, tm in all_trials.items()
+                },
+                "memory_trials": {
+                    str(r): {str(t): src for t, src in tm.items()}
+                    for r, tm in all_memory_trials.items()
                 },
                 "notes": notes,
                 "failures": failures,

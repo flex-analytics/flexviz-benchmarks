@@ -30,7 +30,7 @@ def test_flexviz_renders_histogram_in_memory():
             n_points=1000,
         )
     assert trial.total_ms > 0
-    assert trial.browser_timed_peak_mb >= 0
+    assert trial.browser_timed_peak_mb is not None
 
 
 @pytest.mark.parametrize("source", ["in-memory", "disk-parquet"])
@@ -50,7 +50,7 @@ def test_mosaic_server_renders_line(source, tmp_path):
             n_points=1000,
         )
     assert trial.total_ms > 0
-    assert trial.backend_timed_peak_mb >= 0  # DuckDB child sampled
+    assert trial.backend_timed_peak_mb is not None  # DuckDB child VmHWM window
 
 
 def test_mosaic_wasm_renders_histogram_in_memory():
@@ -66,7 +66,7 @@ def test_mosaic_wasm_renders_histogram_in_memory():
             n_points=1000,
         )
     assert trial.total_ms > 0
-    assert trial.browser_timed_peak_mb >= 0
+    assert trial.browser_timed_peak_mb is not None
 
 
 def test_perspective_wasm_renders_line_in_memory():
@@ -117,7 +117,7 @@ def test_perspective_server_renders_line(source, tmp_path):
             n_points=1000,
         )
     assert trial.total_ms > 0
-    assert trial.backend_timed_peak_mb >= 0
+    assert trial.backend_timed_peak_mb is not None
 
 
 @pytest.mark.parametrize("source", ["in-memory", "disk-parquet"])
@@ -138,7 +138,7 @@ def test_perspective_server_renders_histogram(source, tmp_path):
             n_points=1000,
         )
     assert trial.total_ms > 0
-    assert trial.backend_timed_peak_mb >= 0
+    assert trial.backend_timed_peak_mb is not None
 
 
 def test_vaex_renders_histogram_png():
@@ -169,6 +169,38 @@ def test_datashader_renders_line_png():
             bins=100,
             n_points=1000,
         )
+    assert trial.total_ms > 0
+
+
+@pytest.mark.parametrize("tool", ["vaex", "flexviz"])
+def test_child_backend_memory_trial_charges_resident_store(tmp_path, tool):
+    # End-to-end canary for the memory pass: the in-process engine runs in a fresh
+    # child that materializes the in-memory source itself, so the engine is charged
+    # the frame it references (in-driver hosting reported ~0 via allocator reuse).
+    # flexviz is the zero-copy case: it must be charged the ~8MB frame it references —
+    # this fails if the child ever mmaps the IPC file again (file-backed = uncharged).
+    from core.contenders.child import ChildBackend
+
+    if tool == "flexviz" and not FLEXVIZ.exists():
+        pytest.skip("flexviz repo not present")
+    # max_traces=5 wide file, 1-trace cell: the child must project to the cell's columns
+    ipc = ensure_disk_dataset(tmp_path / "ds", "histogram", 1_000_000, 5, 42, "disk-ipc", True)
+    with RenderProbe(headless=True) as probe:
+        trial = probe.run_trial(
+            ChildBackend(tool, FLEXVIZ),
+            chart="histogram",
+            source="in-memory",
+            frame_or_path=ipc,
+            n_traces=1,
+            bins=50,
+            n_points=1000,
+            memory=True,
+        )
+    # 1M float64 rows = ~8MB resident in the child, plus engine overhead. The upper
+    # bound catches charging the full max_traces-wide dataset file or the read_ipc
+    # decode transient (both showed as ~86MB before column projection + decay=0).
+    assert trial.resident_footprint_mb is not None and 5 < trial.resident_footprint_mb < 40
+    assert trial.backend_timed_peak_mb is not None
     assert trial.total_ms > 0
 
 

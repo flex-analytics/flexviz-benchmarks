@@ -11,10 +11,13 @@ class Trial:
     transfer_ms: float | None
     render_ms: float | None
     payload_bytes: int | None
-    backend_timed_peak_mb: float  # peak tree RSS during render minus pre-trigger baseline
-    browser_timed_peak_mb: float  # peak Chromium-tree RSS during render minus baseline
-    resident_footprint_mb: float = 0.0  # post-preload steady RSS minus clean baseline (in-memory)
-    preload_peak_mb: float = 0.0  # peak RSS during preload minus clean baseline
+    # Memory fields are populated only on a memory trial (one cold, process-isolated
+    # trial per cell); timing trials carry None. Deltas are raw (may be slightly
+    # negative from GC below baseline) — clamped at report time, not here.
+    backend_timed_peak_mb: float | None = None  # backend RSS peak during render (VmHWM window)
+    browser_timed_peak_mb: float | None = None  # Chromium-tree RSS peak during render (sampled)
+    resident_footprint_mb: float | None = None  # engine store steady-state delta (PSS in browser)
+    preload_peak_mb: float | None = None  # peak during store build, minus empty baseline
 
 
 @dataclass
@@ -31,10 +34,12 @@ class Summary:
     transfer_median_ms: float | None
     render_median_ms: float | None
     payload_bytes_median: int | None
-    backend_timed_peak_median_mb: float
-    browser_timed_peak_median_mb: float
-    resident_footprint_median_mb: float
-    preload_peak_median_mb: float
+    # From the single cold memory trial (not medians — the timing repeats run warm
+    # and process-shared, where peak-minus-baseline collapses via allocator reuse).
+    backend_timed_peak_mb: float | None
+    browser_timed_peak_mb: float | None
+    resident_footprint_mb: float | None
+    preload_peak_mb: float | None
 
 
 def _med(values: list[float | None]) -> float | None:
@@ -42,11 +47,19 @@ def _med(values: list[float | None]) -> float | None:
     return statistics.median(nn) if nn else None
 
 
-def summarize(rows: int, n_traces: int, tool: str, source: str, trials: list[Trial]) -> Summary:
+def summarize(
+    rows: int,
+    n_traces: int,
+    tool: str,
+    source: str,
+    trials: list[Trial],
+    memory_trial: Trial | None = None,
+) -> Summary:
     if not trials:
         raise ValueError("cannot summarize empty trials")
     totals = [t.total_ms for t in trials]
     payloads = [t.payload_bytes for t in trials if t.payload_bytes is not None]
+    m = memory_trial
     return Summary(
         rows=rows,
         n_traces=n_traces,
@@ -60,10 +73,10 @@ def summarize(rows: int, n_traces: int, tool: str, source: str, trials: list[Tri
         transfer_median_ms=_med([t.transfer_ms for t in trials]),
         render_median_ms=_med([t.render_ms for t in trials]),
         payload_bytes_median=round(statistics.median(payloads)) if payloads else None,
-        backend_timed_peak_median_mb=statistics.median(t.backend_timed_peak_mb for t in trials),
-        browser_timed_peak_median_mb=statistics.median(t.browser_timed_peak_mb for t in trials),
-        resident_footprint_median_mb=statistics.median(t.resident_footprint_mb for t in trials),
-        preload_peak_median_mb=statistics.median(t.preload_peak_mb for t in trials),
+        backend_timed_peak_mb=m.backend_timed_peak_mb if m else None,
+        browser_timed_peak_mb=m.browser_timed_peak_mb if m else None,
+        resident_footprint_mb=m.resident_footprint_mb if m else None,
+        preload_peak_mb=m.preload_peak_mb if m else None,
     )
 
 
