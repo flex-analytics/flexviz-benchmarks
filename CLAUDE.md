@@ -86,11 +86,16 @@ the `rows × n_traces × source` matrix (skipping `CLIENT_ONLY` tools on disk so
 **`benchmarks/core/`** — shared primitives:
 - `datagen.py` — line/histogram column generation + streamed dataset materialization
 - `model.py` — `Trial` / `Summary` dataclasses + `summarize` / `trial_to_dict`
-- `memory.py` — `ProcessTreeSampler` (RSS) + cmdline-tag browser-root discovery
+- `memory.py` — `PeakWindow` (kernel `VmHWM` via external `clear_refs` reset, sampler
+  fallback), `tree_pss_mb` (PSS point reads), `ProcessTreeSampler` (RSS) + cmdline-tag
+  browser-root discovery
 - `serve.py` — `StaticServer` (wasm MIME + COOP/COEP headers)
-- `harness.py` — `RenderProbe` (tagged persistent Chromium context, per-trial RSS deltas) + `run_repeated_trials`
+- `harness.py` — `RenderProbe` (tagged persistent Chromium context; `run_trial(memory=...)`
+  two-mode) + `run_repeated_trials` (retry-once: flake vs ceiling, completed trials kept)
 - `oracle.py` — canonical numpy histogram counts + line M4 envelope (same-picture tests)
-- `contenders/` — `base.py` (`Contender` protocol + `PageServerMixin`), one module per tool, `__init__.py` registry (`build_registry`)
+- `contenders/` — `base.py` (`Contender` protocol + `PageServerMixin`), one module per
+  tool, `child.py` (`ChildBackend` fresh-child host for the memory trial),
+  `__init__.py` registry (`build_registry`)
 
 **Three contender classes** (7 tools):
 - **A — server-compute, browser-render:** `flexviz` (Polars + Plotly), `mosaic-server` (DuckDB WS server, native `CREATE TABLE` for in-memory / view for disk), `perspective-server` (`perspective-python` tornado, viewport stream).
@@ -104,10 +109,20 @@ rasterizers), and the client-store handshake. Each probe finishes a trial by cal
 the vendored JS in `probes/vendor/dist/` (built by `vendor_assets.py`; see Setup).
 
 **Timing model** — each `Trial` carries `total_ms`, `query_ms`, `transfer_ms`, `render_ms`,
-`payload_bytes`, and four RSS-delta memory metrics: `backend_timed_peak_mb`,
-`browser_timed_peak_mb`, `resident_footprint_mb`, `preload_peak_mb` (peak-minus-baseline on
-the sampled process tree; RSS not USS because USS is `AccessDenied` for child processes on
-macOS).
+`payload_bytes`. Axis-extent discovery (min/max) runs inside the timed window for every
+tool, on the tool's own engine.
+
+**Memory model (two passes)** — timing repeats run warm with `memory=False` (no
+instrumentation); memory comes from **one cold, process-isolated trial per cell**
+(`memory=True`), because warm in-process repeats collapse peak-minus-baseline deltas via
+allocator reuse (validated 404→0.4 MB). Every backend is a fresh spawned child for that
+trial: server tools already spawn per trial; flexviz/vaex/datashader are hosted via
+`ChildBackend`, which materializes the in-memory source *in the child* (from the cell's
+Arrow IPC file) so zero-copy engines are charged the frame they reference. Backend peaks
+use kernel `VmHWM` windows (external `clear_refs` reset — exact, no sampling gaps);
+browser store footprints use PSS (RSS-summing a Chromium tree double-counts ~2.5×);
+browser timed peaks stay RSS-sampled (lower bound). Raw deltas are stored (may be
+slightly negative); the report clamps at display time.
 
 **FlexViz dependency** is a local editable install from `../flexviz` (see `pyproject.toml`);
 `FlexVizContender` adds the repo path to `sys.path` and imports `flexviz.*`.
