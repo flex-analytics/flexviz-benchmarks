@@ -12,6 +12,15 @@ from core.contenders.base import frame_columns
 class VaexContender(RasterContender):
     name = "vaex"
 
+    def start_backend(self, *, chart, source, n_traces, bins, n_points) -> None:
+        # Warm the engine's imports before the memory baseline: vaex + the matplotlib Agg
+        # stack otherwise import lazily inside preload / the first timed render.
+        import matplotlib
+        import vaex  # noqa: F401
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot  # noqa: F401
+
     def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
         import vaex
 
@@ -32,21 +41,21 @@ class VaexContender(RasterContender):
         fig, ax = plt.subplots(figsize=(9, 4), dpi=100)
         df = self._df
         if self._chart == "line":
-            lo, hi = float(df.min("x")), float(df.max("x"))
+            # df.minmax = ONE pass; separate df.min + df.max doubled the extent cost,
+            # and one df.mean call with all trace expressions = one pass for all traces
+            # (validated ~3.7x timed-window inflation with the naive per-call pattern).
+            lo, hi = (float(v) for v in df.minmax("x"))
             edges = np.linspace(lo, hi, self._npts + 1)
             centers = (edges[:-1] + edges[1:]) / 2
-            for t in range(self._n_traces):
-                means = df.mean(
-                    f"y{t + 1}", binby="x", limits=[lo, hi], shape=self._npts, array_type="numpy"
-                )
-                ax.plot(centers, np.nan_to_num(means))
+            ys = [f"y{t + 1}" for t in range(self._n_traces)]
+            means = df.mean(ys, binby="x", limits=[lo, hi], shape=self._npts, array_type="numpy")
+            for m in np.atleast_2d(np.asarray(means)):
+                ax.plot(centers, np.nan_to_num(m))
         else:
             for t in range(self._n_traces):
                 col = f"value{t + 1}"
-                lo, hi = float(df.min(col)), float(df.max(col))
-                counts = df.count(
-                    col, binby=col, limits=[lo, hi], shape=self._bins, array_type="numpy"
-                )
+                lo, hi = (float(v) for v in df.minmax(col))
+                counts = df.count(binby=col, limits=[lo, hi], shape=self._bins, array_type="numpy")
                 centers = np.linspace(lo, hi, self._bins)
                 ax.bar(centers, counts, width=(hi - lo) / self._bins)
         buf = io.BytesIO()

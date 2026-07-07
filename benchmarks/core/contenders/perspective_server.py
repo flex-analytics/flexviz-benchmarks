@@ -10,12 +10,7 @@ import psutil
 
 from core.contenders._perspective_tornado import run_perspective_server
 from core.contenders.base import PROBES, PageServerMixin, frame_columns
-from core.contenders.perspective_wasm import (
-    histogram_arrow_table,
-    histogram_range,
-    histogram_source_columns,
-    restore_config,
-)
+from core.contenders.perspective_wasm import histogram_arrow_table
 
 
 def _free_port() -> int:
@@ -95,22 +90,21 @@ class PerspectiveServerContender(PageServerMixin):
                 headers={"X-Load-Kind": "arrow"},
                 timeout=120,
             ).raise_for_status()
-        hist_range = (
-            histogram_range(frame_or_path, histogram_source_columns(n_traces))
-            if chart == "histogram"
-            else None
-        )
+        # No precomputed extents: the probe discovers min/max on the server engine
+        # inside the timed window (extent policy: in-window for every tool).
         html = (
             (PROBES / "perspective_server.html.j2")
             .read_text()
             .replace("{{WS_URL}}", f"ws://127.0.0.1:{self._port}/ws")
             .replace("{{BUILD_URL}}", f"{base}/build")
-            .replace(
-                "{{RESTORE_JSON}}",
-                json.dumps(restore_config(chart, n_traces, bins, hist_range)),
-            )
+            .replace("{{CHART_TYPE}}", '"histogram"' if chart == "histogram" else '"line"')
+            .replace("{{N_TRACES}}", str(n_traces))
+            .replace("{{BINS_OR_NPTS}}", str(bins if chart == "histogram" else n_points))
         )
         self._url = self.serve_page(html)
+        (self._dir / "perspective_config.js").write_text(
+            (PROBES / "perspective_config.js").read_text()
+        )
 
     def get_url(self) -> str:
         return self._url
