@@ -67,22 +67,24 @@ class MosaicServerContender(PageServerMixin):
                 timeout=30,
             ).raise_for_status()
         else:
-            # in-memory: stream Arrow IPC bytes → native CREATE TABLE (the resident store).
-            import io
+            # in-memory: hand the server a temp Arrow IPC file → native CREATE TABLE (the
+            # resident store). A file, not an HTTP body: uWS 400s on bodies over ~1GB,
+            # and the body buffer inflated the child's preload peak.
+            import os
+            import tempfile
 
-            import pyarrow.ipc as ipc
-
-            table = frame_or_path.select(frame_columns(chart, n_traces)).to_arrow()
-            sink = io.BytesIO()
-            with ipc.new_stream(sink, table.schema) as w:
-                for b in table.to_batches():
-                    w.write_batch(b)
-            requests.post(
-                f"{base}/load",
-                data=sink.getvalue(),
-                headers={"X-Load-Kind": "arrow"},
-                timeout=120,
-            ).raise_for_status()
+            fd, tmp = tempfile.mkstemp(suffix=".arrow")
+            os.close(fd)
+            try:
+                frame_or_path.select(frame_columns(chart, n_traces)).write_ipc(tmp)
+                requests.post(
+                    f"{base}/load",
+                    data=tmp.encode(),
+                    headers={"X-Load-Kind": "arrow-path"},
+                    timeout=600,
+                ).raise_for_status()
+            finally:
+                os.unlink(tmp)
         html = (
             (PROBES / "mosaic_server.html.j2")
             .read_text()

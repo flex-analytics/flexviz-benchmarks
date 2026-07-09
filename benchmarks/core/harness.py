@@ -19,6 +19,10 @@ from core.memory import (
 )
 from core.model import Trial
 
+# Slowest legitimate cell governs: datashader's full-line raster over 200M rows x 5
+# traces from parquet runs ~3 min. A genuinely hung tool costs this long per attempt.
+WAIT_TIMEOUT_MS = 240_000
+
 
 class RenderProbe:
     def __init__(self, *, headless: bool = True) -> None:
@@ -42,23 +46,23 @@ class RenderProbe:
     @staticmethod
     def _goto_store_phase(page: Page, url: str) -> None:
         # Client/WASM pages build their in-browser store, call benchStored() and BLOCK.
-        page.goto(url, wait_until="load", timeout=60_000)
-        page.wait_for_function("() => window.__bench_stored === true", timeout=45_000)
+        page.goto(url, wait_until="load", timeout=WAIT_TIMEOUT_MS)
+        page.wait_for_function("() => window.__bench_stored === true", timeout=WAIT_TIMEOUT_MS)
 
     @staticmethod
     def _release_and_wait(page: Page, contender: Any) -> dict:
         page.evaluate("() => { window.__bench_go = true; }")  # release the timed render
-        page.wait_for_function(contender.ready_signal(), timeout=45_000)
-        page.wait_for_function("() => window.__bench !== undefined", timeout=45_000)
+        page.wait_for_function(contender.ready_signal(), timeout=WAIT_TIMEOUT_MS)
+        page.wait_for_function("() => window.__bench !== undefined", timeout=WAIT_TIMEOUT_MS)
         return page.evaluate("() => window.__bench")
 
     @staticmethod
     def _goto_and_wait(page: Page, url: str, contender: Any) -> dict:
         # Server/raster pages render straight through on load; the render may complete
         # during goto(), so any instrumentation MUST already wrap this call.
-        page.goto(url, wait_until="load", timeout=60_000)
-        page.wait_for_function(contender.ready_signal(), timeout=45_000)
-        page.wait_for_function("() => window.__bench !== undefined", timeout=45_000)
+        page.goto(url, wait_until="load", timeout=WAIT_TIMEOUT_MS)
+        page.wait_for_function(contender.ready_signal(), timeout=WAIT_TIMEOUT_MS)
+        page.wait_for_function("() => window.__bench !== undefined", timeout=WAIT_TIMEOUT_MS)
         return page.evaluate("() => window.__bench")
 
     def run_trial(
@@ -80,17 +84,16 @@ class RenderProbe:
         memory from one fresh-child trial per cell."""
         client_store = bool(getattr(contender, "client_store", False))
 
-        # Spawn the backend child EMPTY and register it BEFORE preload, so the memory
-        # baseline is the empty child and the store build shows up as a delta.
-        contender.start_backend(
-            chart=chart, source=source, n_traces=n_traces, bins=bins, n_points=n_points
-        )
-        backend: psutil.Process | None = contender.backend_root if memory else None
-
         preload_peak = resident = None
         backend_timed_peak = browser_timed_peak = None
         page = None
-        try:  # teardown must also run when preload itself fails (store-build OOM etc.)
+        try:  # teardown must also run when start_backend/preload fails (spawn timeout, OOM)
+            # Spawn the backend child EMPTY and register it BEFORE preload, so the memory
+            # baseline is the empty child and the store build shows up as a delta.
+            contender.start_backend(
+                chart=chart, source=source, n_traces=n_traces, bins=bins, n_points=n_points
+            )
+            backend: psutil.Process | None = contender.backend_root if memory else None
             if memory and backend is not None:
                 pre = PeakWindow(backend).start()
                 contender.preload(

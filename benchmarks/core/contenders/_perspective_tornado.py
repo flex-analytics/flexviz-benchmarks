@@ -72,5 +72,7 @@ def run_perspective_server(*, port: int) -> None:
             (r"/build", BuildHandler),
         ]
     )
-    app.listen(port, address="127.0.0.1")
+    # 4GB body cap: tornado's 100MB default rejects in-memory arrow loads >= ~6M rows,
+    # which would misreport a transport limit as an engine ceiling (cf. mosaic's uWS fix).
+    app.listen(port, address="127.0.0.1", max_buffer_size=4 << 30)
     tornado.ioloop.IOLoop.current().start()

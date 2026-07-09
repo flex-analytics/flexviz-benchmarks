@@ -74,6 +74,7 @@ class FlexVizContender:
             else:
                 fig.add_histogram(x=f"value{t + 1}", bins=bins)
         _register_source_if_needed(fig._uid, fig._backend_lf)
+        self._uid = fig._uid
         spec = fig.to_spec(source=fig._uid)
         dash = DashboardSpec(figures=[spec.figure], state=spec.state)
         r = requests.post(
@@ -94,4 +95,10 @@ class FlexVizContender:
         return "() => window.__bench !== undefined"
 
     def teardown(self) -> None:
-        pass
+        # Unregister this trial's source: the in-driver server's _sources dict otherwise
+        # pins every in-memory cell's frame for the whole run (OOM'd the 200M matrix).
+        if getattr(self, "_uid", None):
+            from flexviz.server import _sources
+
+            _sources.pop(self._uid, None)
+            self._uid = None

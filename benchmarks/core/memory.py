@@ -82,8 +82,15 @@ class PeakWindow:
         try:
             reset_vm_hwm(self._proc.pid)
         except OSError:
+
+            def _rss_or_zero() -> float:  # dead process = harmless sample, not a raise
+                try:
+                    return _proc_rss_mb(self._proc)
+                except psutil.Error:
+                    return 0.0
+
             self._sampler = ProcessTreeSampler(
-                lambda: self._proc, sample_func=lambda: _proc_rss_mb(self._proc)
+                lambda: self._proc, sample_func=_rss_or_zero
             ).__enter__()
         try:
             self._base = _proc_rss_mb(self._proc)

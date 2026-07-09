@@ -58,6 +58,12 @@ def benchmark_notes(chart: str, contenders: list[str]) -> list[str]:
             "tools' ~1000-point line workloads. (Grouping by raw continuous x is a misuse: one "
             "group per distinct float, 6.7s at 1M rows and bad_alloc beyond.)"
         )
+    if chart == "line" and "vaex" in contenders:
+        notes.append(
+            "Vaex renders a mean-per-bin line (one fused binby pass across all traces) — "
+            "vaex-native, like Perspective's. This is a cheaper aggregation than FlexViz's "
+            "min-max envelope or Mosaic's M4: mean smooths spikes that envelope methods keep."
+        )
     if chart == "line" and "datashader" in contenders:
         notes.append(
             "Datashader renders the full raw line (no downsampling) — its native workload — "
@@ -103,6 +109,39 @@ def main() -> None:
     summaries, all_trials, all_memory_trials = [], {}, {}
     failures = []
     notes = benchmark_notes(a.chart, names)
+
+    def write_out() -> None:
+        # Called after every completed size (checkpoint) and at the end: a multi-hour
+        # matrix must never lose everything to one crashed cell (learned at 200M: OOM).
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(
+            json.dumps(
+                {
+                    "config": {
+                        "chart": a.chart,
+                        "sizes": sizes,
+                        "n_traces": traces,
+                        "data_sources": sources,
+                        "repeats": a.repeats,
+                        "warmup": a.warmup,
+                        "seed": a.seed,
+                    },
+                    "summary": [asdict(s) for s in summaries],
+                    "trials": {
+                        str(r): {str(t): src for t, src in tm.items()}
+                        for r, tm in all_trials.items()
+                    },
+                    "memory_trials": {
+                        str(r): {str(t): src for t, src in tm.items()}
+                        for r, tm in all_memory_trials.items()
+                    },
+                    "notes": notes,
+                    "failures": failures,
+                },
+                indent=2,
+            )
+        )
+
     with RenderProbe(headless=not a.no_headless) as probe:
         for rows in sizes:
             all_trials[rows] = {}
@@ -219,34 +258,10 @@ def main() -> None:
                         summaries.append(
                             summarize(rows, n_traces, tool, source, ts, memory_trials.get(tool))
                         )
+                    write_out()  # per-cell: an OOM-killed driver keeps every finished cell
+            print(f"checkpoint: {out_path} through rows={rows:,}", flush=True)
 
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(
-        json.dumps(
-            {
-                "config": {
-                    "chart": a.chart,
-                    "sizes": sizes,
-                    "n_traces": traces,
-                    "data_sources": sources,
-                    "repeats": a.repeats,
-                    "warmup": a.warmup,
-                    "seed": a.seed,
-                },
-                "summary": [asdict(s) for s in summaries],
-                "trials": {
-                    str(r): {str(t): src for t, src in tm.items()} for r, tm in all_trials.items()
-                },
-                "memory_trials": {
-                    str(r): {str(t): src for t, src in tm.items()}
-                    for r, tm in all_memory_trials.items()
-                },
-                "notes": notes,
-                "failures": failures,
-            },
-            indent=2,
-        )
-    )
+    write_out()
     print(f"wrote {out_path}")
 
 
