@@ -30,6 +30,20 @@ WARMUP: int = 2
 REPEATS: int = 7
 SEED: int = 42
 
+# Page-wait timeout, scaled with rows: a hung tool costs (warmup + repeats + memory)
+# attempts x 3 sequential waits each, so small cells must fail fast, while the slowest
+# legitimate cell (datashader's full-line raster, 200M rows x 5 traces from parquet,
+# ~3 min) must still fit under the cap.
+WAIT_TIMEOUT_BASE_MS: int = 30_000
+WAIT_TIMEOUT_PER_MROW_MS: int = 2_000
+WAIT_TIMEOUT_MAX_MS: int = 240_000
+
+
+def wait_timeout_ms(rows: int) -> int:
+    scaled = WAIT_TIMEOUT_BASE_MS + (rows // 1_000_000) * WAIT_TIMEOUT_PER_MROW_MS
+    return min(WAIT_TIMEOUT_MAX_MS, scaled)
+
+
 # Histogram benchmark: number of bins per trace.
 BINS: int = 100
 

@@ -21,6 +21,7 @@ from config import (  # noqa: E402
     SEED,
     SIZES,
     WARMUP,
+    wait_timeout_ms,
 )
 from core.contenders import build_registry  # noqa: E402
 from core.contenders.child import IN_PROCESS, ChildBackend  # noqa: E402
@@ -150,6 +151,7 @@ def main() -> None:
 
     with RenderProbe(headless=not a.no_headless) as probe:
         for rows in sizes:
+            wt_ms = wait_timeout_ms(rows)  # hung tools fail fast at small sizes
             all_trials[rows] = {}
             all_memory_trials[rows] = {}
             for n_traces in traces:
@@ -229,6 +231,7 @@ def main() -> None:
                                     bins=a.bins,
                                     n_points=a.n_points,
                                     memory=True,
+                                    wait_timeout_ms=wt_ms,
                                 )
                                 break
                             except Exception as e:  # noqa: BLE001 — no memory metrics, timing continues
@@ -236,7 +239,7 @@ def main() -> None:
 
                     trials = run_repeated_trials(
                         contenders,
-                        run_trial=lambda c, fo=frame_or_path, nt=n_traces, src=source: (
+                        run_trial=lambda c, fo=frame_or_path, nt=n_traces, src=source, wt=wt_ms: (
                             probe.run_trial(
                                 c,
                                 chart=a.chart,
@@ -246,6 +249,7 @@ def main() -> None:
                                 bins=a.bins,
                                 n_points=a.n_points,
                                 memory=False,
+                                wait_timeout_ms=wt,
                             )
                         ),
                         warmup=a.warmup,

@@ -67,6 +67,8 @@ Flags: `--no-memory`, `--fixed-n-traces`, `--fixed-rows`, `--out-dir` (default: 
 - `CONTENDERS` — the 7-tool roster: `"flexviz"`, `"mosaic-server"`, `"mosaic-wasm"`, `"perspective-server"`, `"perspective-wasm"`, `"vaex"`, `"datashader"`
 - `CLIENT_ONLY` — client/WASM tools (`"mosaic-wasm"`, `"perspective-wasm"`) that compute in the browser and run **in-memory only** (the driver skips them on disk sources)
 - `WARMUP`, `REPEATS`, `SEED` — trial execution settings
+- `WAIT_TIMEOUT_*_MS` / `wait_timeout_ms(rows)` — page-wait timeout, scaled with rows
+  (30s floor + 2s/Mrow, 240s cap) so hung tools fail fast at small sizes
 - `BINS` (histogram), `N_POINTS` (line) — chart-specific defaults
 
 Each of these can be overridden per run via the matching CLI flag (`--sizes`, `--n-traces`, `--data-sources`, `--contenders`, etc.).

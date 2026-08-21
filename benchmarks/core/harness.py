@@ -19,8 +19,9 @@ from core.memory import (
 )
 from core.model import Trial
 
-# Slowest legitimate cell governs: datashader's full-line raster over 200M rows x 5
-# traces from parquet runs ~3 min. A genuinely hung tool costs this long per attempt.
+# Default/cap for the page waits: the slowest legitimate cell (datashader's full-line
+# raster over 200M rows x 5 traces from parquet) runs ~3 min. The driver passes a
+# rows-scaled value (config.wait_timeout_ms) so hung tools fail fast at small sizes.
 WAIT_TIMEOUT_MS = 240_000
 
 
@@ -44,25 +45,26 @@ class RenderProbe:
         shutil.rmtree(self._udd, ignore_errors=True)
 
     @staticmethod
-    def _goto_store_phase(page: Page, url: str) -> None:
+    def _goto_store_phase(page: Page, url: str, timeout_ms: int) -> None:
         # Client/WASM pages build their in-browser store, call benchStored() and BLOCK.
-        page.goto(url, wait_until="load", timeout=WAIT_TIMEOUT_MS)
-        page.wait_for_function("() => window.__bench_stored === true", timeout=WAIT_TIMEOUT_MS)
+        page.goto(url, wait_until="load", timeout=timeout_ms)
+        page.wait_for_function("() => window.__bench_stored === true", timeout=timeout_ms)
 
     @staticmethod
-    def _release_and_wait(page: Page, contender: Any) -> dict:
+    def _release_and_wait(page: Page, contender: Any, timeout_ms: int) -> dict:
         page.evaluate("() => { window.__bench_go = true; }")  # release the timed render
-        page.wait_for_function(contender.ready_signal(), timeout=WAIT_TIMEOUT_MS)
-        page.wait_for_function("() => window.__bench !== undefined", timeout=WAIT_TIMEOUT_MS)
+        page.wait_for_function(contender.ready_signal(), timeout=timeout_ms)
+        page.wait_for_function("() => window.__bench !== undefined", timeout=timeout_ms)
         return page.evaluate("() => window.__bench")
 
     @staticmethod
-    def _goto_and_wait(page: Page, url: str, contender: Any) -> dict:
-        # Server/raster pages render straight through on load; the render may complete
-        # during goto(), so any instrumentation MUST already wrap this call.
-        page.goto(url, wait_until="load", timeout=WAIT_TIMEOUT_MS)
-        page.wait_for_function(contender.ready_signal(), timeout=WAIT_TIMEOUT_MS)
-        page.wait_for_function("() => window.__bench !== undefined", timeout=WAIT_TIMEOUT_MS)
+    def _goto_and_wait(page: Page, url: str, contender: Any, timeout_ms: int) -> dict:
+        # Server/raster pages render straight through on load (a raster <img> blocks
+        # goto itself); the render may complete during goto(), so any instrumentation
+        # MUST already wrap this call, and goto gets the full scaled timeout.
+        page.goto(url, wait_until="load", timeout=timeout_ms)
+        page.wait_for_function(contender.ready_signal(), timeout=timeout_ms)
+        page.wait_for_function("() => window.__bench !== undefined", timeout=timeout_ms)
         return page.evaluate("() => window.__bench")
 
     def run_trial(
@@ -76,6 +78,7 @@ class RenderProbe:
         bins: int,
         n_points: int,
         memory: bool = True,
+        wait_timeout_ms: int = WAIT_TIMEOUT_MS,
     ) -> Trial:
         """One trial. memory=True instruments it (backend VmHWM windows, browser
         RSS/PSS) — only valid on a COLD, process-isolated backend: warm in-process
@@ -125,10 +128,10 @@ class RenderProbe:
                 page.add_init_script(script)
             if not memory:
                 if client_store:
-                    self._goto_store_phase(page, url)
-                    bench = self._release_and_wait(page, contender)
+                    self._goto_store_phase(page, url, wait_timeout_ms)
+                    bench = self._release_and_wait(page, contender, wait_timeout_ms)
                 else:
-                    bench = self._goto_and_wait(page, url, contender)
+                    bench = self._goto_and_wait(page, url, contender, wait_timeout_ms)
             elif client_store:
                 # Phase 1: the in-browser native store is built (NOT timed). Peak via the
                 # RSS sampler; the steady-state store footprint via PSS (RSS-summing a
@@ -136,20 +139,20 @@ class RenderProbe:
                 browser_rss_base = tree_rss_mb(self._browser_root)
                 browser_pss_base = tree_pss_mb(self._browser_root)
                 with ProcessTreeSampler(lambda: self._browser_root) as store:
-                    self._goto_store_phase(page, url)
+                    self._goto_store_phase(page, url, wait_timeout_ms)
                 resident = tree_pss_mb(self._browser_root) - browser_pss_base
                 preload_peak = store.peak_mb - browser_rss_base
                 # Phase 2: timed render, baselined post-store so the store build is NOT
                 # charged to render memory.
                 render_browser_base = tree_rss_mb(self._browser_root)
                 with ProcessTreeSampler(lambda: self._browser_root) as br:
-                    bench = self._release_and_wait(page, contender)
+                    bench = self._release_and_wait(page, contender, wait_timeout_ms)
                 browser_timed_peak = br.peak_mb - render_browser_base
             else:
                 render_browser_base = tree_rss_mb(self._browser_root)
                 bw = PeakWindow(backend).start() if backend is not None else None
                 with ProcessTreeSampler(lambda: self._browser_root) as br:
-                    bench = self._goto_and_wait(page, url, contender)
+                    bench = self._goto_and_wait(page, url, contender, wait_timeout_ms)
                 if bw is not None:
                     bw.stop()
                     backend_timed_peak = bw.peak_delta_mb
