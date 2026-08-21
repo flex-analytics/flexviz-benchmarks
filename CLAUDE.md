@@ -9,6 +9,12 @@ Build the FlexViz plugin before running any FlexViz benchmarks:
 cd ../flexviz && make build-plugin-release
 ```
 
+**Always verify the plugin is a RELEASE build before benchmarking.** A plain
+`make build-plugin` (debug) silently overwrites the release install and costs
+flexviz ~9× on query time — this poisoned a month of measurements in 2026-07.
+The tell: `flexviz_polars/flexviz_polars/_internal.abi3.so` is ~35MB in release,
+~1GB in debug. `ttfr_bench.py` refuses to run flexviz against a >100MB `.so`.
+
 Install Chromium for Playwright (first run only):
 ```bash
 uv run playwright install chromium

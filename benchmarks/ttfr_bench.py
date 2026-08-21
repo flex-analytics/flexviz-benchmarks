@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import sys
 from dataclasses import asdict
@@ -90,6 +91,34 @@ def benchmark_notes(chart: str, contenders: list[str]) -> list[str]:
     return notes
 
 
+def check_flexviz_release_build(repo: Path) -> None:
+    """Fail fast if the flexviz plugin is a debug build (cost a month of bad numbers).
+
+    A plain `make build-plugin` silently overwrites the release .so; debug is ~1GB
+    and ~9x slower on query time. Release is ~35MB, so size is a reliable tell.
+    Checks the .so that will actually be imported: the repo checkout when
+    --flexviz-repo resolves (FlexVizContender puts it first on sys.path), else the
+    installed package — so a cwd other than the repo root never false-aborts.
+    """
+    so = repo / "flexviz_polars" / "flexviz_polars" / "_internal.abi3.so"
+    if not so.exists():
+        spec = importlib.util.find_spec("flexviz_polars")
+        origin = getattr(spec, "origin", None)
+        so = Path(origin).with_name("_internal.abi3.so") if origin else so
+    if not so.exists():
+        raise SystemExit(
+            f"flexviz plugin not built: {so} missing. Run `make build-plugin-release` in {repo}."
+        )
+    size_mb = so.stat().st_size / 1e6
+    if size_mb > 100:
+        # ponytail: size heuristic — revisit the 100MB line if flexviz's cargo
+        # profiles change (e.g. debug=line-tables-only or a stripped debug build)
+        raise SystemExit(
+            f"flexviz plugin at {so} is {size_mb:.0f}MB — that's a DEBUG build (release "
+            f"is ~35MB). Run `make build-plugin-release` in {repo} before benchmarking."
+        )
+
+
 def main() -> None:
     a = parse_args()
     sizes = [int(s) for s in a.sizes.split(",") if s.strip()]
@@ -107,6 +136,8 @@ def main() -> None:
     unknown = [n for n in names if n not in registry]
     if unknown:
         raise ValueError(f"Unknown contenders: {unknown}. Valid: {sorted(registry)}")
+    if "flexviz" in names:
+        check_flexviz_release_build(a.flexviz_repo)
     out_path = a.json_out or Path(f"results/ttfr_{a.chart}.json")
 
     summaries, all_trials, all_memory_trials = [], {}, {}
