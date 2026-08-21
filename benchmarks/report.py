@@ -34,15 +34,16 @@ DETAIL_TIMING_METRICS: list[tuple[str, str]] = [
 # Browser-side memory metrics, reported in a separate table (build_browser_memory_table):
 # the per-render delta, plus the resident in-browser store + its build peak for the
 # client/WASM engines (zero for server engines, whose store lives in the backend).
+# Memory fields carry the single cold process-isolated memory trial, not medians.
 BROWSER_MEMORY_METRICS: list[tuple[str, str]] = [
-    ("browser_timed_peak_median_mb", "Browser render peak"),
-    ("resident_footprint_median_mb", "Resident store"),
-    ("preload_peak_median_mb", "Preload peak"),
+    ("browser_timed_peak_mb", "Browser render peak"),
+    ("resident_footprint_mb", "Resident store"),
+    ("preload_peak_mb", "Preload peak"),
 ]
 
 # Backend render-memory delta is visualized as a chart column.
 MEMORY_METRICS: list[tuple[str, str]] = [
-    ("backend_timed_peak_median_mb", "backend render peak"),
+    ("backend_timed_peak_mb", "backend render peak"),
 ]
 
 # Vibrant Tailwind-style palette. Paired engines share a hue (lighter tint for
@@ -51,13 +52,13 @@ MEMORY_METRICS: list[tuple[str, str]] = [
 # clash that fails for deutan/protan colorblindness; amber separates from red by
 # luminance under CVD.
 TOOL_COLOR: dict[str, str] = {
-    "flexviz": "#2563eb",          # blue
-    "mosaic-server": "#dc2626",    # red
-    "mosaic-wasm": "#f87171",      # light red
+    "flexviz": "#2563eb",  # blue
+    "mosaic-server": "#dc2626",  # red
+    "mosaic-wasm": "#f87171",  # light red
     "perspective-server": "#7c3aed",  # violet
-    "perspective-wasm": "#c4b5fd",    # light violet
-    "vaex": "#f59e0b",             # amber
-    "datashader": "#0891b2",       # cyan
+    "perspective-wasm": "#c4b5fd",  # light violet
+    "vaex": "#f59e0b",  # amber
+    "datashader": "#0891b2",  # cyan
 }
 TOOL_MARKER: dict[str, str] = {
     "flexviz": "circle",
@@ -93,7 +94,9 @@ def _format_size(n: int) -> str:
 def _format_ms(value: Any) -> str:
     if value is None:
         return "&mdash;"
-    return f"{float(value):.2f}"
+    # Raw memory deltas can dip slightly negative (GC below baseline); the JSON keeps
+    # the raw value, the report clamps for display.
+    return f"{max(0.0, float(value)):.2f}"
 
 
 def _format_dimension_value(x_key: str, value: Any) -> str:
@@ -234,6 +237,8 @@ def build_figure(
 
                 xs = [s[x_key] for s in tool_data]
                 ys = [s.get(m_field) for s in tool_data]
+                if m_field.endswith("_mb"):  # clamp raw memory deltas for display
+                    ys = [max(0.0, y) if y is not None else None for y in ys]
                 hover = [
                     f"{tool} / {src}<br>{x_key}={x}<br>{m_field}={y:.2f}<br>n={s['trials']}"
                     if y is not None
@@ -533,11 +538,12 @@ _METHODOLOGY_HTML = """\
   <p>Seven tools across three classes. <strong>TTFR</strong> is clocked entirely in the
   browser, from the request that triggers each tool&rsquo;s pipeline to a paint-proven
   first render (a double <code>requestAnimationFrame</code> after the engine&rsquo;s
-  ready signal). Engines render the same bounded histogram workload
-  (<code>bins</code> bars/trace). For line charts, FlexViz/Mosaic/Vaex/Datashader use the
-  bounded ~1000-point line/envelope workload; Perspective line is explicitly reported as
-  its shipped raw-<code>x</code> Y Line workload because it does not implement that
-  scalable envelope in this benchmark. The same-engine
+  ready signal; the reported time excludes the awaited paint itself). Engines render the
+  same bounded histogram workload (<code>bins</code> bars/trace). For line charts,
+  FlexViz/Mosaic use an M4-style envelope, Vaex/Perspective a mean-per-bin line
+  (~1000 x-bins), and Datashader rasterizes the full raw line (its native workload) on a
+  dask-partitioned frame. Axis-extent discovery (min/max) runs <em>inside</em> the timed
+  window for every tool, on the tool&rsquo;s own engine. The same-engine
   <strong>server&nbsp;vs&nbsp;WASM</strong> pairs (Mosaic, Perspective) isolate
   compute-location as a single variable.</p>
 
@@ -579,34 +585,41 @@ _METHODOLOGY_HTML = """\
       <code>img.decode()</code> + paint. <strong>Vaex</strong> bins with
       <code>df.count/mean(binby=&hellip;)</code> &rarr; matplotlib Agg PNG;
       <strong>Datashader</strong> uses <code>Canvas.line</code> &rarr; <code>tf.shade</code>
-      (histogram = numpy-oracle bin counts as a step line). <code>query_ms</code> is the
-      server raster time; <code>transfer_ms</code> the image body transfer.</p>
+      over a dask-partitioned frame (one partition per core, its documented large-data
+      path; numba kernels are JIT-warmed in preload), histogram = numpy-oracle bin counts
+      as a step line. <code>query_ms</code> is the server raster time;
+      <code>transfer_ms</code> the image body transfer.</p>
     </div>
   </div>
 
   <div class="measure-section">
     <h3>Memory</h3>
-    <p>All memory numbers are <strong>RSS deltas</strong> (peak-minus-baseline) over a
-    process tree, sampled with psutil at ~5&nbsp;ms. RSS &mdash; not USS &mdash; because
-    <code>memory_full_info()</code> raises <code>AccessDenied</code> for child processes
-    on macOS (SIP), which would make the DuckDB child and the whole Chromium tree
-    unreadable; RSS is readable for descendants. Baselines are taken <em>on the group
-    being sampled</em> (out-of-process backends are spawned empty first), and deltas
-    cancel the roughly-constant shared framework pages. Three metrics:</p>
+    <p>Memory comes from <strong>one cold, process-isolated trial per cell</strong> &mdash;
+    never from the warm timing repeats, where a reused process&rsquo;s allocator makes
+    peak-minus-baseline deltas collapse to noise (validated: the same aggregation reports
+    404&nbsp;&rarr;&nbsp;0.4&nbsp;MB across four warm in-process runs). Every backend is a
+    <em>fresh spawned child</em> for this trial: the server engines already spawn one per
+    trial; FlexViz/Vaex/Datashader are hosted in a child that also materializes the
+    in-memory source frame, so a zero-copy engine is charged the frame it references.
+    Baselines are the empty child, taken before the store build. Metrics:</p>
     <ul class="footnote" style="line-height:1.5">
-      <li><code>backend_timed_peak_mb</code> &mdash; incremental backend-tree RSS during
-      the timed render window (the headline render-memory number). In-process for FlexViz
-      and the rasterizers; the spawned DuckDB / Perspective child for the server engines.</li>
-      <li><code>browser_timed_peak_mb</code> &mdash; incremental Chromium renderer-tree
-      RSS during render. Unlike a JS-heap delta this captures Perspective&rsquo;s WASM heap
-      and canvas/GPU buffers.</li>
-      <li><code>resident_footprint_mb</code> / <code>preload_peak_mb</code> &mdash; size and
-      build-peak of the engine&rsquo;s in-memory native store (backend group for server
-      engines; the browser store-phase for client/WASM engines; zero on disk sources).</li>
+      <li><code>backend_timed_peak_mb</code> &mdash; backend peak during the timed render
+      window, from the kernel&rsquo;s <code>VmHWM</code> high-water mark (reset via
+      <code>clear_refs</code> at window start): exact, no sampling gaps. Falls back to a
+      5&nbsp;ms RSS sampler where <code>/proc</code> is unavailable.</li>
+      <li><code>browser_timed_peak_mb</code> &mdash; incremental Chromium-tree RSS during
+      render (sampled; a tree walk costs ~8&nbsp;ms, so this is a lower bound). Unlike a
+      JS-heap delta it captures WASM heaps and canvas buffers.</li>
+      <li><code>resident_footprint_mb</code> / <code>preload_peak_mb</code> &mdash;
+      steady-state size and build-peak of the engine&rsquo;s native store. Backend child
+      RSS for server engines; for the client/WASM engines the store phase is measured in
+      the browser with <strong>PSS</strong> (summing RSS over a Chromium tree
+      double-counts shared pages ~2.5&times;). Empty on disk sources (the engine holds
+      only a handle pre-timing).</li>
     </ul>
-    <p class="footnote">Known limitation: RSS over-counts shared pages in absolute terms
-    (cancelled by the delta) and can miss sub-5&nbsp;ms spikes; a reused browser is
-    attributed only its per-trial delta, not its absolute footprint.</p>
+    <p class="footnote">Raw deltas are stored in the JSON (small negatives possible from
+    GC below baseline); the report clamps at 0 for display. Timing repeats and the memory
+    trial are separate passes: timing is a warm median, memory is a cold single shot.</p>
   </div>
 </div>"""
 
@@ -722,15 +735,20 @@ def build_failures_table(failures: list[dict[str, Any]]) -> str:
             f"<td>{int(failure.get('rows', 0)):,}</td>"
             f"<td>{escape(str(failure.get('n_traces', '')))}</td>"
             f"<td>{escape(str(failure.get('source', '')))}</td>"
+            f"<td>{escape(str(failure.get('kind', 'ceiling')))}</td>"
             f"<td>{escape(str(failure.get('error', '')))}</td>"
             "</tr>"
         )
     return (
         '<div class="card">'
-        "<h2>Ceiling Failures</h2>"
+        "<h2>Failures</h2>"
+        '<p class="footnote">kind: <em>flake</em> = one failed attempt, the retry '
+        "succeeded (trials continue); <em>ceiling</em> = failed twice, the tool stops "
+        "for that cell but completed trials are kept; <em>memory / memory-flake</em> = "
+        "the cold memory trial failed (timing unaffected, memory columns empty).</p>"
         '<table class="timing-detail-table">'
         "<thead><tr>"
-        "<th>Tool</th><th>Rows</th><th>Traces</th><th>Source</th><th>Error</th>"
+        "<th>Tool</th><th>Rows</th><th>Traces</th><th>Source</th><th>Kind</th><th>Error</th>"
         "</tr></thead>"
         f"<tbody>{''.join(rows)}</tbody>"
         "</table>"

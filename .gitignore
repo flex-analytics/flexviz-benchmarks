@@ -225,6 +225,10 @@ results/
 # MCP server runtime directory
 .playwright-mcp/
 
+# Local Claude Code agent tooling (user-specific, not part of the benchmark suite)
+.agents/
+skills-lock.json
+
 # Vendored JS build deps (lockfile is committed, node_modules is not)
 benchmarks/probes/vendor/node_modules/
 # ...but the esbuild output IS committed (overrides the global dist/ ignore above)

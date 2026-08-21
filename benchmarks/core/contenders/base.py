@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -84,3 +85,15 @@ def frame_columns(chart: str, n_traces: int) -> list[str]:
     if chart == "line":
         return ["x"] + [f"y{t + 1}" for t in range(n_traces)]
     return [f"value{t + 1}" for t in range(n_traces)]
+
+
+def spill_arrow_path(spill_dir: Path | None) -> str:
+    """Temp path for a multi-GB Arrow handoff file. `spill_dir` should be the dataset
+    volume (the driver passes it): the system default is /tmp, which is tmpfs (RAM) on
+    many hosts and too small/shared for 200M-row cells — an ENOSPC there would be
+    misreported as an engine ceiling. None falls back to the system default (tests)."""
+    if spill_dir is not None:
+        spill_dir.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(suffix=".arrow", dir=spill_dir)
+    os.close(fd)
+    return tmp

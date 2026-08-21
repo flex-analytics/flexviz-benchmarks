@@ -9,8 +9,6 @@ def _ok_trial():
         transfer_ms=None,
         render_ms=None,
         payload_bytes=None,
-        backend_timed_peak_mb=0.0,
-        browser_timed_peak_mb=0.0,
     )
 
 
@@ -29,11 +27,12 @@ def test_failing_contender_does_not_abort_others():
         warmup=1,
         repeats=3,
         seed=1,
-        on_error=lambda name, err: errors.append(name),
+        on_error=lambda name, err, kind: errors.append((name, kind)),
     )
     assert "good" in out and len(out["good"]) == 3
-    assert "bad" not in out  # dropped entirely (its results are unreliable)
-    assert errors == ["bad"]  # reported exactly once, at its ceiling
+    assert "bad" not in out
+    # first failure is recorded as a flake, the failed retry as the ceiling
+    assert errors == [("bad", "flake"), ("bad", "ceiling")]
 
 
 def test_failure_during_warmup_skips_repeats_for_that_tool():
@@ -49,5 +48,48 @@ def test_failure_during_warmup_skips_repeats_for_that_tool():
     out = run_repeated_trials(contenders, run_trial=run_trial, warmup=2, repeats=3, seed=1)
     assert "good" in out and len(out["good"]) == 3
     assert "bad" not in out
-    # bad fails on its first warmup attempt and is never retried in warmup or repeats.
-    assert calls["bad"] == 1
+    # bad fails its first warmup attempt + one retry, then is never attempted again.
+    assert calls["bad"] == 2
+
+
+def test_single_flake_is_retried_and_trials_continue():
+    state = {"failed_once": False}
+
+    def run_trial(c):
+        if c == "flaky" and not state["failed_once"]:
+            state["failed_once"] = True
+            raise RuntimeError("one-off timeout")
+        return _ok_trial()
+
+    errors = []
+    out = run_repeated_trials(
+        [("flaky", lambda: "flaky")],
+        run_trial=run_trial,
+        warmup=0,
+        repeats=3,
+        seed=1,
+        on_error=lambda name, err, kind: errors.append((name, kind)),
+    )
+    # the flake is retried in place: all 3 repeats complete
+    assert len(out["flaky"]) == 3
+    assert errors == [("flaky", "flake")]
+
+
+def test_ceiling_mid_repeats_keeps_completed_trials():
+    calls = {"n": 0}
+
+    def run_trial(c):
+        calls["n"] += 1
+        if calls["n"] > 2:  # first two trials succeed, then the tool hits its ceiling
+            raise RuntimeError("std::bad_alloc")
+        return _ok_trial()
+
+    out = run_repeated_trials(
+        [("tool", lambda: "tool")],
+        run_trial=run_trial,
+        warmup=0,
+        repeats=5,
+        seed=1,
+    )
+    # completed trials survive the ceiling (n < repeats stays visible in the summary)
+    assert len(out["tool"]) == 2

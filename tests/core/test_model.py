@@ -1,17 +1,27 @@
 from core.model import Trial, summarize
 
 
-def _t(total, q=None, mem=10.0):
+def _t(total, q=None):
     return Trial(
         total_ms=total,
         query_ms=q,
         transfer_ms=None,
         render_ms=None,
         payload_bytes=None,
-        backend_timed_peak_mb=mem,
+    )
+
+
+def _mem_trial():
+    return Trial(
+        total_ms=99.0,
+        query_ms=None,
+        transfer_ms=None,
+        render_ms=None,
+        payload_bytes=None,
+        backend_timed_peak_mb=10.0,
         browser_timed_peak_mb=5.0,
-        resident_footprint_mb=mem * 2,
-        preload_peak_mb=mem * 3,
+        resident_footprint_mb=20.0,
+        preload_peak_mb=30.0,
     )
 
 
@@ -22,11 +32,22 @@ def test_summarize_medians_and_nullable_query():
         tool="x",
         source="in-memory",
         trials=[_t(10, q=4), _t(20, q=None), _t(30, q=8)],
+        memory_trial=_mem_trial(),
     )
     assert s.total_median_ms == 20
     assert s.query_median_ms == 6  # median of [4, 8], Nones dropped
-    assert s.backend_timed_peak_median_mb == 10.0
     assert s.trials == 3
+    # memory comes from the cold isolated trial, not the timing repeats
+    assert s.backend_timed_peak_mb == 10.0
+    assert s.resident_footprint_mb == 20.0
+
+
+def test_summarize_without_memory_trial_has_none_memory():
+    s = summarize(1000, 1, "x", "in-memory", [_t(10)])
+    assert s.backend_timed_peak_mb is None
+    assert s.browser_timed_peak_mb is None
+    assert s.resident_footprint_mb is None
+    assert s.preload_peak_mb is None
 
 
 def test_summarize_empty_raises():

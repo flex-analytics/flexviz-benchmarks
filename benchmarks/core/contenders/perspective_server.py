@@ -9,13 +9,8 @@ from pathlib import Path
 import psutil
 
 from core.contenders._perspective_tornado import run_perspective_server
-from core.contenders.base import PROBES, PageServerMixin, frame_columns
-from core.contenders.perspective_wasm import (
-    histogram_arrow_table,
-    histogram_range,
-    histogram_source_columns,
-    restore_config,
-)
+from core.contenders.base import PROBES, PageServerMixin, frame_columns, spill_arrow_path
+from core.contenders.perspective_wasm import histogram_arrow_table
 
 
 def _free_port() -> int:
@@ -27,11 +22,12 @@ def _free_port() -> int:
 class PerspectiveServerContender(PageServerMixin):
     name = "perspective-server"
 
-    def __init__(self) -> None:
+    def __init__(self, spill_dir: Path | None = None) -> None:
         self._proc = None
         self._port = 0
         self.backend_root = None
         self._url = ""
+        self._spill_dir = spill_dir
 
     def start_backend(self, *, chart, source, n_traces, bins, n_points) -> None:
         # Spawn the perspective server EMPTY and register its pid BEFORE preload, so the
@@ -75,42 +71,47 @@ class PerspectiveServerContender(PageServerMixin):
                 timeout=30,
             ).raise_for_status()
         else:
-            # in-memory: stream Arrow IPC bytes → native server Table (resident). No to_list().
-            import io
+            # in-memory: hand the server a temp Arrow IPC file → native server Table
+            # (resident). A file, not an HTTP body: a body is capped by the transport
+            # (misreporting the cap as an engine ceiling at large rows) and its buffer
+            # sits inside the child while the preload peak is being measured — mosaic
+            # was moved off body transport for the same reason, so a body here would
+            # also break cross-tool memory comparability.
+            import os
 
-            import pyarrow.ipc as ipc
+            import pyarrow.feather as fa
 
             table = (
                 histogram_arrow_table(frame_or_path, n_traces)
                 if chart == "histogram"
                 else frame_or_path.select(cols).to_arrow()
             )
-            sink = io.BytesIO()
-            with ipc.new_stream(sink, table.schema) as w:
-                for b in table.to_batches():
-                    w.write_batch(b)
-            requests.post(
-                f"{base}/load",
-                data=sink.getvalue(),
-                headers={"X-Load-Kind": "arrow"},
-                timeout=120,
-            ).raise_for_status()
-        hist_range = (
-            histogram_range(frame_or_path, histogram_source_columns(n_traces))
-            if chart == "histogram"
-            else None
-        )
+            tmp = spill_arrow_path(self._spill_dir)
+            try:
+                fa.write_feather(table, tmp, compression="uncompressed")
+                requests.post(
+                    f"{base}/load",
+                    data=tmp.encode(),
+                    headers={"X-Load-Kind": "arrow-path"},
+                    timeout=600,
+                ).raise_for_status()
+            finally:
+                os.unlink(tmp)
+        # No precomputed extents: the probe discovers min/max on the server engine
+        # inside the timed window (extent policy: in-window for every tool).
         html = (
             (PROBES / "perspective_server.html.j2")
             .read_text()
             .replace("{{WS_URL}}", f"ws://127.0.0.1:{self._port}/ws")
             .replace("{{BUILD_URL}}", f"{base}/build")
-            .replace(
-                "{{RESTORE_JSON}}",
-                json.dumps(restore_config(chart, n_traces, bins, hist_range)),
-            )
+            .replace("{{CHART_TYPE}}", '"histogram"' if chart == "histogram" else '"line"')
+            .replace("{{N_TRACES}}", str(n_traces))
+            .replace("{{BINS_OR_NPTS}}", str(bins if chart == "histogram" else n_points))
         )
         self._url = self.serve_page(html)
+        (self._dir / "perspective_config.js").write_text(
+            (PROBES / "perspective_config.js").read_text()
+        )
 
     def get_url(self) -> str:
         return self._url

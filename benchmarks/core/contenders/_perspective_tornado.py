@@ -43,11 +43,15 @@ def run_perspective_server(*, port: int) -> None:
     class LoadHandler(_Cors):
         def post(self) -> None:
             kind = self.request.headers.get("X-Load-Kind")
-            if kind == "arrow":  # in-memory: native Table now (resident)
-                client.table(self.request.body, name="bench")
-            else:  # "path": disk — defer to /build (timed)
+            if kind == "arrow-path":  # in-memory: temp IPC file → native Table now (resident)
+                import pyarrow.feather as fa
+
+                client.table(fa.read_table(self.request.body.decode()), name="bench")
+            elif kind == "path":  # disk — defer to /build (timed)
                 spec = json.loads(self.request.body)
                 deferred.update(spec)
+            else:  # an unknown kind must never fall through to a wrong store shape
+                raise tornado.web.HTTPError(400, f"unknown X-Load-Kind: {kind!r}")
             self.set_status(200)
 
     class BuildHandler(_Cors):
@@ -72,5 +76,7 @@ def run_perspective_server(*, port: int) -> None:
             (r"/build", BuildHandler),
         ]
     )
+    # In-memory loads arrive as a file path, so tornado's 100MB default body cap is
+    # plenty — no transport limit can be misreported as an engine ceiling at any rows.
     app.listen(port, address="127.0.0.1")
     tornado.ioloop.IOLoop.current().start()

@@ -79,3 +79,84 @@ def test_perspective_histogram_restore_uses_split_by_trace():
     assert cfg["group_by"] == ["bin"]
     assert cfg["split_by"] == ["trace"]
     assert cfg["columns"] == ["value"]
+
+
+def test_perspective_line_binned_means_match_oracle():
+    # The line workload is mean-per-bin (perspective-native, comparable to the other
+    # ~1000-point workloads) — lock the expression-binned avg against numpy.
+    import numpy as np
+    import perspective
+
+    from core.datagen import line_columns
+
+    n_points = 100
+    cols = line_columns(20_000, 1, 42)
+    x, y = cols["x"], cols["y1"]
+    lo, hi = float(x.min()), float(x.max())
+    width = (hi - lo) / n_points
+
+    client = perspective.Server().new_local_client()
+    table = client.table({"x": x.tolist(), "y1": y.tolist()})
+    cfg = restore_config("line", 1, n_points, (lo, hi))
+    view = table.view(**{k: v for k, v in cfg.items() if k != "plugin"})
+    got = view.to_columns()
+    got_means = np.array([v for rp, v in zip(got["__ROW_PATH__"], got["y1"]) if rp])
+
+    bins = np.clip(((x - lo) / width).astype(int), 0, n_points - 1)
+    sums = np.bincount(bins, weights=y, minlength=n_points)
+    counts = np.bincount(bins, minlength=n_points)
+    oracle = sums[counts > 0] / counts[counts > 0]
+    assert len(got_means) == len(oracle)
+    assert np.allclose(np.sort(got_means), np.sort(oracle), atol=1e-9)
+
+
+def test_perspective_extent_view_returns_exact_min_max():
+    # The probes discover extents in-window via this view shape (perspective_config.js).
+    import perspective
+
+    cols = histogram_columns(20_000, 1, 42)
+    client = perspective.Server().new_local_client()
+    table = client.table({"value": cols["value1"].tolist()})
+    view = table.view(
+        group_by=["__one"],
+        expressions={"__one": "1", "__lo": '"value"', "__hi": '"value"'},
+        columns=["__lo", "__hi"],
+        aggregates={"__lo": "min", "__hi": "max"},
+    )
+    got = view.to_columns()
+    assert got["__lo"][0] == float(cols["value1"].min())  # row 0 = grand-total row
+    assert got["__hi"][0] == float(cols["value1"].max())
+
+
+def _mosaic_bin_count(lo: float, hi: float, steps: int) -> int:
+    """Port of @uwdata/mosaic-plot bin-step.js binStep() + bin.js bins() (nice=true):
+    `steps` is a niced MAXIMUM, not an exact bin count — this locks that understanding
+    (the probes pass {steps: bins} and get fewer, nicely-stepped bins)."""
+    import math
+
+    span = hi - lo
+    level = math.ceil(math.log10(steps))
+    step = 10.0 ** (round(math.log10(span)) - level)
+    while math.ceil(span / step) > steps:
+        step *= 10
+    for div in (5, 2):
+        v = step / div
+        if span / v <= steps:
+            step = v
+    v = math.log(step)
+    precision = 0 if v >= 0 else int(-v / math.log(10)) + 1
+    eps = 10.0 ** (-precision - 1)
+    v0 = math.floor(lo / step + eps) * step
+    lo_niced = v0 - step if lo < v0 else v0
+    hi_niced = math.ceil(hi / step) * step
+    return round((hi_niced - lo_niced) / step)
+
+
+def test_mosaic_bin_count_is_niced_maximum_for_bench_data():
+    cols = histogram_columns(1_000_000, 1, 42)
+    lo, hi = float(cols["value1"].min()), float(cols["value1"].max())
+    count = _mosaic_bin_count(lo, hi, 100)
+    # Not exactly 100 (documented in benchmark_notes), but comparable work: one GROUP BY
+    # over the data into the same order of magnitude of bins.
+    assert 60 <= count <= 100
+    assert count != 100

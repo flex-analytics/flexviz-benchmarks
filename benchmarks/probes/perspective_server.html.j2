@@ -2,6 +2,7 @@
 <style>body{margin:0}perspective-viewer{width:900px;height:400px}</style>
 <perspective-viewer id="v"></perspective-viewer>
 <script src="./contract.js"></script>
+<script src="./perspective_config.js"></script>
 <script type="module">
 import { perspective } from './dist/perspective.js';
 const H = window.__benchHelpers;
@@ -16,9 +17,11 @@ try {
   const query_ms = st ? parseFloat(st[1]) : null;
   const ws = await perspective.websocket("{{WS_URL}}");
   const table = await ws.open_table("bench");     // server-held table (virtual)
+  // Extent discovery + config construction run on the SERVER engine, in-window.
+  const config = await window.__perspectiveConfig(table, {{CHART_TYPE}}, {{N_TRACES}}, {{BINS_OR_NPTS}});
   const viewer = document.getElementById('v');
   await viewer.load(table);
-  await viewer.restore({{RESTORE_JSON}});
+  await viewer.restore(config);
   await viewer.flush();
   const total_ms = performance.now() - t0;
   H.benchDone({ total_ms, query_ms, render_ms: total_ms - (query_ms || 0) });

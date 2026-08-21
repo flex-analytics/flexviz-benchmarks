@@ -26,10 +26,10 @@ from report import (
 
 def _mem(backend, browser, resident=0.0, preload=0.0):
     return {
-        "backend_timed_peak_median_mb": backend,
-        "browser_timed_peak_median_mb": browser,
-        "resident_footprint_median_mb": resident,
-        "preload_peak_median_mb": preload,
+        "backend_timed_peak_mb": backend,
+        "browser_timed_peak_mb": browser,
+        "resident_footprint_mb": resident,
+        "preload_peak_mb": preload,
     }
 
 
@@ -465,8 +465,8 @@ class TestBuildPage:
 class TestBrowserMemoryTable:
     def test_memory_metrics_excludes_browser(self):
         fields = [field for field, _ in MEMORY_METRICS]
-        assert "backend_timed_peak_median_mb" in fields
-        assert "browser_timed_peak_median_mb" not in fields
+        assert "backend_timed_peak_mb" in fields
+        assert "browser_timed_peak_mb" not in fields
 
     def test_browser_peak_not_visualized_in_figure(self):
         fig = build_figure(
@@ -581,4 +581,7 @@ class TestBuildPageMethodologyCard:
         assert "server" in page
         assert "WASM" in page
         assert "img.decode" in page
-        assert "RSS deltas" in page
+        # memory methodology: cold isolated trial, kernel HWM, PSS for browser stores
+        assert "process-isolated" in page
+        assert "VmHWM" in page
+        assert "PSS" in page

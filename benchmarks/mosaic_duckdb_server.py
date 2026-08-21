@@ -3,15 +3,15 @@
 Starts table-less (EMPTY) so the contender can register the backend process for
 memory baselining BEFORE the `bench` store is built. A one-shot `POST /load`
 control route then builds the store:
-  - in-memory (X-Load-Kind: arrow) → a NATIVE DuckDB table (the in-memory fix; a
-    registered foreign frame forces a single-threaded re-scan per query);
-  - disk (X-Load-Kind: path)       → a VIEW, so the file scan happens at query time.
+  - in-memory (X-Load-Kind: arrow-path, a temp IPC file path — HTTP bodies over
+    ~1GB get 400ed by uWS) → a NATIVE DuckDB table (a registered foreign frame
+    would force a single-threaded re-scan per query);
+  - disk (X-Load-Kind: path) → a VIEW, so the file scan happens at query time.
 The previously-inert `diskcache` is removed (it never hit, deflated nothing).
 """
 
 from __future__ import annotations
 
-import io
 import logging
 import time
 from typing import Any
@@ -107,14 +107,17 @@ def run_mosaic_duckdb_server(*, port: int, cache_dir: str | None = None) -> None
     con = duckdb.connect(":memory:")  # starts EMPTY — no `bench` table yet
 
     def _load(kind: str | None, body: bytes) -> None:
-        if kind == "arrow":
-            tbl = ipc.open_stream(io.BytesIO(body)).read_all()  # transient; freed after CREATE
+        if kind == "arrow-path":
+            # in-memory store handed as a temp IPC file path (HTTP bodies >~1GB 400 in uWS)
+            tbl = ipc.open_file(body.decode()).read_all()  # transient; freed after CREATE
             con.register("_src", tbl)
             con.execute("CREATE OR REPLACE TABLE bench AS SELECT * FROM _src")  # native columnar
             con.unregister("_src")
-        else:  # "path" — disk source: a VIEW, so the scan happens at query time (timed window)
+        elif kind == "path":  # disk source: a VIEW, so the scan happens at query time (timed)
             path = body.decode().replace("'", "''")
             con.execute(f"CREATE OR REPLACE VIEW bench AS SELECT * FROM '{path}'")
+        else:  # an unknown kind must never silently become a VIEW over garbage
+            raise ValueError(f"unknown X-Load-Kind: {kind!r}")
 
     app = App()
     app.json_serializer(ujson)
@@ -136,7 +139,13 @@ def run_mosaic_duckdb_server(*, port: int, cache_dir: str | None = None) -> None
             res.end("")
             return
         data = await res.get_data()
-        _load(kind, data.getvalue())
+        try:
+            _load(kind, data.getvalue())
+        except Exception as exc:  # noqa: BLE001 — a load failure must answer, not hang the driver
+            logger.exception("Mosaic DuckDB /load failed")
+            res.write_status(500)
+            res.end(str(exc))
+            return
         res.end("ok")
 
     async def http_handler(res: Any, req: Any) -> None:
