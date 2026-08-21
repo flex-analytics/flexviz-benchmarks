@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import random
 import shutil
@@ -163,7 +164,10 @@ class RenderProbe:
                 raise RuntimeError(f"{contender.name}: {bench.get('err')}")
         finally:
             if page is not None:
-                page.close()
+                # a dead browser/renderer makes close() raise; that must neither skip
+                # teardown (multi-GB backend children would leak) nor mask the trial error
+                with contextlib.suppress(Exception):
+                    page.close()
             contender.teardown()
 
         def f(key: str) -> float | None:
