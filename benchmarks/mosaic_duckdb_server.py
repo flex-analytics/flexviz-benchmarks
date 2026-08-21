@@ -113,9 +113,11 @@ def run_mosaic_duckdb_server(*, port: int, cache_dir: str | None = None) -> None
             con.register("_src", tbl)
             con.execute("CREATE OR REPLACE TABLE bench AS SELECT * FROM _src")  # native columnar
             con.unregister("_src")
-        else:  # "path" — disk source: a VIEW, so the scan happens at query time (timed window)
+        elif kind == "path":  # disk source: a VIEW, so the scan happens at query time (timed)
             path = body.decode().replace("'", "''")
             con.execute(f"CREATE OR REPLACE VIEW bench AS SELECT * FROM '{path}'")
+        else:  # an unknown kind must never silently become a VIEW over garbage
+            raise ValueError(f"unknown X-Load-Kind: {kind!r}")
 
     app = App()
     app.json_serializer(ujson)
@@ -137,7 +139,13 @@ def run_mosaic_duckdb_server(*, port: int, cache_dir: str | None = None) -> None
             res.end("")
             return
         data = await res.get_data()
-        _load(kind, data.getvalue())
+        try:
+            _load(kind, data.getvalue())
+        except Exception as exc:  # noqa: BLE001 — a load failure must answer, not hang the driver
+            logger.exception("Mosaic DuckDB /load failed")
+            res.write_status(500)
+            res.end(str(exc))
+            return
         res.end("ok")
 
     async def http_handler(res: Any, req: Any) -> None:
