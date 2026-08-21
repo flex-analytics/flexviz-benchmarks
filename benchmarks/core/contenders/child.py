@@ -75,7 +75,12 @@ class ChildBackend:
     def _recv(self, timeout: float = 600):
         if not self._conn.poll(timeout):
             raise RuntimeError(f"{self.name}: memory-trial child timed out")
-        msg = self._conn.recv()
+        try:
+            msg = self._conn.recv()
+        except EOFError:  # child died mid-call (e.g. OOM-killed): bare EOFError str() is EMPTY
+            raise RuntimeError(
+                f"{self.name}: memory-trial child died (exit {self._proc.exitcode})"
+            ) from None
         if isinstance(msg, tuple) and msg and msg[0] == "error":
             raise RuntimeError(f"{self.name}: memory-trial child failed:\n{msg[1]}")
         return msg
