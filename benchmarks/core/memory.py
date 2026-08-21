@@ -98,6 +98,14 @@ class PeakWindow:
             self._base = None
         return self
 
+    # Usable as `with PeakWindow(proc) as w:` — the fallback spawns a sampler thread, so
+    # stop() must not depend on the caller reaching it (a ceiling raises straight past).
+    def __enter__(self) -> PeakWindow:
+        return self.start()
+
+    def __exit__(self, *exc: object) -> None:
+        self.stop()
+
     def stop(self) -> None:
         if self._sampler is not None:
             self._sampler.__exit__()

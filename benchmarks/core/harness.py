@@ -99,16 +99,18 @@ class RenderProbe:
             )
             backend: psutil.Process | None = contender.backend_root if memory else None
             if memory and backend is not None:
-                pre = PeakWindow(backend).start()
-                contender.preload(
-                    chart=chart,
-                    source=source,
-                    frame_or_path=frame_or_path,
-                    n_traces=n_traces,
-                    bins=bins,
-                    n_points=n_points,
-                )
-                pre.stop()
+                # `with`: a preload raise (store-build OOM, the ceiling case) must still
+                # stop the window, or the clear_refs-unavailable fallback leaks its 5ms
+                # sampler thread for the rest of the run.
+                with PeakWindow(backend) as pre:
+                    contender.preload(
+                        chart=chart,
+                        source=source,
+                        frame_or_path=frame_or_path,
+                        n_traces=n_traces,
+                        bins=bins,
+                        n_points=n_points,
+                    )
                 preload_peak = pre.peak_delta_mb
                 # disk sources hold only a handle pre-timing; resident is in-memory-only
                 resident = pre.end_delta_mb if source == "in-memory" else None
@@ -151,11 +153,12 @@ class RenderProbe:
                 browser_timed_peak = br.peak_mb - render_browser_base
             else:
                 render_browser_base = tree_rss_mb(self._browser_root)
-                bw = PeakWindow(backend).start() if backend is not None else None
-                with ProcessTreeSampler(lambda: self._browser_root) as br:
+                backend_win = (
+                    PeakWindow(backend) if backend is not None else contextlib.nullcontext()
+                )
+                with backend_win as bw, ProcessTreeSampler(lambda: self._browser_root) as br:
                     bench = self._goto_and_wait(page, url, contender, wait_timeout_ms)
                 if bw is not None:
-                    bw.stop()
                     backend_timed_peak = bw.peak_delta_mb
                 browser_timed_peak = br.peak_mb - render_browser_base
             if bench.get("status") == "no_marks":
