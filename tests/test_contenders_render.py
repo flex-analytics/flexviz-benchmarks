@@ -31,6 +31,11 @@ def test_flexviz_renders_histogram_in_memory():
         )
     assert trial.total_ms > 0
     assert trial.browser_timed_peak_mb is not None
+    # teardown must unregister the trial's source: a leaking _sources pins every
+    # in-memory cell's frame for the whole run (OOM-killed the 200M matrix, 1c9fd0d).
+    from flexviz.server import _sources
+
+    assert not _sources, f"flexviz teardown leaked sources: {list(_sources)}"
 
 
 @pytest.mark.parametrize("source", ["in-memory", "disk-parquet"])
