@@ -15,12 +15,16 @@ from core.contenders.perspective_wasm import PerspectiveWasmContender
 from core.contenders.vaex import VaexContender
 
 
-def build_registry(flexviz_repo: Path) -> dict[str, Callable[[], Any]]:
+def build_registry(
+    flexviz_repo: Path, spill_dir: Path | None = None
+) -> dict[str, Callable[[], Any]]:
+    # spill_dir: where the server contenders write their multi-GB Arrow handoff files
+    # (the dataset volume) — see base.spill_arrow_path.
     return {
         "flexviz": lambda: FlexVizContender(flexviz_repo),
-        "mosaic-server": MosaicServerContender,
+        "mosaic-server": lambda: MosaicServerContender(spill_dir=spill_dir),
         "mosaic-wasm": MosaicWasmContender,
-        "perspective-server": PerspectiveServerContender,
+        "perspective-server": lambda: PerspectiveServerContender(spill_dir=spill_dir),
         "perspective-wasm": PerspectiveWasmContender,
         "vaex": VaexContender,
         "datashader": DatashaderContender,

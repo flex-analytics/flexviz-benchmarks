@@ -100,7 +100,9 @@ def main() -> None:
     sources = [s.strip() for s in a.data_sources.split(",") if s.strip()]
     names = [s.strip() for s in a.contenders.split(",") if s.strip()]
     max_traces = max(traces)
-    registry = build_registry(a.flexviz_repo)
+    # Arrow handoff files spill next to the datasets (one budgeted volume), never /tmp.
+    spill_dir = Path(a.dataset_base.format(chart=a.chart, rows=max(sizes))).parent
+    registry = build_registry(a.flexviz_repo, spill_dir)
     unknown = [n for n in names if n not in registry]
     if unknown:
         raise ValueError(f"Unknown contenders: {unknown}. Valid: {sorted(registry)}")
