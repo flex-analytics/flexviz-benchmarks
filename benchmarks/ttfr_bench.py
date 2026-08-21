@@ -113,10 +113,13 @@ def main() -> None:
     notes = benchmark_notes(a.chart, names)
 
     def write_out() -> None:
-        # Called after every completed size (checkpoint) and at the end: a multi-hour
+        # Called after every completed cell (checkpoint) and at the end: a multi-hour
         # matrix must never lose everything to one crashed cell (learned at 200M: OOM).
+        # Written to a sibling tmp then os.replace'd: a kill landing mid-write must not
+        # truncate the previous good checkpoint — the exact loss this exists to prevent.
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(
+        tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
+        tmp_path.write_text(
             json.dumps(
                 {
                     "config": {
@@ -143,6 +146,7 @@ def main() -> None:
                 indent=2,
             )
         )
+        tmp_path.replace(out_path)  # atomic on the same filesystem
 
     with RenderProbe(headless=not a.no_headless) as probe:
         for rows in sizes:
