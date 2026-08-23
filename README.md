@@ -115,11 +115,4 @@ cleanly when those are absent.
 
 FlexViz Benchmarks is [Apache-2.0](LICENSE) © 2026 Flex Analytics BV.
 
-`benchmarks/probes/vendor/dist/` is not committed, but earlier commits carried it and
-those objects stay reachable in git history, so a clone still distributes the engine
-bundles under test.
-[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) reproduces the licence of every
-redistributed component (45 of them: MIT, ISC, BSD-3-Clause, Apache-2.0). It is generated
-by `benchmarks/probes/vendor/gen_notices.py` from the esbuild input markers in the shipped
-bundles plus the verbatim-copied packages, so it cannot drift from what is actually
-distributed. Re-run it after any re-vendor.
+Third-party components are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
