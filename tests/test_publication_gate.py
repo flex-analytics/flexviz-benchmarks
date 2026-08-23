@@ -17,6 +17,7 @@ from report import publication_failures  # noqa: E402
 
 PROV = {
     "schema_version": SCHEMA_VERSION,
+    "host": {"cpu_model": "Test CPU", "total_ram_bytes": 64 * 2**30},
     "git": {
         "benchmarks": {"sha": "abc", "dirty": False},
         "flexviz": {"sha": "def", "dirty": False},
@@ -33,6 +34,7 @@ PROV = {
             "n_traces": [1],
             "data_sources": ["in-memory"],
             "contenders": ["flexviz"],
+            "provenance": {"runtime": {}},
         }
     ],
 }
@@ -93,6 +95,26 @@ def test_a_missing_cell_refuses():
     assert any("no status" in f for f in publication_failures(_data(statuses=[])))
 
 
+def test_an_empty_matrix_or_result_without_trials_refuses():
+    empty = _data(statuses=[])
+    empty["provenance"] = {**PROV, "phases": []}
+    empty["config"] = {"sizes": [], "n_traces": [], "data_sources": [], "contenders": []}
+
+    assert any("requests no cells" in failure for failure in publication_failures(empty))
+    assert any(
+        "no timing trials" in failure
+        for failure in publication_failures(_data(statuses=[{**STATUS, "trials": 0}]))
+    )
+
+
+def test_duplicate_and_unrequested_extra_statuses_refuse():
+    duplicate = publication_failures(_data(statuses=[STATUS, dict(STATUS)]))
+    extra = publication_failures(_data(statuses=[STATUS, {**STATUS, "rows": 9999}]))
+
+    assert any("duplicate" in failure for failure in duplicate)
+    assert any("unrequested" in failure for failure in extra)
+
+
 def test_an_unknown_status_value_refuses():
     assert any(
         "unrecognized" in f
@@ -113,12 +135,16 @@ def test_shrinking_rosters_across_phases_still_publish():
                 "n_traces": [1],
                 "data_sources": ["in-memory"],
                 "contenders": ["flexviz", "perspective-wasm"],
+                "provenance": {
+                    "runtime": {"perspective_wasm_binary": "perspective-server.memory64.wasm"}
+                },
             },
             {
                 "sizes": [9000],
                 "n_traces": [1],
                 "data_sources": ["in-memory"],
                 "contenders": ["flexviz"],
+                "provenance": {"runtime": {}},
             },
         ],
     }
@@ -143,6 +169,7 @@ def test_a_wasm_tool_that_ran_without_a_recorded_binary_refuses():
                 "n_traces": [1],
                 "data_sources": ["in-memory"],
                 "contenders": ["mosaic-wasm"],
+                "provenance": {"runtime": {}},
             }
         ],
     }
@@ -162,11 +189,62 @@ def test_an_ambiguous_binary_selection_refuses():
                 "n_traces": [1],
                 "data_sources": ["in-memory"],
                 "contenders": ["mosaic-wasm"],
+                "provenance": {
+                    "runtime": {"duckdb_wasm_binary": ["duckdb-eh.wasm", "duckdb-mvp.wasm"]}
+                },
             }
         ],
     }
     statuses = [{**STATUS, "tool": "mosaic-wasm"}]
     assert any("ambiguous" in f for f in publication_failures(_data(prov=prov, statuses=statuses)))
+
+
+def test_a_later_phase_cannot_supply_runtime_evidence_for_an_earlier_phase():
+    prov = {
+        **PROV,
+        "runtime": {"duckdb_wasm_binary": "duckdb-eh.wasm"},
+        "phases": [
+            {
+                "file": "wasm.json",
+                "sizes": [1000],
+                "n_traces": [1],
+                "data_sources": ["in-memory"],
+                "contenders": ["mosaic-wasm"],
+                "provenance": {"runtime": {}},
+            },
+            {
+                "file": "server.json",
+                "sizes": [9000],
+                "n_traces": [1],
+                "data_sources": ["in-memory"],
+                "contenders": ["flexviz"],
+                "provenance": {"runtime": {"duckdb_wasm_binary": "duckdb-eh.wasm"}},
+            },
+        ],
+    }
+    statuses = [{**STATUS, "tool": "mosaic-wasm"}, {**STATUS, "rows": 9000}]
+    data = _data(prov=prov, statuses=statuses)
+    data["config"]["sizes"] = [1000, 9000]
+
+    assert any("wasm.json" in f and "duckdb_wasm_binary" in f for f in publication_failures(data))
+
+
+def test_a_tool_that_ran_requires_its_own_execution_settings():
+    prov = {
+        **PROV,
+        "phases": [
+            {
+                "sizes": [1000],
+                "n_traces": [1],
+                "data_sources": ["in-memory"],
+                "contenders": ["datashader"],
+                "provenance": {"runtime": {}},
+            }
+        ],
+    }
+    statuses = [{**STATUS, "tool": "datashader"}]
+
+    assert any("execution.dask" in f for f in publication_failures(_data(prov, statuses)))
 
 
 @pytest.mark.parametrize(
@@ -188,6 +266,7 @@ def test_perspective_must_keep_its_render_cap_disclosure(cell):
                 "n_traces": [1],
                 "data_sources": ["in-memory"],
                 "contenders": ["perspective-wasm"],
+                "provenance": {"runtime": {"perspective_wasm_binary": "perspective-server.wasm"}},
             }
         ],
     }

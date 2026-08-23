@@ -47,6 +47,7 @@ class Summary:
     # Constant across a cell's trials (a deterministic function of rows and the tool's
     # cap); < 1.0 means the cell is censored — see report.censored_cells.
     rendered_fraction: float | None
+    rendered_rows: int | None
     # From the single cold memory trial (not medians — the timing repeats run warm
     # and process-shared, where peak-minus-baseline collapses via allocator reuse).
     backend_timed_peak_mb: float | None
@@ -72,6 +73,7 @@ def summarize(
         raise ValueError("cannot summarize empty trials")
     totals = [t.total_ms for t in trials]
     payloads = [t.payload_bytes for t in trials if t.payload_bytes is not None]
+    rendered_fraction = _med([t.rendered_fraction for t in trials])
     m = memory_trial
     return Summary(
         rows=rows,
@@ -86,7 +88,8 @@ def summarize(
         transfer_median_ms=_med([t.transfer_ms for t in trials]),
         client_median_ms=_med([t.client_ms for t in trials]),
         payload_bytes_median=round(statistics.median(payloads)) if payloads else None,
-        rendered_fraction=_med([t.rendered_fraction for t in trials]),  # constant per cell
+        rendered_fraction=rendered_fraction,  # constant per cell
+        rendered_rows=round(rendered_fraction * rows) if rendered_fraction is not None else None,
         backend_timed_peak_mb=m.backend_timed_peak_mb if m else None,
         browser_timed_peak_mb=m.browser_timed_peak_mb if m else None,
         resident_footprint_mb=m.resident_footprint_mb if m else None,

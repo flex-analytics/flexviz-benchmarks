@@ -76,6 +76,7 @@ def test_happy_path_unions_the_matrix(tmp_path):
     # notes deduped, phase-specific ones kept
     assert merged["notes"] == ["shared note", "note for 1000", "note for 2000"]
     assert len(merged["provenance"]["phases"]) == 2
+    assert "generated_utc" not in merged["provenance"]
 
 
 def test_statuses_are_merged(tmp_path):
@@ -99,6 +100,7 @@ def test_common_provenance_is_hoisted_and_per_phase_kept(tmp_path):
         "2026-08-22T10:00:00+00:00",
         "2026-08-22T18:00:00+00:00",
     ]
+    assert all(set(phase["provenance"]) == {"generated_utc"} for phase in prov["phases"])
 
 
 def test_overlapping_cells_are_refused(tmp_path):
@@ -219,6 +221,17 @@ def test_identity_is_by_subtraction_not_an_allowlist(tmp_path, patch, expected):
             [
                 _phase(tmp_path, "p1.json"),
                 _phase(tmp_path, "p2.json", rows=2000, provenance={**PROVENANCE, **patch}),
+            ]
+        )
+
+
+def test_missing_and_explicit_null_are_different_identities(tmp_path):
+    with_null = {**PROVENANCE, "tomorrows_new_field": None}
+    with pytest.raises(SystemExit, match="tomorrows_new_field"):
+        merge(
+            [
+                _phase(tmp_path, "p1.json", provenance=PROVENANCE),
+                _phase(tmp_path, "p2.json", rows=2000, provenance=with_null),
             ]
         )
 

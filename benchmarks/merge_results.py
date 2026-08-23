@@ -39,6 +39,7 @@ CONFIG_SPLIT = frozenset({"sizes", "n_traces", "data_sources", "contenders"})
 # and a Vulkan phase are not one experiment (33x for perspective), and the old code
 # excluded exactly that block.
 PROVENANCE_PER_PHASE = frozenset({"generated_utc", "runtime"})
+_MISSING = object()
 
 
 def _refuse(where: str, field: str, mine: Any, theirs: Any) -> None:
@@ -54,10 +55,18 @@ def _diff_path(mine: Any, theirs: Any, prefix: str) -> tuple[str, Any, Any] | No
     """
     if isinstance(mine, dict) and isinstance(theirs, dict):
         for key in sorted(set(mine) | set(theirs)):
-            found = _diff_path(mine.get(key), theirs.get(key), f"{prefix}.{key}")
+            found = _diff_path(
+                mine.get(key, _MISSING), theirs.get(key, _MISSING), f"{prefix}.{key}"
+            )
             if found:
                 return found
         return None
+    if mine is _MISSING or theirs is _MISSING:
+        return (
+            prefix,
+            "<missing>" if mine is _MISSING else mine,
+            "<missing>" if theirs is _MISSING else theirs,
+        )
     return None if mine == theirs else (prefix, mine, theirs)
 
 
@@ -173,7 +182,9 @@ def merge(phase_paths: list[Path], *, allow_missing: bool = False) -> dict[str, 
                 "tools_with_results": ran,
                 "n_summary_rows": len(data["summary"]),
                 "n_failures": len(data.get("failures", [])),
-                "provenance": prov,
+                # The full identity is validated above and hoisted once. Keep only the
+                # two fields allowed to differ instead of duplicating the manifest.
+                "provenance": {k: prov[k] for k in sorted(PROVENANCE_PER_PHASE) if k in prov},
             }
         )
         merged["summary"] += data["summary"]
@@ -201,7 +212,7 @@ def merge(phase_paths: list[Path], *, allow_missing: bool = False) -> dict[str, 
     common = {
         k: v
         for k, v in provenances[0].items()
-        if all(p.get(k) == v for p in provenances[1:]) and k != "phases"
+        if k not in PROVENANCE_PER_PHASE and all(k in p and p[k] == v for p in provenances[1:])
     }
     merged["provenance"] = {**common, "runtime": runtime, "phases": merged["provenance"]["phases"]}
     if skipped:

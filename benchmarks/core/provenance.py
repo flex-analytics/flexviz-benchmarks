@@ -21,6 +21,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import psutil
+
 SCHEMA_VERSION = "3"
 
 REPO = Path(__file__).resolve().parents[2]
@@ -44,6 +46,9 @@ PACKAGES = (
     "numpy",
     "matplotlib",
     "plotly",
+    "pillow",
+    "psutil",
+    "tornado",
 )
 
 # Thread caps change engine throughput, so a set one is part of the run's identity.
@@ -107,44 +112,42 @@ def _execution() -> dict[str, Any]:
     `dask.config` (YAML, `DASK_*`, defaults). A host carrying either produces numbers
     whose configuration is otherwise unrecoverable. Recorded, never set — no
     benchmark-authored tuning; a nondefault host lands in provenance where a reader
-    can see it. Each engine is independently optional: a missing one records null
-    rather than failing a run that does not use it.
+    can see it. Every engine is a locked project dependency, so capture failure aborts
+    instead of silently producing publishable-looking partial provenance.
     """
-    out: dict[str, Any] = {}
-    with contextlib.suppress(Exception):
-        import vaex.settings
+    import dask.config
+    import dask.dataframe as dd
+    import duckdb
+    import polars as pl
+    import vaex.settings
+    from dask.base import get_scheduler
+    from dask.system import CPU_COUNT
 
-        m = vaex.settings.main
-        out["vaex"] = {
+    m = vaex.settings.main
+    pool = dask.config.get("pool", None)
+    scheduler_fn = get_scheduler(cls=dd.DataFrame)
+    scheduler = f"{scheduler_fn.__module__}.{scheduler_fn.__qualname__}"
+    workers = (
+        getattr(pool, "_max_workers", None) or dask.config.get("num_workers", None) or CPU_COUNT
+    )
+    return {
+        "vaex": {
             "thread_count": m.thread_count,
             "thread_count_io": m.thread_count_io,
             "process_count": m.process_count,
             "chunk_size": m.chunk.size,
             "chunk_size_min": m.chunk.size_min,
             "chunk_size_max": m.chunk.size_max,
-        }
-    with contextlib.suppress(Exception):
-        import dask.config
-
-        out["dask"] = {
-            k: dask.config.get(k, None)
-            for k in (
-                "scheduler",
-                "num_workers",
-                "threaded.num-workers",
-                "array.chunk-size",
-                "dataframe.query-planning",
-            )
-        }
-    with contextlib.suppress(Exception):
-        import polars as pl
-
-        out["polars"] = {"thread_pool_size": pl.thread_pool_size()}
-    with contextlib.suppress(Exception):
-        import duckdb
-
-        out["duckdb"] = {"threads": duckdb.sql("select current_setting('threads')").fetchone()[0]}
-    return out
+        },
+        "dask": {
+            "scheduler": scheduler,
+            "num_workers": workers,
+            "array_chunk_size": dask.config.get("array.chunk-size"),
+            "dataframe_implementation": dd.DataFrame.__module__,
+        },
+        "polars": {"thread_pool_size": pl.thread_pool_size()},
+        "duckdb": {"threads": duckdb.sql("select current_setting('threads')").fetchone()[0]},
+    }
 
 
 def _dataset() -> dict[str, Any]:
@@ -176,6 +179,14 @@ def _vendor_js() -> dict[str, Any]:
 
 def collect_provenance(flexviz_repo: Path) -> dict[str, Any]:
     so = plugin_so(flexviz_repo)
+    cpu_model = None
+    with contextlib.suppress(OSError, StopIteration):
+        cpu_model = next(
+            line.split(":", 1)[1].strip()
+            for line in Path("/proc/cpuinfo").read_text().splitlines()
+            if line.startswith("model name")
+        )
+    cpu_model = cpu_model or platform.processor() or None
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_utc": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -184,6 +195,8 @@ def collect_provenance(flexviz_repo: Path) -> dict[str, Any]:
             "machine": platform.machine(),
             "python": platform.python_version(),
             "cpu_count": os.cpu_count(),
+            "cpu_model": cpu_model,
+            "total_ram_bytes": psutil.virtual_memory().total,
             "thread_env": {k: os.environ[k] for k in THREAD_ENV if k in os.environ},
         },
         "git": {"benchmarks": _git(REPO), "flexviz": _git(flexviz_repo)},

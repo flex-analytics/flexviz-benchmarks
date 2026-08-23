@@ -693,6 +693,45 @@ class TestMain:
         assert '"showlegend":true' in fig1_html
         assert '"showlegend":true' in fig2_html
 
+    def test_diagnostic_startup_checkpoint_with_no_summaries_renders(self, monkeypatch, tmp_path):
+        json_path = tmp_path / "startup.json"
+        json_path.write_text(
+            json.dumps(
+                {
+                    "summary": [],
+                    "trials": {},
+                    "config": {
+                        "sizes": [1000],
+                        "n_traces": [1],
+                        "data_sources": ["in-memory"],
+                        "contenders": ["flexviz"],
+                    },
+                    "notes": [],
+                    "failures": [],
+                    "statuses": [
+                        {
+                            "rows": 1000,
+                            "n_traces": 1,
+                            "source": "in-memory",
+                            "tool": "flexviz",
+                            "status": "not_requested",
+                            "trials": 0,
+                        }
+                    ],
+                    "provenance": {},
+                }
+            )
+        )
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["report.py", str(json_path), "--out-dir", str(tmp_path), "--diagnostic"],
+        )
+
+        main()
+
+        assert "not publishable" in (tmp_path / "startup_report.html").read_text()
+
 
 SAMPLE_PROVENANCE = {
     "schema_version": "2",
@@ -702,6 +741,8 @@ SAMPLE_PROVENANCE = {
         "machine": "x86_64",
         "python": "3.12.3",
         "cpu_count": 16,
+        "cpu_model": "Test CPU 9000",
+        "total_ram_bytes": 64 * 2**30,
         "thread_env": {"POLARS_MAX_THREADS": "8"},
     },
     "git": {
@@ -832,6 +873,11 @@ class TestBuildPageMethodologyCard:
         assert "VmHWM" in page
         assert "PSS" in page
 
+    def test_disk_methodology_discloses_the_warm_os_page_cache(self):
+        page = self._make_page()
+        assert "does not drop the OS page cache" in page
+        assert "warm OS page" in page
+
     def test_hand_written_per_tool_prose_is_gone(self):
         # 4.4: the seven-tool prose drifted with every roster change — generated only.
         page = self._make_page(notes=[])
@@ -877,6 +923,7 @@ class TestBuildPageMethodologyCard:
         assert "35.4 MB" in page
         assert "148.0.7778.96" in page and "1.60.0" in page
         assert "Linux-6.8-x86_64" in page and "16 CPUs" in page
+        assert "Test CPU 9000" in page and "64.0 GiB RAM" in page
         assert "duckdb-server" in page and "0.26.0" in page
         assert "POLARS_MAX_THREADS=8" in page
         assert "@uwdata/vgplot" in page

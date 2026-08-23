@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import Counter
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -602,6 +603,11 @@ receive; <code>client_ms</code> = last byte &rarr; barrier. A component a pipeli
 separate is <strong>null</strong> and renders as &ldquo;not separable&rdquo; &mdash; never
 as zero, never back-derived from the total. Axis-extent discovery runs <em>inside</em> the
 timed window, on the tool&rsquo;s own engine.</p>
+<p><strong>Disk policy.</strong> Disk-source repeats, when present, re-scan the file into
+a cold engine. The harness does not drop the OS page cache, and the cold memory trial plus
+warmup precede recorded repeats, so those repeats normally see a <strong>warm OS page
+cache</strong>. No engine result cache is shared across trials. These are
+engine-and-decompression timings, not controlled cold-storage I/O benchmarks.</p>
 <p><strong>Memory.</strong> One <strong>cold, process-isolated trial per cell</strong>,
 never the warm timing repeats (a reused process&rsquo;s allocator collapses
 peak-minus-baseline deltas to noise). Backend peaks come from the kernel&rsquo;s
@@ -645,10 +651,15 @@ def provenance_rows(provenance: dict[str, Any]) -> list[tuple[str, str]]:
     plugin = provenance.get("flexviz_plugin") or {}
     browser = provenance.get("browser") or {}
     vendor = provenance.get("vendor_js") or {}
+    host_text = f"{host.get('platform', '?')} · {host.get('cpu_count', '?')} CPUs"
+    if host.get("cpu_model"):
+        host_text += f" · {host['cpu_model']}"
+    if host.get("total_ram_bytes"):
+        host_text += f" · {host['total_ram_bytes'] / 2**30:.1f} GiB RAM"
     rows: list[tuple[str, str]] = [
         ("Schema version", escape(str(provenance.get("schema_version") or "—"))),
         ("Generated (UTC)", escape(str(provenance.get("generated_utc") or "—"))),
-        ("Host", escape(f"{host.get('platform', '?')} · {host.get('cpu_count', '?')} CPUs")),
+        ("Host", escape(host_text)),
         ("Python", escape(str(host.get("python", "?")))),
         ("benchmarks git", _dirty_html(git.get("benchmarks"))),
         ("flexviz git", _dirty_html(git.get("flexviz"))),
@@ -790,6 +801,12 @@ _RUNTIME_KEYS = {
     "mosaic-wasm": "duckdb_wasm_binary",
     "perspective-wasm": "perspective_wasm_binary",
 }
+_EXECUTION_KEYS = {
+    "flexviz": "polars",
+    "mosaic-server": "duckdb",
+    "vaex": "vaex",
+    "datashader": "dask",
+}
 _STATUS_VOCABULARY = {
     "completed",
     "partial",
@@ -802,6 +819,16 @@ _STATUS_VOCABULARY = {
 }
 
 
+def _matrix_cells(matrix: dict[str, Any]) -> set[tuple]:
+    return {
+        (rows, nt, src, tool)
+        for rows in matrix.get("sizes", [])
+        for nt in matrix.get("n_traces", [])
+        for src in matrix.get("data_sources", [])
+        for tool in matrix.get("contenders", [])
+    }
+
+
 def _expected_cells(data: dict[str, Any]) -> set[tuple]:
     """The cells this result is accountable for: the union of each PHASE's own matrix.
 
@@ -811,14 +838,7 @@ def _expected_cells(data: dict[str, Any]) -> set[tuple]:
     """
     cfg = data.get("config") or {}
     phases = (data.get("provenance") or {}).get("phases") or [cfg]
-    return {
-        (rows, nt, src, tool)
-        for ph in phases
-        for rows in ph.get("sizes", [])
-        for nt in ph.get("n_traces", [])
-        for src in ph.get("data_sources", [])
-        for tool in ph.get("contenders", [])
-    }
+    return set().union(*(_matrix_cells(phase) for phase in phases))
 
 
 def publication_failures(data: dict[str, Any]) -> list[str]:
@@ -851,6 +871,8 @@ def publication_failures(data: dict[str, Any]) -> list[str]:
         "uv_lock_sha256",
         "dataset.datagen_sha256",
         "execution",
+        "host.cpu_model",
+        "host.total_ram_bytes",
     ):
         node: Any = prov
         for part in path.split("."):
@@ -861,22 +883,60 @@ def publication_failures(data: dict[str, Any]) -> list[str]:
         skipped = ", ".join(prov["incomplete"].get("skipped", []))
         out.append(f"merged with --allow-missing, phases absent: {skipped}")
 
-    seen = {(s["rows"], s["n_traces"], s["source"], s["tool"]): s for s in statuses}
-    if missing := _expected_cells(data) - set(seen):
+    status_keys = [(s["rows"], s["n_traces"], s["source"], s["tool"]) for s in statuses]
+    counts = Counter(status_keys)
+    expected = _expected_cells(data)
+    if not expected:
+        out.append("benchmark matrix requests no cells")
+    if missing := expected - set(counts):
         out.append(f"{len(missing)} requested cells have no status (e.g. {sorted(missing)[0]})")
+    if duplicates := {key: count for key, count in counts.items() if count > 1}:
+        out.append(
+            f"{len(duplicates)} requested cells have duplicate statuses "
+            f"(e.g. {sorted(duplicates.items())[0]})"
+        )
+    if extras := set(counts) - expected:
+        out.append(f"{len(extras)} statuses describe unrequested cells (e.g. {sorted(extras)[0]})")
     if unknown := {s["status"] for s in statuses} - _STATUS_VOCABULARY:
         out.append(f"unrecognized cell status values: {sorted(unknown)}")
     if not_requested := [s for s in statuses if s["status"] == "not_requested"]:
         out.append(f"{len(not_requested)} cells were never reached: the run did not finish")
+    if empty_results := [
+        s
+        for s in statuses
+        if s["status"] in ("completed", "partial")
+        and (not isinstance(s.get("trials"), int) or s["trials"] <= 0)
+    ]:
+        out.append(f"{len(empty_results)} completed/partial cells contain no timing trials")
 
     ran = {s["tool"] for s in statuses if s.get("trials")}
-    runtime = prov.get("runtime") or {}
-    for tool, key in _RUNTIME_KEYS.items():
-        if tool in ran and not isinstance(runtime.get(key), str):
-            out.append(
-                f"{tool} produced trials but provenance.runtime.{key} is "
-                f"{runtime.get(key)!r}: the engine binary it loaded is unknown or ambiguous"
-            )
+    execution = prov.get("execution") or {}
+    for tool, engine in _EXECUTION_KEYS.items():
+        if tool in ran and not execution.get(engine):
+            out.append(f"{tool} produced trials but provenance.execution.{engine} is missing")
+
+    phases = prov.get("phases") or [
+        {**(data.get("config") or {}), "file": "single result", "provenance": prov}
+    ]
+    for phase in phases:
+        phase_name = phase.get("file", "unnamed phase")
+        phase_prov = phase.get("provenance")
+        if not isinstance(phase_prov, dict):
+            out.append(f"{phase_name} has no phase-local provenance")
+            phase_prov = {}
+        runtime = phase_prov.get("runtime") or {}
+        cells = _matrix_cells(phase)
+        phase_ran = {
+            s["tool"]
+            for s in statuses
+            if s.get("trials") and (s["rows"], s["n_traces"], s["source"], s["tool"]) in cells
+        }
+        for tool, key in _RUNTIME_KEYS.items():
+            if tool in phase_ran and not isinstance(runtime.get(key), str):
+                out.append(
+                    f"{phase_name}: {tool} produced trials but provenance.runtime.{key} is "
+                    f"{runtime.get(key)!r}: the engine binary it loaded is unknown or ambiguous"
+                )
     for s in statuses:
         if s["tool"].startswith("perspective") and s.get("trials"):
             frac, rows_drawn = s.get("rendered_fraction"), s.get("rendered_rows")
@@ -1320,10 +1380,25 @@ def main() -> None:
         )
 
     dims = _detect_dimensions(summaries)
+    if not summaries:
+        dims = {
+            "rows": sorted(config.get("sizes", [])),
+            "n_traces": sorted(config.get("n_traces", [])),
+            "sources": sorted(config.get("data_sources", [])),
+            "tools": sorted(config.get("contenders", [])),
+        }
     bands = compute_bands(trials_json)
 
-    fixed_n_traces = args.fixed_n_traces if args.fixed_n_traces is not None else dims["n_traces"][0]
-    fixed_rows = args.fixed_rows if args.fixed_rows is not None else dims["rows"][-1]
+    fixed_n_traces = (
+        args.fixed_n_traces
+        if args.fixed_n_traces is not None
+        else (dims["n_traces"][0] if dims["n_traces"] else 0)
+    )
+    fixed_rows = (
+        args.fixed_rows
+        if args.fixed_rows is not None
+        else (dims["rows"][-1] if dims["rows"] else 0)
+    )
 
     metrics = TIMING_METRICS + (MEMORY_METRICS if not args.no_memory else [])
 

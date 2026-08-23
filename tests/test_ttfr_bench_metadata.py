@@ -1,8 +1,11 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
+import ttfr_bench  # noqa: E402
 from config import CONTENDERS, EXCLUSIONS, MAX_TRACES  # noqa: E402
 from ttfr_bench import benchmark_notes, cell_statuses  # noqa: E402
 
@@ -256,6 +259,48 @@ def test_disk_only_notes_do_not_fire_on_an_in_memory_run():
     assert any("in-memory ONLY" in n for n in with_disk)
 
 
+def test_all_source_specific_notes_only_fire_for_that_source():
+    perspective = benchmark_notes("line", ["perspective-server"], ["in-memory"])
+    vaex = benchmark_notes("histogram", ["vaex"], ["in-memory"])
+    disk_vaex = benchmark_notes("histogram", ["vaex"], ["disk-parquet"])
+    ipc_vaex = benchmark_notes("histogram", ["vaex"], ["disk-ipc"])
+
+    assert not any("disk source measures" in n for n in perspective)
+    assert not any("Parquet input" in n for n in vaex)
+    assert not any("in-memory histogram" in n for n in disk_vaex)
+    assert not any("Parquet input" in n for n in ipc_vaex)
+
+
+def test_notes_describe_only_eligible_contenders():
+    notes = benchmark_notes(
+        "histogram",
+        ["flexviz", "datashader", "mosaic-wasm", "perspective-wasm"],
+        ["in-memory", "disk-parquet"],
+    )
+
+    assert not any("whole timed path is dask" in n for n in notes)
+    assert not any("Vaex bin" in n for n in notes)
+    assert any("Mosaic bin" in n for n in notes)
+    assert any("mosaic-wasm compute" in n for n in notes)
+    assert not any("perspective-wasm compute" in n for n in notes)
+    assert not any("WASM heap" in n for n in notes)
+
+    trace_excluded = benchmark_notes(
+        "line", ["perspective-server", "perspective-wasm"], ["in-memory"], traces=[2]
+    )
+    assert any("unsupported above" in n for n in trace_excluded)
+    assert not any("RAW line" in n or "WASM heap" in n for n in trace_excluded)
+
+
+def test_datashader_partition_disclosure_is_source_specific():
+    memory = benchmark_notes("line", ["datashader"], ["in-memory"])
+    disk = benchmark_notes("line", ["datashader"], ["disk-parquet"])
+
+    assert any("one partition per core" in n and "persisted" in n for n in memory)
+    assert not any("one partition per core" in n for n in disk)
+    assert any("read_parquet defaults" in n for n in disk)
+
+
 def test_the_perspective_binary_note_is_wasm_only():
     """The server contender runs a native engine; the wasm heap is irrelevant to it."""
     assert not any(
@@ -329,3 +374,75 @@ def test_a_run_that_never_starts_leaves_no_stale_phase_file(tmp_path):
     fresh = json.loads(out.read_text())
     assert fresh["summary"] == []
     assert {s["status"] for s in fresh["statuses"]} == {"not_requested"}
+
+
+def test_a_failure_before_provenance_collection_cannot_leave_stale_output(tmp_path, monkeypatch):
+    out = tmp_path / "phase.json"
+    out.write_text("last week's publishable result")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "ttfr_bench.py",
+            "--chart",
+            "line",
+            "--sizes",
+            "1000",
+            "--n-traces",
+            "1",
+            "--data-sources",
+            "in-memory",
+            "--contenders",
+            "datashader",
+            "--json-out",
+            str(out),
+        ],
+    )
+
+    def fail_registry(*_):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(ttfr_bench, "build_registry", fail_registry)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        ttfr_bench.main()
+
+    assert not out.exists()
+
+
+@pytest.mark.parametrize(
+    ("flag", "value", "message"),
+    [
+        ("--data-sources", "", "data-sources"),
+        ("--data-sources", "disk-magic", "data-sources"),
+        ("--contenders", "", "contenders"),
+        ("--repeats", "0", "repeats"),
+    ],
+)
+def test_empty_or_non_measurement_matrix_arguments_refuse(
+    tmp_path, monkeypatch, flag, value, message
+):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "ttfr_bench.py",
+            "--chart",
+            "line",
+            "--sizes",
+            "1000",
+            "--n-traces",
+            "1",
+            "--data-sources",
+            "in-memory",
+            "--contenders",
+            "datashader",
+            "--json-out",
+            str(tmp_path / "phase.json"),
+            flag,
+            value,
+        ],
+    )
+
+    with pytest.raises(ValueError, match=message):
+        ttfr_bench.main()

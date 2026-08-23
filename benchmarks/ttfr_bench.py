@@ -30,7 +30,7 @@ from config import (  # noqa: E402
 )
 from core.contenders import build_registry  # noqa: E402
 from core.contenders.child import IN_PROCESS, ChildBackend  # noqa: E402
-from core.datagen import ensure_disk_dataset, frame_for  # noqa: E402
+from core.datagen import FORMAT_SUFFIX, ensure_disk_dataset, frame_for  # noqa: E402
 from core.harness import RenderProbe, failure_kind, run_repeated_trials  # noqa: E402
 from core.model import summarize, trial_to_dict  # noqa: E402
 from core.provenance import collect_provenance, plugin_so, record_browser  # noqa: E402
@@ -59,8 +59,19 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def benchmark_notes(chart: str, contenders: list[str], sources: list[str]) -> list[str]:
+def benchmark_notes(
+    chart: str, contenders: list[str], sources: list[str], traces: list[int] | None = None
+) -> list[str]:
     notes = []
+    trace_counts = traces if traces is not None else N_TRACES
+    eligible = {
+        tool
+        for tool in contenders
+        if (chart, tool) not in EXCLUSIONS
+        and any(unsupported_traces(chart, tool, n_traces) is None for n_traces in trace_counts)
+    }
+    has_memory = "in-memory" in sources
+    has_disk = any(source.startswith("disk-") for source in sources)
     for tool in contenders:  # one note per excluded cell, straight from the taxonomy
         if (chart, tool) in EXCLUSIONS:
             status, reason = EXCLUSIONS[(chart, tool)]
@@ -70,11 +81,12 @@ def benchmark_notes(chart: str, contenders: list[str], sources: list[str]) -> li
     for tool in contenders:  # per-trace-count exclusions read the same way
         if (chart, tool) in MAX_TRACES:
             limit, why = MAX_TRACES[(chart, tool)]
-            notes.append(
-                f"{tool} is unsupported above n_traces={limit} for the {chart} chart "
-                f"(unsupported): {why}"
-            )
-    if chart == "line" and any(n.startswith("perspective-") for n in contenders):
+            if any(n_traces > limit for n_traces in trace_counts):
+                notes.append(
+                    f"{tool} is unsupported above n_traces={limit} for the {chart} chart "
+                    f"(unsupported): {why}"
+                )
+    if chart == "line" and any(n.startswith("perspective-") for n in eligible):
         notes.append(
             "Perspective renders the RAW line: native X/Y Line over the x and y1 columns, "
             "no group_by, no expressions, no sort — but its viewer-charts plugin caps a "
@@ -83,7 +95,7 @@ def benchmark_notes(chart: str, contenders: list[str], sources: list[str]) -> li
             "downsampling, and there is no public setting to lift it: any cell above 1M "
             "rows records the fraction actually drawn and is censored from rankings."
         )
-    if chart == "line" and "perspective-server" in contenders:
+    if chart == "line" and "perspective-server" in eligible and has_disk:
         notes.append(
             "perspective-server on a disk source measures INGESTION: the file is read and "
             "the server Table is built inside the timed window (perspective has no "
@@ -103,10 +115,16 @@ def benchmark_notes(chart: str, contenders: list[str], sources: list[str]) -> li
             "keeping up to 4 extrema (min, max, first, last) per pixel column of the plot "
             "width — not a fixed point budget."
         )
-    if chart == "line" and "datashader" in contenders:
+    if chart == "line" and "datashader" in eligible and has_memory:
         notes.append(
             "Datashader renders the full raw line (no downsampling) — its native workload — "
-            "over a dask-partitioned frame (one partition per core), per its performance docs."
+            "over an in-memory dask frame, persisted with one partition per core per its "
+            "performance docs. Store construction and persistence happen before TTFR."
+        )
+    if chart == "line" and "datashader" in eligible and "disk-parquet" in sources:
+        notes.append(
+            "Datashader's disk path keeps dask read_parquet defaults: partitioning is inferred "
+            "from the file and row-group metadata, and the lazy scan runs inside TTFR."
         )
     if chart == "histogram" and any(n.startswith("mosaic-") for n in contenders):
         notes.append(
@@ -114,52 +132,68 @@ def benchmark_notes(chart: str, contenders: list[str], sources: list[str]) -> li
             "count: for this data span it renders ~92 bins where other tools render exactly "
             "`bins`; the query cost is equivalent (one GROUP BY over the data)."
         )
-    if chart == "histogram" and "vaex" in contenders:
+    if chart == "histogram" and "vaex" in eligible and has_memory:
         notes.append(
             "Vaex in-memory histogram timings can be dominated by fixed Matplotlib/PNG/browser "
             "overhead at these output sizes."
         )
+    if chart == "histogram" and "vaex" in eligible and "disk-parquet" in sources:
         notes.append(
             "Vaex reads the shared Parquet input like every disk tool — a cross-tool "
             "input-format constraint, not vaex's optimal native format (vaex's docs "
             "recommend HDF5 and note a decompression penalty for Parquet)."
         )
-    if chart == "histogram" and len(contenders) > 1:
+    if (
+        chart == "histogram"
+        and "flexviz" in eligible
+        and any(tool == "vaex" or tool.startswith("mosaic-") for tool in eligible)
+    ):
+        per_trace = [
+            label
+            for present, label in (
+                (any(tool.startswith("mosaic-") for tool in eligible), "Mosaic"),
+                ("vaex" in eligible, "Vaex"),
+            )
+            if present
+        ]
+        per_trace_tools = " and ".join(per_trace)
+        verb = "bins" if len(per_trace) == 1 else "bin"
         notes.append(
             "Multi-trace histograms are not pixel-identical across tools: flexviz bins "
-            "every trace over the shared x-axis range (union of extents); mosaic and vaex "
-            "bin each trace over its own column extent. Per-trace counts sum to rows "
+            "every trace over the shared x-axis range (union of extents); "
+            f"{per_trace_tools} {verb} each trace over its own column extent. "
+            "Per-trace counts sum to rows "
             "either way and the scan cost is equivalent."
         )
-    if any(s.startswith("disk-") for s in sources) and "mosaic-server" in contenders:
+    if has_disk and "mosaic-server" in eligible:
         notes.append(
             "mosaic-server on a disk source is loaded as a VIEW over the file, so the scan "
             "stays inside the timed window. This is a disclosed deviation from Mosaic's "
             "loadParquet default, which materializes a table before any query runs; the "
             "in-memory cells do use that materializing default."
         )
-    if any(s.startswith("disk-") for s in sources) and any(n in CLIENT_ONLY for n in contenders):
-        client = ", ".join(sorted(n for n in contenders if n in CLIENT_ONLY))
+    if has_disk and any(n in CLIENT_ONLY for n in eligible):
+        client = ", ".join(sorted(n for n in eligible if n in CLIENT_ONLY))
         notes.append(
             f"{client} compute in the browser and are benchmarked in-memory ONLY: the disk "
             "cells are out of scope by benchmark design, not because the engines lack a "
             "file path. Those cells are recorded as source_out_of_scope, never as failures."
         )
-    if "datashader" in contenders:
+    if chart == "line" and "datashader" in eligible:
         notes.append(
             "datashader's dask is capped by vaex-core's `dask<2024.9` constraint in this "
-            "shared environment — datashader's whole timed path is dask, while vaex uses it "
-            "only for a byte-size parser and a hash hook. The version in force is in the "
-            "provenance table; the cost of the cap is measured in "
+            "shared environment. Datashader uses dask for its dataframe compute path; Vaex "
+            "uses its own executor and depends on dask utilities and fingerprinting. The "
+            "version in force is in the provenance table; the cost of the cap is measured in "
             "docs/superpowers/specs/ (dask A/B)."
         )
-    if "perspective-wasm" in contenders:
+    if "perspective-wasm" in eligible:
         notes.append(
             "perspective-wasm's engine binary is chosen by browser feature detection — "
             "wasm32 (4GB heap) or memory64 (16GB) — which decides where a ceiling falls. "
             "The binary actually loaded is recorded in provenance.runtime."
         )
-    if "mosaic-wasm" in contenders:
+    if "mosaic-wasm" in eligible:
         notes.append(
             "mosaic-wasm lets DuckDB-WASM pick its own build: selectBundle() feature "
             "detection over the vendored `mvp` and `eh` candidates — the documented default "
@@ -301,6 +335,21 @@ def main() -> None:
         raise ValueError("--n-traces must be a non-empty comma-separated list of positive ints")
     sources = [s.strip() for s in a.data_sources.split(",") if s.strip()]
     names = [s.strip() for s in a.contenders.split(",") if s.strip()]
+    allowed_sources = {"in-memory", *FORMAT_SUFFIX}
+    if not sources or any(source not in allowed_sources for source in sources):
+        raise ValueError(f"--data-sources must contain only: {', '.join(sorted(allowed_sources))}")
+    if not names:
+        raise ValueError("--contenders must be a non-empty comma-separated list")
+    if a.repeats <= 0 or a.warmup < 0:
+        raise ValueError("--repeats must be positive and --warmup must be non-negative")
+    if (a.chart == "histogram" and a.bins <= 0) or (a.chart == "line" and a.n_points <= 0):
+        raise ValueError("--bins and --n-points must be positive")
+    if a.wait_timeout_max_ms <= 0 or a.wait_timeout_per_mrow_ms < 0:
+        raise ValueError("timeout maximum must be positive and per-Mrow increment non-negative")
+    out_path = a.json_out or Path(f"results/ttfr_{a.chart}.json")
+    # Claim the exact output path before imports, hashing or registry construction can
+    # fail. Missing is safely refused by merge; last week's valid-looking file is not.
+    out_path.unlink(missing_ok=True)
     max_traces = max(traces)
     # Arrow handoff files spill next to the datasets (one budgeted volume), never /tmp.
     spill_dir = Path(a.dataset_base.format(chart=a.chart, rows=max(sizes))).parent
@@ -308,7 +357,6 @@ def main() -> None:
     unknown = [n for n in names if n not in registry]
     if unknown:
         raise ValueError(f"Unknown contenders: {unknown}. Valid: {sorted(registry)}")
-    out_path = a.json_out or Path(f"results/ttfr_{a.chart}.json")
     # Collected once: identical in every checkpoint write, and what merge_results.py
     # compares to prove two phases are the same experiment.
     provenance = collect_provenance(a.flexviz_repo)
@@ -316,8 +364,9 @@ def main() -> None:
     summaries, all_trials, all_memory_trials = [], {}, {}
     failures = []
     requested = list(names)  # the roster the statuses block must account for
-    notes = benchmark_notes(a.chart, names, sources)  # notes reflect the REQUESTED roster,
-    # so an excluded tool's absence is explained in the output
+    # Notes reflect the requested matrix, so exclusions are explained without describing
+    # workloads or sources no selected cell can run.
+    notes = benchmark_notes(a.chart, names, sources, traces)
     for n in requested:
         if (a.chart, n) in EXCLUSIONS:
             status, reason = EXCLUSIONS[(a.chart, n)]

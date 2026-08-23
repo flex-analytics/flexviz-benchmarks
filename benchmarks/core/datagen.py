@@ -93,11 +93,12 @@ def dataset_identity(chart: str, rows: int, max_traces: int, seed: int) -> dict:
 def _stale_fields(path: Path, want: dict) -> list[str]:
     """Which identity fields disagree with the file on disk; [] means reuse it.
 
-    The sidecar establishes identity for files THIS writer created (it is written only
-    after an atomic `os.replace` of the data file, so a killed write leaves none). Its
-    `bytes` entry is a truncation tripwire, not a content check: arbitrary external
-    mutation of a dataset is out of scope, and re-hashing multi-GB Parquet on every cell
-    start would cost minutes of I/O per run to defend against a threat with no evidence.
+    The final sidecar establishes identity for files THIS writer created. A failure while
+    staging leaves the old pair intact; once its old sidecar is removed, any failure
+    leaves no identity record and forces regeneration. Its `bytes` entry is a truncation
+    tripwire, not a content check: arbitrary external mutation of a dataset is out of
+    scope, and re-hashing multi-GB Parquet on every cell start would cost minutes of I/O
+    per run to defend against a threat with no evidence.
     """
     sidecar = _sidecar_path(path)
     if not path.exists() or not sidecar.exists():
@@ -151,18 +152,20 @@ def ensure_disk_dataset(
     if path.exists() or regenerate:
         print(f"regenerating {path}: {', '.join(stale)}", flush=True)
     base.parent.mkdir(parents=True, exist_ok=True)
-    # Write to a sibling temp then os.replace: a run killed mid-write (an OOM kill at
-    # 200M is a documented event) must not leave a truncated file that the next run
-    # reads as valid. The sidecar lands only after the data file is in place, so a
-    # half-written dataset is always missing its sidecar and is always regenerated.
+    # Write both siblings completely before touching the old pair. There is no atomic
+    # two-file rename: removing the old sidecar before replacing the data is the small
+    # fail-closed protocol. A failure from that point on leaves no sidecar, so the next
+    # run regenerates instead of accepting new bytes under old metadata.
     tmp = path.with_suffix(path.suffix + ".tmp")
     if path.suffix == ".parquet":
         _write_parquet_streaming(tmp, columns_for(chart, rows, max_traces, seed))
     else:
         df = frame_for(chart, rows, max_traces, seed)
         {".csv": df.write_csv, ".arrow": df.write_ipc}[path.suffix](tmp)
+    sidecar = _sidecar_path(path)
+    sidecar_tmp = sidecar.with_suffix(".json.tmp")
+    sidecar_tmp.write_text(json.dumps({**identity, "bytes": tmp.stat().st_size}, indent=1))
+    sidecar.unlink(missing_ok=True)
     os.replace(tmp, path)
-    sidecar_tmp = _sidecar_path(path).with_suffix(".json.tmp")
-    sidecar_tmp.write_text(json.dumps({**identity, "bytes": path.stat().st_size}, indent=1))
-    os.replace(sidecar_tmp, _sidecar_path(path))
+    os.replace(sidecar_tmp, sidecar)
     return path

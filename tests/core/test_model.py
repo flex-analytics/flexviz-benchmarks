@@ -42,6 +42,14 @@ def test_summarize_medians_and_nullable_component():
     assert s.resident_footprint_mb == 20.0
 
 
+def test_summarize_records_the_rows_a_capped_tool_rendered():
+    trial = _t(10)
+    trial.rendered_fraction = 0.1
+    summary = summarize(10_000_000, 1, "perspective-wasm", "in-memory", [trial])
+
+    assert summary.rendered_rows == 1_000_000
+
+
 def test_summarize_without_memory_trial_has_none_memory():
     s = summarize(1000, 1, "x", "in-memory", [_t(10)])
     assert s.backend_timed_peak_mb is None

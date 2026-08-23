@@ -7,6 +7,7 @@ run (an OOM kill at 200M is a documented event) passed as valid.
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -79,6 +80,27 @@ def test_a_size_that_no_longer_matches_regenerates(tmp_path, source):
     stamp = path.stat().st_mtime_ns
     _write(tmp_path, source=source)
     assert path.stat().st_mtime_ns != stamp
+
+
+def test_a_failed_sidecar_commit_cannot_leave_reusable_mislabeled_data(tmp_path, monkeypatch):
+    """If the sidecar commit fails, equal-sized replacement data must not pass as old."""
+    path = _write(tmp_path, source="disk-ipc")
+    real_replace = os.replace
+
+    def fail_final_sidecar_replace(src, dst):
+        if Path(src).name.endswith(".meta.json.tmp"):
+            raise OSError("simulated sidecar commit failure")
+        real_replace(src, dst)
+
+    monkeypatch.setattr("core.datagen.os.replace", fail_final_sidecar_replace)
+    with pytest.raises(OSError, match="sidecar commit"):
+        _write(tmp_path, seed=7, source="disk-ipc")
+
+    assert not _sidecar_path(path).exists()
+
+    monkeypatch.setattr("core.datagen.os.replace", real_replace)
+    _write(tmp_path, seed=42, source="disk-ipc")
+    assert json.loads(_sidecar_path(path).read_text())["seed"] == 42
 
 
 def test_identity_covers_the_whole_generating_module(tmp_path):
