@@ -2,8 +2,8 @@
  "meta": {
   "run_date": "2026-08-23",
   "generated_utc": "2026-08-23T08:54:41+00:00",
-  "machine": "32-core AMD Ryzen 9 5950X 16-Core Processor",
-  "ram_gb": 101,
+  "machine": "32-core AMD Ryzen 9 5950X",
+  "ram_gb": 94,
   "repeats": 5,
   "renderer": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce RTX 2070 (0x00001F02)), NVIDIA)",
   "chromium": "151.0.7922.34",

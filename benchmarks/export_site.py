@@ -44,6 +44,14 @@ SITE_TOOLS = ["flexviz", "mosaic-server", "vaex", "datashader"]
 ENGINE_DOMINATED_FROM = 10_000_000
 
 
+def _machine(host: dict[str, Any]) -> str:
+    """Short enough for a provenance rail. Vendor strings repeat the core count."""
+    model = (host.get("cpu_model") or "").replace("(R)", "").replace("(TM)", "")
+    for junk in (" 16-Core Processor", " Processor", " CPU"):
+        model = model.replace(junk, "")
+    return f"{host.get('cpu_count', '?')}-core {model}".strip()
+
+
 def load(path: Path) -> dict[str, Any]:
     data = json.loads(path.read_text())
     if failures := publication_failures(data):
@@ -158,8 +166,8 @@ def main() -> None:
         "meta": {
             "run_date": started[:10],
             "generated_utc": started,
-            "machine": f"{host.get('cpu_count', '?')}-core {host.get('cpu_model', '')}".strip(),
-            "ram_gb": round(host.get("total_ram_bytes", 0) / 1e9) or None,
+            "machine": _machine(host),
+            "ram_gb": round(host.get("total_ram_bytes", 0) / 2**30) or None,
             "repeats": charts["histogram"]["config"]["repeats"],
             "renderer": (prov.get("browser") or {}).get("webgl_renderer"),
             "chromium": (prov.get("browser") or {}).get("chromium"),
