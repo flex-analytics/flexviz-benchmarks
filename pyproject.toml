@@ -6,15 +6,16 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 # EXACT pins for everything whose version can move a measured number: the engines under
 # test, plus numpy (generates every dataset), pyarrow/polars (write them), matplotlib
-# (rasterizes vaex), plotly (renders flexviz) and playwright (pins the browser build).
+# (rasterizes vaex), pillow (encodes datashader), plotly (renders flexviz), tornado
+# (serves perspective), psutil (samples memory) and playwright (pins the browser build).
 # `uv.lock` is hashed into provenance, so the full graph is on the record either way —
 # these pins are what stops an incidental `uv lock` from moving the subject of the
-# experiment. Ranges remain only for plumbing that cannot change a number.
+# experiment. Ranges remain only in the development tools, which are not measured.
 #
 # dask is capped at 2024.8.x by vaex-core's `dask!=2022.4.0,<2024.9`, which caps
-# DATASHADER — its whole timed path is dask, while vaex uses dask only for a byte-size
-# parser and a hash hook. Respected rather than overridden: a vendor's declared support
-# matrix is part of its native configuration. The cost is measured, not assumed — see
+# DATASHADER's dataframe compute path. Vaex uses its own executor but depends on dask
+# utilities and fingerprinting. The vendor constraint is respected rather than overridden;
+# its measured cost is recorded at
 # docs/superpowers/plans/2026-08-22-publication-integrity-fixes.md 7.7a.
 dependencies = [
     "duckdb==1.5.5",
@@ -22,7 +23,7 @@ dependencies = [
     "flexviz",
     "numpy==2.5.2",
     "playwright==1.62.0",
-    "psutil>=6.0.0",
+    "psutil==7.2.2",
     "plotly==6.9.0",
     "polars==1.43.2",
     "pyarrow==25.0.1",
@@ -30,9 +31,9 @@ dependencies = [
     "datashader==0.19.1",
     "dask[dataframe]==2024.8.2",
     "matplotlib==3.11.1",
-    "pillow>=10.0",
+    "pillow==12.3.0",
     "perspective-python==5.2.0",
-    "tornado>=6.4",
+    "tornado==6.5.8",
     "vaex-viz==0.6.0",
 ]
 
