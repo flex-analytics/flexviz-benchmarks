@@ -35,7 +35,15 @@ class RenderProbe:
         self._pw = sync_playwright().start()
         self._udd = tempfile.mkdtemp(prefix=self._tag)  # tag lives in --user-data-dir cmdline
         self._ctx = self._pw.chromium.launch_persistent_context(
-            self._udd, headless=self._headless, args=["--enable-precise-memory-info"]
+            self._udd,
+            headless=self._headless,
+            # Headless Chromium binds SwiftShader (a CPU rasterizer) by default, which
+            # cost perspective's GPU renderer 33x at 1M rows — an unrepresentative
+            # environment, since a real desktop browser is GPU-accelerated. ANGLE/Vulkan
+            # is requested for EVERY contender; the renderer that actually bound is
+            # stamped into provenance (core.provenance.record_browser), so a host that
+            # falls back to SwiftShader is on the record rather than silently slow.
+            args=["--enable-precise-memory-info", "--use-angle=vulkan", "--enable-features=Vulkan"],
         )
         self._browser_root = find_process_by_cmdline_tag(self._tag) or psutil.Process(os.getpid())
         return self
@@ -52,19 +60,17 @@ class RenderProbe:
         page.wait_for_function("() => window.__bench_stored === true", timeout=timeout_ms)
 
     @staticmethod
-    def _release_and_wait(page: Page, contender: Any, timeout_ms: int) -> dict:
+    def _release_and_wait(page: Page, timeout_ms: int) -> dict:
         page.evaluate("() => { window.__bench_go = true; }")  # release the timed render
-        page.wait_for_function(contender.ready_signal(), timeout=timeout_ms)
         page.wait_for_function("() => window.__bench !== undefined", timeout=timeout_ms)
         return page.evaluate("() => window.__bench")
 
     @staticmethod
-    def _goto_and_wait(page: Page, url: str, contender: Any, timeout_ms: int) -> dict:
+    def _goto_and_wait(page: Page, url: str, timeout_ms: int) -> dict:
         # Server/raster pages render straight through on load (a raster <img> blocks
         # goto itself); the render may complete during goto(), so any instrumentation
         # MUST already wrap this call, and goto gets the full scaled timeout.
         page.goto(url, wait_until="load", timeout=timeout_ms)
-        page.wait_for_function(contender.ready_signal(), timeout=timeout_ms)
         page.wait_for_function("() => window.__bench !== undefined", timeout=timeout_ms)
         return page.evaluate("() => window.__bench")
 
@@ -132,9 +138,9 @@ class RenderProbe:
             if not memory:
                 if client_store:
                     self._goto_store_phase(page, url, wait_timeout_ms)
-                    bench = self._release_and_wait(page, contender, wait_timeout_ms)
+                    bench = self._release_and_wait(page, wait_timeout_ms)
                 else:
-                    bench = self._goto_and_wait(page, url, contender, wait_timeout_ms)
+                    bench = self._goto_and_wait(page, url, wait_timeout_ms)
             elif client_store:
                 # Phase 1: the in-browser native store is built (NOT timed). Peak via the
                 # RSS sampler; the steady-state store footprint via PSS (RSS-summing a
@@ -149,7 +155,7 @@ class RenderProbe:
                 # charged to render memory.
                 render_browser_base = tree_rss_mb(self._browser_root)
                 with ProcessTreeSampler(lambda: self._browser_root) as br:
-                    bench = self._release_and_wait(page, contender, wait_timeout_ms)
+                    bench = self._release_and_wait(page, wait_timeout_ms)
                 browser_timed_peak = br.peak_mb - render_browser_base
             else:
                 render_browser_base = tree_rss_mb(self._browser_root)
@@ -157,7 +163,7 @@ class RenderProbe:
                     PeakWindow(backend) if backend is not None else contextlib.nullcontext()
                 )
                 with backend_win as bw, ProcessTreeSampler(lambda: self._browser_root) as br:
-                    bench = self._goto_and_wait(page, url, contender, wait_timeout_ms)
+                    bench = self._goto_and_wait(page, url, wait_timeout_ms)
                 if bw is not None:
                     backend_timed_peak = bw.peak_delta_mb
                 browser_timed_peak = br.peak_mb - render_browser_base
@@ -178,18 +184,33 @@ class RenderProbe:
             return float(v) if v is not None else None
 
         return Trial(
-            total_ms=float(bench.get("total_ms") or (f("query_ms") or 0) + (f("render_ms") or 0)),
-            query_ms=f("query_ms"),
+            total_ms=float(bench["total_ms"]),  # set by benchDone, after the render barrier
+            server_ms=f("server_ms"),
             transfer_ms=f("transfer_ms"),
-            render_ms=f("render_ms"),
+            client_ms=f("client_ms"),
             payload_bytes=int(bench["payload_bytes"])
             if bench.get("payload_bytes") is not None
             else None,
+            # Only tools that cap what they draw report this (perspective); everyone
+            # else leaves it null, meaning "drew a reduction of all rows".
+            rendered_fraction=f("rendered_fraction"),
             backend_timed_peak_mb=backend_timed_peak,
             browser_timed_peak_mb=browser_timed_peak,
             resident_footprint_mb=resident,
             preload_peak_mb=preload_peak,
         )
+
+
+def failure_kind(err: BaseException) -> str:
+    """Classify a failed trial: "timeout" iff a TimeoutError appears anywhere in the
+    exception chain (Playwright raises its own class of that name), else "error".
+    A repeated timeout is the wait cap being hit, not an engine ceiling."""
+    e: BaseException | None = err
+    while e is not None:
+        if "TimeoutError" in type(e).__name__:
+            return "timeout"
+        e = e.__cause__ or e.__context__
+    return "error"
 
 
 def run_repeated_trials(
@@ -200,39 +221,40 @@ def run_repeated_trials(
     repeats: int,
     seed: int,
     seed_offset: int = 0,
-    on_error: Callable[[str, Exception, str], None] | None = None,
+    on_error: Callable[[str, Exception, str, str], None] | None = None,
 ) -> dict[str, list[Trial]]:
     """Run warmup + shuffled repeats for each contender.
 
-    A failed trial is retried once — a single failure is a flake (recorded via
-    `on_error(name, err, "flake")`, contender continues); failing the retry too is a
-    ceiling (e.g. a WASM `std::bad_alloc` at large `rows`): the contender stops for
-    this cell, but its already-completed trials are KEPT (n < repeats stays visible).
-    A ceiling must never abort the whole benchmark matrix.
+    A failed trial is retried once; each failure is reported as
+    `on_error(name, err, kind, attempt)` with kind in {timeout, error} and attempt in
+    {first, retry}. A failed retry stops the contender for this cell (a ceiling, e.g. a
+    WASM `std::bad_alloc` — or, for kind="timeout", the wait cap), but its
+    already-completed trials are KEPT (n < repeats stays visible). Stopping one
+    contender must never abort the whole benchmark matrix.
     """
     out: dict[str, list[Trial]] = {n: [] for n, _ in contenders}
-    ceilinged: set[str] = set()
+    stopped: set[str] = set()
 
     def _attempt(name: str, factory: Callable[[], Any]) -> Trial | None:
-        for attempt in ("flake", "ceiling"):
+        for attempt in ("first", "retry"):
             try:
                 return run_trial(factory())
-            except Exception as e:  # noqa: BLE001 — any engine failure is flake/ceiling data
+            except Exception as e:  # noqa: BLE001 — any engine failure is measurement data
                 if on_error is not None:
-                    on_error(name, e, attempt)
-                if attempt == "ceiling":
-                    ceilinged.add(name)
+                    on_error(name, e, failure_kind(e), attempt)
+                if attempt == "retry":
+                    stopped.add(name)
         return None
 
     for name, factory in contenders:
         for _ in range(warmup):
-            if name in ceilinged:
+            if name in stopped:
                 break
             _attempt(name, factory)
 
     rng = random.Random(seed + seed_offset)
     for _ in range(repeats):
-        order = [(n, f) for n, f in contenders if n not in ceilinged]
+        order = [(n, f) for n, f in contenders if n not in stopped]
         rng.shuffle(order)
         for name, factory in order:
             trial = _attempt(name, factory)

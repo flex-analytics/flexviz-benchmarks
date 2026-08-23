@@ -1,18 +1,12 @@
 from __future__ import annotations
 
 import http.server
-import socket
 import threading
 import time
 import uuid
 
 from core.contenders.base import PROBES, PageServerMixin
-
-
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
+from core.serve import free_port
 
 
 class RasterContender(PageServerMixin):
@@ -52,16 +46,13 @@ class RasterContender(PageServerMixin):
             def log_message(self, *a):
                 pass
 
-        port = _free_port()
+        port = free_port()
         self._png_server = http.server.ThreadingHTTPServer(("127.0.0.1", port), H)
         threading.Thread(target=self._png_server.serve_forever, daemon=True).start()
         return f"http://127.0.0.1:{port}/r.png?n={uuid.uuid4().hex}"
 
     def get_url(self) -> str:
         return self._url
-
-    def ready_signal(self) -> str:
-        return "() => window.__bench !== undefined"
 
     def teardown(self) -> None:
         self.stop_page()

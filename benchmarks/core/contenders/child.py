@@ -36,7 +36,7 @@ def _child_main(conn, name: str, flexviz_repo: str, backend_kwargs: dict) -> Non
         if kwargs.pop("materialize"):  # in-memory source: the frame must be resident HERE
             import polars as pl
 
-            from core.contenders.base import frame_columns
+            from core.datagen import frame_columns
 
             # memory_map=False: a mapped IPC file is file-backed (never charged to the
             # child), which silently zeroed zero-copy engines' resident footprint.
@@ -49,7 +49,7 @@ def _child_main(conn, name: str, flexviz_repo: str, backend_kwargs: dict) -> Non
         # frame (zero-copy, e.g. flexviz) keeps it alive and is charged for it; tools
         # that copied (vaex, datashader) get it freed before the parent reads end_delta.
         del frame_or_path
-        conn.send((contender.get_url(), contender.init_scripts(), contender.ready_signal()))
+        conn.send((contender.get_url(), contender.init_scripts()))
     except Exception:  # noqa: BLE001 — surface as a failed trial in the parent, not a hang
         conn.send(("error", traceback.format_exc()))
         return
@@ -139,16 +139,13 @@ class ChildBackend:
                 "n_points": n_points,
             }
         )
-        self._url, self._init_scripts, self._ready = self._recv()
+        self._url, self._init_scripts = self._recv()
 
     def get_url(self) -> str:
         return self._url
 
     def init_scripts(self) -> list[str]:
         return self._init_scripts
-
-    def ready_signal(self) -> str:
-        return self._ready
 
     def teardown(self) -> None:
         if self._proc is not None:

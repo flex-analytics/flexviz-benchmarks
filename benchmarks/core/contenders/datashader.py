@@ -9,10 +9,22 @@ import datashader.transfer_functions as tf
 import pandas as pd
 
 from core.contenders._raster import RasterContender
-from core.contenders.base import frame_columns
+from core.datagen import frame_columns
+
+# One single-hue ramp (pale -> saturated) per trace: the default cmap paints every trace
+# the same lightblue->darkblue, so a tf.stack overlay is unreadable. Okabe-Ito hues.
+TRACE_CMAPS = [
+    ["#cfe8f9", "#0072b2"],  # blue
+    ["#fbdfc6", "#d55e00"],  # vermillion
+    ["#cdeee0", "#009e73"],  # green
+    ["#f7d6e8", "#cc79a7"],  # magenta
+    ["#f6efc4", "#e69f00"],  # amber
+]
 
 
 class DatashaderContender(RasterContender):
+    """Line only: datashader has no 1-D histogram (config.EXCLUSIONS)."""
+
     name = "datashader"
 
     def start_backend(self, *, chart, source, n_traces, bins, n_points) -> None:
@@ -23,25 +35,22 @@ class DatashaderContender(RasterContender):
         self._warm_numba()
 
     def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
-        self._chart, self._n_traces, self._bins, self._npts = chart, n_traces, bins, n_points
-        self._source, self._cols = source, frame_columns(chart, n_traces)
+        assert chart == "line", "datashader benchmarks line only (no 1-D histogram)"
+        self._n_traces = n_traces
+        self._cols = frame_columns(chart, n_traces)
         # disk: keep only the path; the read happens inside _make_png (timed). in-memory:
-        # hold the store. For LINE the store is a dask-partitioned frame (datashader's
-        # documented path for large data — one partition per core; pandas is single-core
-        # numba, measured 9.1x slower on 32 cores). Histogram bins via the numpy oracle,
-        # so it keeps a plain pandas frame.
+        # hold the store as a dask-partitioned frame (datashader's documented path for
+        # large data — one partition per core; pandas is single-core numba, measured
+        # 9.1x slower on 32 cores).
         if isinstance(frame_or_path, Path):
             self._path = frame_or_path
             self._df = None
         else:
+            import dask.dataframe as dd
+
             self._path = None
             df = frame_or_path.select(self._cols).to_pandas()
-            if chart == "line":
-                import dask.dataframe as dd
-
-                self._df = dd.from_pandas(df, npartitions=multiprocessing.cpu_count()).persist()
-            else:
-                self._df = df
+            self._df = dd.from_pandas(df, npartitions=multiprocessing.cpu_count()).persist()
         self._serve()
 
     @staticmethod
@@ -56,64 +65,40 @@ class DatashaderContender(RasterContender):
         if self._df is not None:
             return self._df
         suf = self._path.suffix
-        if self._chart == "line" and suf in (".parquet", ".csv"):
+        if suf in (".parquet", ".csv"):
             import dask.dataframe as dd
 
             # lazy: the partitioned read happens inside cvs.line (timed), in parallel
             if suf == ".parquet":
                 return dd.read_parquet(self._path, columns=self._cols)
             return dd.read_csv(self._path, usecols=self._cols)
-        if suf == ".parquet":
-            return pd.read_parquet(self._path, columns=self._cols)
-        if suf == ".csv":
-            return pd.read_csv(self._path, usecols=self._cols)
         import pyarrow.feather as f
 
         return f.read_feather(self._path, columns=self._cols)
 
     def _make_png(self) -> bytes:
-        from core.oracle import histogram_counts
-
         df = self._frame()
-        if self._chart == "line":
-            # Shared axes across traces: x is the common column; y spans all traces. Without
-            # an explicit range each trace auto-ranges to its own extent, giving mismatched
-            # image coordinates that tf.stack cannot align (xarray fills NaN -> `over` fails).
-            # dask.compute fuses all extent aggregations into ONE parallel pass (and is a
-            # no-op passthrough for plain pandas scalars).
-            import dask
+        # Shared axes across traces: x is the common column; y spans all traces. Without
+        # an explicit range each trace auto-ranges to its own extent, giving mismatched
+        # image coordinates that tf.stack cannot align (xarray fills NaN -> `over` fails).
+        # dask.compute fuses all extent aggregations into ONE parallel pass (and is a
+        # no-op passthrough for plain pandas scalars).
+        import dask
 
-            ys = [f"y{t + 1}" for t in range(self._n_traces)]
-            lo_x, hi_x, *ymm = dask.compute(
-                df["x"].min(),
-                df["x"].max(),
-                *(df[c].min() for c in ys),
-                *(df[c].max() for c in ys),
-            )
-            x_range = (float(lo_x), float(hi_x))
-            y_range = (float(min(ymm[: len(ys)])), float(max(ymm[len(ys) :])))
-            cvs = ds.Canvas(plot_width=900, plot_height=400, x_range=x_range, y_range=y_range)
-            imgs = [tf.shade(cvs.line(df, "x", c)) for c in ys]
-        else:
-            # Histogram: bin counts come from the SAME numpy oracle every tool matches
-            # (Task 7.1), then datashader rasterizes the per-bin step line — a real
-            # datashader raster whose bars line up with the oracle (Task 7.2 asserts this).
-            series = [
-                histogram_counts(df[f"value{t + 1}"].to_numpy(), self._bins)
-                for t in range(self._n_traces)
-            ]
-            x_range = (
-                float(min(c.min() for c, _ in series)),
-                float(max(c.max() for c, _ in series)),
-            )
-            y_range = (0.0, float(max(cnt.max() for _, cnt in series)))
-            cvs = ds.Canvas(plot_width=900, plot_height=400, x_range=x_range, y_range=y_range)
-            imgs = [
-                tf.shade(
-                    cvs.line(pd.DataFrame({"x": centers, "y": counts.astype("float64")}), "x", "y")
-                )
-                for centers, counts in series
-            ]
+        ys = [f"y{t + 1}" for t in range(self._n_traces)]
+        lo_x, hi_x, *ymm = dask.compute(
+            df["x"].min(),
+            df["x"].max(),
+            *(df[c].min() for c in ys),
+            *(df[c].max() for c in ys),
+        )
+        x_range = (float(lo_x), float(hi_x))
+        y_range = (float(min(ymm[: len(ys)])), float(max(ymm[len(ys) :])))
+        cvs = ds.Canvas(plot_width=900, plot_height=400, x_range=x_range, y_range=y_range)
+        imgs = [
+            tf.shade(cvs.line(df, "x", c), cmap=TRACE_CMAPS[i % len(TRACE_CMAPS)])
+            for i, c in enumerate(ys)
+        ]
         img = tf.stack(*imgs)
         pil = tf.set_background(img, "white").to_pil()
         buf = io.BytesIO()

@@ -1,9 +1,20 @@
 from __future__ import annotations
 
+import hashlib
+import importlib.metadata as metadata
+import json
+import os
 from pathlib import Path
 
 import numpy as np
 import polars as pl
+
+
+def frame_columns(chart: str, n_traces: int) -> list[str]:
+    """Column names a chart/trace-count cell uses (also the dataset schema order)."""
+    if chart == "line":
+        return ["x"] + [f"y{t + 1}" for t in range(n_traces)]
+    return [f"value{t + 1}" for t in range(n_traces)]
 
 
 def line_columns(rows: int, max_traces: int, seed: int) -> dict[str, np.ndarray]:
@@ -41,27 +52,62 @@ def frame_for(chart: str, rows: int, max_traces: int, seed: int) -> pl.DataFrame
 FORMAT_SUFFIX = {"disk-parquet": ".parquet", "disk-csv": ".csv", "disk-ipc": ".arrow"}
 
 
-def _expected_columns(chart: str, max_traces: int) -> list[str]:
-    if chart == "line":
-        return ["x"] + [f"y{t + 1}" for t in range(max_traces)]
-    return [f"value{t + 1}" for t in range(max_traces)]
-
-
-def _dataset_matches(path: Path, chart: str, rows: int, max_traces: int) -> bool:
-    expected = _expected_columns(chart, max_traces)
+def _version(dist: str) -> str | None:
     try:
-        if path.suffix == ".parquet":
-            import pyarrow.parquet as pq
-
-            pf = pq.ParquetFile(path)
-            return pf.metadata.num_rows == rows and pf.schema_arrow.names == expected
-        if path.suffix == ".csv":
-            schema = pl.scan_csv(path).collect_schema()
-        else:
-            schema = pl.scan_ipc(path).collect_schema()
-        return schema.names() == expected
+        return metadata.version(dist)
     except Exception:
-        return False
+        return None
+
+
+def _sidecar_path(path: Path) -> Path:
+    return path.with_suffix(path.suffix + ".meta.json")
+
+
+def dataset_identity(chart: str, rows: int, max_traces: int, seed: int) -> dict:
+    """Everything that decides what bytes a dataset file should contain.
+
+    `datagen_sha256` hashes this module WHOLE, not a curated set of generator functions:
+    a curated set misses `_write_parquet_streaming` and its row-group chunking, which is
+    precisely what a disk cell then measures. Derived, never a hand-bumped constant — a
+    version someone must remember to increment is a version that gets forgotten.
+
+    Known trade-off: a comment-only edit here invalidates datasets that can be 8GB. That
+    is the right way round (a false regeneration costs machine time; a false match
+    publishes a lie), and `ensure_disk_dataset` prints which field changed so a surprise
+    multi-hour regeneration is legible instead of mysterious.
+    """
+    return {
+        "chart": chart,
+        "rows": rows,
+        "max_traces": max_traces,
+        "seed": seed,
+        "columns": frame_columns(chart, max_traces),
+        "dtype": "float64",
+        "datagen_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "numpy_version": _version("numpy"),
+        "pyarrow_version": _version("pyarrow"),
+        "polars_version": _version("polars"),
+    }
+
+
+def _stale_fields(path: Path, want: dict) -> list[str]:
+    """Which identity fields disagree with the file on disk; [] means reuse it.
+
+    The sidecar establishes identity for files THIS writer created (it is written only
+    after an atomic `os.replace` of the data file, so a killed write leaves none). Its
+    `bytes` entry is a truncation tripwire, not a content check: arbitrary external
+    mutation of a dataset is out of scope, and re-hashing multi-GB Parquet on every cell
+    start would cost minutes of I/O per run to defend against a threat with no evidence.
+    """
+    sidecar = _sidecar_path(path)
+    if not path.exists() or not sidecar.exists():
+        return ["missing"]
+    try:
+        have = json.loads(sidecar.read_text())
+    except Exception:
+        return ["unreadable sidecar"]
+    want = {**want, "bytes": path.stat().st_size}
+    return [k for k, v in want.items() if have.get(k) != v]
 
 
 def _write_parquet_streaming(
@@ -98,11 +144,25 @@ def ensure_disk_dataset(
     Parquet is streamed in row-group chunks (memory-bounded for large `rows`); CSV/IPC
     use the full-frame writers (not used at the extreme sizes)."""
     path = base.with_suffix(FORMAT_SUFFIX[source])
-    if regenerate or not path.exists() or not _dataset_matches(path, chart, rows, max_traces):
-        base.parent.mkdir(parents=True, exist_ok=True)
-        if path.suffix == ".parquet":
-            _write_parquet_streaming(path, columns_for(chart, rows, max_traces, seed))
-        else:
-            df = frame_for(chart, rows, max_traces, seed)
-            {".csv": df.write_csv, ".arrow": df.write_ipc}[path.suffix](path)
+    identity = dataset_identity(chart, rows, max_traces, seed)
+    stale = ["--regenerate-datasets"] if regenerate else _stale_fields(path, identity)
+    if not stale:
+        return path
+    if path.exists() or regenerate:
+        print(f"regenerating {path}: {', '.join(stale)}", flush=True)
+    base.parent.mkdir(parents=True, exist_ok=True)
+    # Write to a sibling temp then os.replace: a run killed mid-write (an OOM kill at
+    # 200M is a documented event) must not leave a truncated file that the next run
+    # reads as valid. The sidecar lands only after the data file is in place, so a
+    # half-written dataset is always missing its sidecar and is always regenerated.
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    if path.suffix == ".parquet":
+        _write_parquet_streaming(tmp, columns_for(chart, rows, max_traces, seed))
+    else:
+        df = frame_for(chart, rows, max_traces, seed)
+        {".csv": df.write_csv, ".arrow": df.write_ipc}[path.suffix](tmp)
+    os.replace(tmp, path)
+    sidecar_tmp = _sidecar_path(path).with_suffix(".json.tmp")
+    sidecar_tmp.write_text(json.dumps({**identity, "bytes": path.stat().st_size}, indent=1))
+    os.replace(sidecar_tmp, _sidecar_path(path))
     return path

@@ -1,18 +1,17 @@
 // flexviz_probe.js — Playwright init-script for FlexViz pages.
-// Hooks Plotly.react; writes window.__benchTimings after the first real
-// data render completes. Uses PerformanceResourceTiming to split
-// query_ms (server processing) from transfer_ms (body receive).
+// Hooks Plotly.react and hands the /dashboard/update resource entry to benchDone,
+// which reads the clock after the post-render barrier. The entry splits
+// server_ms (TTFB) from transfer_ms (body receive) and client_ms (last byte -> barrier).
 //
 // Uses Object.defineProperty to intercept window.Plotly assignment so the
 // hook is installed synchronously the moment Plotly sets itself on window —
 // avoiding the 50ms polling race condition when Plotly.js is browser-cached.
 (function () {
-  var heapBefore = (performance.memory || {}).usedJSHeapSize || 0;
-  var benchDone  = false;
+  var captured = false;
 
   function capture() {
-    if (benchDone) return;
-    benchDone = true;
+    if (captured) return;
+    captured = true;
 
     var entries = performance.getEntriesByType('resource');
     var entry = null;
@@ -23,28 +22,17 @@
         break;
       }
     }
+    if (!window.__benchHelpers) return;
 
-    var heapAfter = (performance.memory || {}).usedJSHeapSize || 0;
-    var now = performance.now();
-    window.__benchTimings = {
-      total_ms:        entry ? Math.max(0, now - entry.requestStart) : now,
-      query_ms:        entry ? Math.max(0, entry.responseStart - entry.requestStart) : null,
-      transfer_ms:     entry ? Math.max(0, entry.responseEnd   - entry.responseStart) : null,
-      render_ms:       entry ? Math.max(0, now - entry.responseEnd)                   : null,
-      peak_browser_mb: Math.max(0, (heapAfter - heapBefore) / 1048576),
-      payload_bytes:   entry ? (entry.transferSize || 0) : null,
-    };
-
-    // Bridge to the unified contract (double-rAF paint proof).
-    if (window.__benchHelpers) {
-      window.__benchHelpers.benchDone({
-        total_ms: window.__benchTimings.total_ms,
-        query_ms: window.__benchTimings.query_ms,
-        transfer_ms: window.__benchTimings.transfer_ms,
-        render_ms: window.__benchTimings.render_ms,
-        payload_bytes: window.__benchTimings.payload_bytes,
-      });
-    }
+    // t0 = the update request's requestStart (0 = navigation start when no entry is
+    // found); benchDone reads the clock after the barrier, so nothing is precomputed
+    // here. server_ms is TTFB — server work until the FIRST byte, not a pure engine query.
+    window.__benchHelpers.benchDone(entry ? entry.requestStart : 0, {
+      server_ms:     entry ? Math.max(0, entry.responseStart - entry.requestStart) : null,
+      transfer_ms:   entry ? Math.max(0, entry.responseEnd   - entry.responseStart) : null,
+      client_from:   entry ? entry.responseEnd : null,
+      payload_bytes: entry ? (entry.transferSize || 0) : null,
+    });
   }
 
   function hookPlotly(plotly) {

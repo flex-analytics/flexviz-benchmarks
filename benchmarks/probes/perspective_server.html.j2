@@ -1,29 +1,32 @@
 <!doctype html><meta charset=utf-8>
+<link rel="stylesheet" href="./dist/viewer/dist/css/themes.css">
 <style>body{margin:0}perspective-viewer{width:900px;height:400px}</style>
 <perspective-viewer id="v"></perspective-viewer>
 <script src="./contract.js"></script>
-<script src="./perspective_config.js"></script>
 <script type="module">
 import { perspective } from './dist/perspective.js';
 const H = window.__benchHelpers;
+// See the wasm probe: viewer-charts renders head(2,000,000 / view columns) rows.
+const MAX_CELLS = 2000000, VIEW_COLUMNS = 2;
 try {
   const t0 = performance.now();
   // For a DISK source the server holds only the file path; this GET makes it read the
-  // file + build the server Table INSIDE the timed window (spec: disk = read + build +
-  // stream). For an IN-MEMORY source the Table was already built in preload() (resident),
-  // so /build returns immediately with dur≈0. Server-Timing carries the build cost.
-  const r = await fetch("{{BUILD_URL}}");
-  const st = (r.headers.get("Server-Timing") || "").match(/dur=([\d.]+)/);
-  const query_ms = st ? parseFloat(st[1]) : null;
-  const ws = await perspective.websocket("{{WS_URL}}");
-  const table = await ws.open_table("bench");     // server-held table (virtual)
-  // Extent discovery + config construction run on the SERVER engine, in-window.
-  const config = await window.__perspectiveConfig(table, {{CHART_TYPE}}, {{N_TRACES}}, {{BINS_OR_NPTS}});
+  // file + build the server Table INSIDE the timed window — that is INGESTION, which is
+  // what perspective provides for a file. For an IN-MEMORY source the Table was already
+  // built in preload() (resident), so /build returns immediately. Either way it answers
+  // with the row count, so the render cap can be reported without a second round trip.
+  const built = await fetch("{{BUILD_URL}}");
+  const rows = Number(built.headers.get('X-Rows'));
+  // Without a row count the cap fraction would silently compute as 1.0 ("drew it all"),
+  // which is the one thing this number exists to disprove. Fail the trial instead.
+  if (!rows) throw new Error(`/build gave no X-Rows: ${built.headers.get('X-Rows')}`);
+  const client = await perspective.websocket("{{WS_URL}}");   // server-held table (virtual)
   const viewer = document.getElementById('v');
-  await viewer.load(table);
-  await viewer.restore(config);
+  await viewer.load(client);
+  await viewer.restore({ plugin: 'X/Y Line', table: 'bench', columns: ['x', 'y1'] });
   await viewer.flush();
-  const total_ms = performance.now() - t0;
-  H.benchDone({ total_ms, query_ms, render_ms: total_ms - (query_ms || 0) });
+  // Total only: the build/stream/render stages overlap over one websocket, so no
+  // component is separable — a null is reported as null, never back-derived.
+  H.benchDone(t0, { rendered_fraction: Math.min(1, Math.floor(MAX_CELLS / VIEW_COLUMNS) / rows) });
 } catch (e) { H.benchError(e); }
 </script>

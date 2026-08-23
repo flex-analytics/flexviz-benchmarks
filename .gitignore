@@ -220,7 +220,10 @@ __marimo__/
 
 # Benchmark artifacts
 data/
-results/
+# `results/*` not `results/`: git never descends into an excluded DIRECTORY, so a
+# negation under it would be inert — the canonical-results pointer must be tracked.
+results/*
+!results/CURRENT.md
 
 # MCP server runtime directory
 .playwright-mcp/
@@ -231,5 +234,9 @@ skills-lock.json
 
 # Vendored JS build deps (lockfile is committed, node_modules is not)
 benchmarks/probes/vendor/node_modules/
-# ...but the esbuild output IS committed (overrides the global dist/ ignore above)
+# ...but the built output IS committed (overrides the global dist/ ignore above). The
+# `/**` line is load-bearing: perspective 5.x must be vendored package-relative
+# (dist/client/dist/cdn/..., dist/server/dist/wasm/...) or its bundles resolve their
+# wasm outside the tree — and those nested `dist` segments match the global rule again.
 !benchmarks/probes/vendor/dist/
+!benchmarks/probes/vendor/dist/**

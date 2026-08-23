@@ -4,7 +4,8 @@ import io
 
 import pyarrow.ipc as ipc
 
-from core.contenders.base import PROBES, PageServerMixin, frame_columns
+from core.contenders.base import PROBES, PageServerMixin
+from core.datagen import frame_columns
 
 
 class MosaicWasmContender(PageServerMixin):
@@ -36,9 +37,6 @@ class MosaicWasmContender(PageServerMixin):
 
     def get_url(self) -> str:
         return self._url
-
-    def ready_signal(self) -> str:
-        return "() => window.__bench !== undefined"
 
     def teardown(self) -> None:
         self.stop_page()
