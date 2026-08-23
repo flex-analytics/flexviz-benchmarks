@@ -117,6 +117,28 @@ phase to carry its own capture. Overlapping cells are always a hard error, and a
 stamps `provenance.incomplete`). Provenance is never recomputed here — it comes from the
 driver. Merge equality is not publication validity: see `report.publication_failures`.
 
+## Publishing to flexviz.tech
+
+```bash
+make site-data RESULTS=results/full_<date>     # SITE_REPO ?= ../flexviz_site
+```
+
+`benchmarks/export_site.py` writes **both** `site_data/benchmarks.json` (what the site
+fetches) and the site's committed copy at
+`$(SITE_REPO)/site_redesign_oss/assets/benchmarks.js`, from the same run in one command,
+so the fetched payload and the bundled fallback cannot disagree. It **refuses to emit**
+unless `report.publication_failures()` is empty on every input, so the gate that blocks a
+report also blocks the website. The win/loss table, the verdict counts and the fusion
+ratios are derived from the results, never curated — a rerun that changes an outcome
+changes the site copy with it. Censored cells (`rendered_fraction < 1`) are dropped, not
+flagged: they must never reach a public ranking.
+
+The site tracks `main` (`site_redesign_oss/assets/bench_config.js`), so pushing this repo
+is what publishes. Nothing in the site repo names a version, and no SHA needs bumping.
+`SITE_TOOLS` in `export_site.py` is the charted roster: the four server-compute engines.
+mosaic-wasm and perspective are excluded there because a single browser thread and a
+1M-row truncation cap cannot share an axis with the rest honestly.
+
 ## Configuration
 
 **`benchmarks/config.py`** is the single file for shared defaults across all benchmark scripts:

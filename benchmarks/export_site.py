@@ -147,6 +147,12 @@ def main() -> None:
     ap.add_argument("--histogram", type=Path, required=True)
     ap.add_argument("--line", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument(
+        "--fallback",
+        type=Path,
+        help="also write the site's committed copy (assets/benchmarks.js). Writing both "
+        "from one run is what keeps the bundled copy and the fetched payload identical.",
+    )
     args = ap.parse_args()
 
     charts = {"histogram": load(args.histogram), "line": load(args.line)}
@@ -202,7 +208,28 @@ def main() -> None:
         }
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(payload, indent=1) + "\n")
+    body = json.dumps(payload, indent=1)
+    args.out.write_text(body + "\n")
+
+    if args.fallback:
+        meta = payload["meta"]
+        args.fallback.write_text(
+            "/* FlexViz benchmark data - GENERATED, do not edit by hand.\n"
+            " *\n"
+            " * Written by flexviz-benchmarks/benchmarks/export_site.py, which refuses to\n"
+            " * emit unless the suite's publication gate (report.publication_failures)\n"
+            " * passes. The win/loss table and verdict counts are derived, not curated.\n"
+            " *\n"
+            " * This is the committed copy. assets/bench_data.js renders it first, then\n"
+            " * replaces it with the source named in assets/bench_config.js when that\n"
+            " * loads, so the page works offline and cannot go blank on a failed fetch.\n"
+            " *\n"
+            f" * Run {meta['run_date']} - flexviz {meta['flexviz_sha']} - "
+            f"benchmarks {meta['benchmarks_sha']} - median of {meta['repeats']}\n"
+            " */\n"
+            "window.FLEXVIZ_BENCH = " + body + ";\n"
+        )
+        print(f"wrote {args.fallback}")
     total = sum(c["cells"] for c in payload["charts"].values())
     print(f"wrote {args.out}: {total} completed cells, {args.out.stat().st_size / 1024:.0f} KB")
     for chart, block in payload["charts"].items():

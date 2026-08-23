@@ -1,6 +1,8 @@
-.PHONY: format lint verify-workloads bench bench-histogram bench-line
+.PHONY: format lint verify-workloads site-data bench bench-histogram bench-line
 
 FLEXVIZ_REPO ?= ../flexviz
+SITE_REPO    ?= ../flexviz_site
+RESULTS      ?= results/full_2026-08-23
 HISTOGRAM_JSON ?= results/ttfr_histogram.json
 LINE_JSON      ?= results/ttfr_line.json
 
@@ -16,6 +18,16 @@ lint:
 GATE_TESTS ?= tests/core/test_vaex_oracle.py tests/test_same_picture.py \
               tests/test_contract_barrier.py \
               $(wildcard tests/test_*_gate.py) $(wildcard tests/core/test_*_gate.py)
+
+# One command per publish: regenerates the payload the site fetches AND the copy the
+# site bundles, from the same run, so the two cannot disagree. The site tracks main, so
+# pushing this repo is what publishes; nothing in the site repo names a version.
+site-data:
+	uv run python benchmarks/export_site.py \
+	  --histogram $(RESULTS)/ttfr_histogram_full.json \
+	  --line      $(RESULTS)/ttfr_line_full.json \
+	  --out       site_data/benchmarks.json \
+	  --fallback  $(SITE_REPO)/site_redesign_oss/assets/benchmarks.js
 
 verify-workloads:
 	python3 benchmarks/probes/vendor/verify_vendor.py
