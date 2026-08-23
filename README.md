@@ -105,3 +105,15 @@ make format          # ruff format benchmarks/ tests/
 
 Engine render tests need the built FlexViz plugin and the vendored assets; they skip
 cleanly when those are absent.
+
+## Licence
+
+FlexViz Benchmarks is [Apache-2.0](LICENSE) © 2026 Flex Analytics BV.
+
+`benchmarks/probes/vendor/dist/` commits the engine bundles under test so a run needs no
+network, which makes this repository a redistributor of them.
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) reproduces the licence of every
+redistributed component (45 of them: MIT, ISC, BSD-3-Clause, Apache-2.0). It is generated
+by `benchmarks/probes/vendor/gen_notices.py` from the esbuild input markers in the shipped
+bundles plus the verbatim-copied packages, so it cannot drift from what is actually
+distributed. Re-run it after any re-vendor.

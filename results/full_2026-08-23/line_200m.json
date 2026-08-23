@@ -1,0 +1,2151 @@
+{
+  "config": {
+    "chart": "line",
+    "sizes": [
+      200000000
+    ],
+    "n_traces": [
+      1,
+      2,
+      5
+    ],
+    "data_sources": [
+      "in-memory",
+      "disk-parquet"
+    ],
+    "repeats": 5,
+    "warmup": 1,
+    "seed": 42,
+    "contenders": [
+      "flexviz",
+      "mosaic-server",
+      "vaex",
+      "datashader"
+    ],
+    "wait_timeout_max_ms": 240000,
+    "wait_timeout_per_mrow_ms": 2000,
+    "dataset_base": "data/ttfr_{chart}_{rows}",
+    "n_points": 1000
+  },
+  "provenance": {
+    "schema_version": "3",
+    "generated_utc": "2026-08-23T10:11:55+00:00",
+    "host": {
+      "platform": "Linux-6.8.0-137-generic-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "python": "3.12.3",
+      "cpu_count": 32,
+      "cpu_model": "AMD Ryzen 9 5950X 16-Core Processor",
+      "total_ram_bytes": 101141684224,
+      "thread_env": {}
+    },
+    "git": {
+      "benchmarks": {
+        "sha": "18543d17f597c71bd601bca17891aac5de9e48b6",
+        "dirty": false
+      },
+      "flexviz": {
+        "sha": "c0422d3e87225556e69678c0dff9d4aca1a25993",
+        "dirty": false
+      }
+    },
+    "flexviz_plugin": {
+      "path": "/home/jeroen/Git/Flex/flexviz/flexviz_polars/flexviz_polars/_internal.abi3.so",
+      "size_mb": 37.5,
+      "sha256": "84c7b0a39db0903d557f174b49e240c47c89be40488888e4d669ad78a989c4c1"
+    },
+    "packages": {
+      "polars": "1.43.2",
+      "duckdb": "1.5.5",
+      "duckdb-server": "0.30.0",
+      "vaex-core": "4.19.0",
+      "vaex-viz": "0.6.0",
+      "perspective-python": "5.2.0",
+      "pyarrow": "25.0.1",
+      "datashader": "0.19.1",
+      "dask": "2024.8.2",
+      "playwright": "1.62.0",
+      "numpy": "2.5.2",
+      "matplotlib": "3.11.1",
+      "plotly": "6.9.0",
+      "pillow": "12.3.0",
+      "psutil": "7.2.2",
+      "tornado": "6.5.8"
+    },
+    "uv_lock_sha256": "b84950c4103c9581eb0fd3ce0c383e42b25692bf63971c1f07672b58bc05695b",
+    "execution": {
+      "vaex": {
+        "thread_count": 32,
+        "thread_count_io": 33,
+        "process_count": 32,
+        "chunk_size": null,
+        "chunk_size_min": 1024,
+        "chunk_size_max": 1048576
+      },
+      "dask": {
+        "scheduler": "dask.threaded.get",
+        "num_workers": 32,
+        "array_chunk_size": "128MiB",
+        "dataframe_implementation": "dask_expr._collection"
+      },
+      "polars": {
+        "thread_pool_size": 32
+      },
+      "duckdb": {
+        "threads": 32
+      }
+    },
+    "dataset": {
+      "datagen_sha256": "eb8f037e32c44c572517740f52b9984ad49bc24cf6c13d9889ac984f7431b654",
+      "numpy_version": "2.5.2",
+      "pyarrow_version": "25.0.1",
+      "polars_version": "1.43.2"
+    },
+    "browser": {
+      "playwright": "1.62.0",
+      "chromium": "151.0.7922.34",
+      "webgl_renderer": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce RTX 2070 (0x00001F02)), NVIDIA)"
+    },
+    "vendor_js": {
+      "pins": {
+        "@uwdata/vgplot": "0.30.0",
+        "@duckdb/duckdb-wasm": "1.32.0",
+        "@perspective-dev/client": "5.2.0",
+        "@perspective-dev/server": "5.2.0",
+        "@perspective-dev/viewer": "5.2.0",
+        "@perspective-dev/viewer-charts": "5.2.0"
+      },
+      "manifest": {
+        "client/dist/cdn/perspective.js": "ca885fd8f0ed16a6bb436f26518fc0295057293f29e75762da0c4c1863359809",
+        "duckdb-browser-eh.worker.js": "f8ab72b6b90b3ad83077d47426d4a99d5d9a4c7e07cba1a2be37d655adc7c1ab",
+        "duckdb-browser-mvp.worker.js": "b0387027f174e2b60c2d5cfa31cecca9b89d8a9762346b6449a784cd1c4dde3c",
+        "duckdb-eh.wasm": "4c221bfa59c11f24dbd750e70c90b9252eca6eec5633936e6a2ec766e55fd879",
+        "duckdb-mvp.wasm": "45d72a81fba8e57693d890da837c7041310e385e75619a8559839b15388dfe97",
+        "mosaic_server_vgplot.js": "31b0e2ef8cf378122332bf98605a9e08dab65c851cab7e892d2cd6d5fe6cd1d1",
+        "mosaic_wasm.js": "ab5fc4c1ea0ef23510acd6a5383d6be3f44972f91512f8c780cad5d0e90d6ac7",
+        "perspective.js": "2d4524522410d9798fb4363e270712dfea022fe953faadd6c6473a589e755ad6",
+        "server/dist/wasm/perspective-server.memory64.wasm": "9b5bac41c07c82443dc43dd307a3704b9f2ff4f4705b8d93d0ce593e7ff58432",
+        "server/dist/wasm/perspective-server.wasm": "ebedb356c0abdd580495b99ec3e8174432e21d6df0e1c920b33b97c579ffd781",
+        "viewer/dist/cdn/perspective-viewer.js": "e024a06915ac50172f293ba289988a2bde73d182cb83c81e7701eede78e9b54f",
+        "viewer/dist/css/themes.css": "69db78beda12957faf8f4ee33b57fb2fcd2442be7ece5d997020abada2810b1e",
+        "viewer/dist/wasm/perspective-viewer.wasm": "6852641d6dfe5cdee066b97c37af62189fac6dfab76d9dfc9d79a1b66b60f1f5",
+        "viewer-charts/dist/cdn/perspective-viewer-charts.js": "1303c9637972346217d629c28afde32d8cb67ef30cbf63af10f4f56e25c50b5b"
+      }
+    },
+    "runtime": {}
+  },
+  "summary": [
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "tool": "flexviz",
+      "source": "in-memory",
+      "trials": 5,
+      "total_median_ms": 116.0,
+      "total_mean_ms": 118.1,
+      "total_stdev_ms": 4.865696320105989,
+      "server_median_ms": 70.29999995231628,
+      "transfer_median_ms": 0.5,
+      "client_median_ms": 48.5,
+      "payload_bytes_median": 19583,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 15.0078125,
+      "browser_timed_peak_mb": 111.26953125,
+      "resident_footprint_mb": 3067.7890625,
+      "preload_peak_mb": 6124.96484375
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "tool": "mosaic-server",
+      "source": "in-memory",
+      "trials": 5,
+      "total_median_ms": 2068.5999999046326,
+      "total_mean_ms": 2057.0599999427795,
+      "total_stdev_ms": 27.92361013804274,
+      "server_median_ms": null,
+      "transfer_median_ms": null,
+      "client_median_ms": null,
+      "payload_bytes_median": null,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 3257.328125,
+      "browser_timed_peak_mb": 46.59765625,
+      "resident_footprint_mb": 4035.74609375,
+      "preload_peak_mb": 4142.82421875
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "tool": "datashader",
+      "source": "in-memory",
+      "trials": 5,
+      "total_median_ms": 1437.0,
+      "total_mean_ms": 1432.039999961853,
+      "total_stdev_ms": 10.293833084998699,
+      "server_median_ms": 1406.2,
+      "transfer_median_ms": 0.5,
+      "client_median_ms": 23.299999952316284,
+      "payload_bytes_median": 7315,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 3191.984375,
+      "browser_timed_peak_mb": 26.828125,
+      "resident_footprint_mb": 4601.93359375,
+      "preload_peak_mb": 12467.00390625
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "tool": "flexviz",
+      "source": "disk-parquet",
+      "trials": 5,
+      "total_median_ms": 2231.0,
+      "total_mean_ms": 2225.600000047684,
+      "total_stdev_ms": 11.61184743129653,
+      "server_median_ms": 2188.7999999523163,
+      "transfer_median_ms": 0.7000000476837158,
+      "client_median_ms": 41.5,
+      "payload_bytes_median": 19584,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 7863.8359375,
+      "browser_timed_peak_mb": 69.96875,
+      "resident_footprint_mb": null,
+      "preload_peak_mb": 1.390625
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "tool": "mosaic-server",
+      "source": "disk-parquet",
+      "trials": 5,
+      "total_median_ms": 2082.2000000476837,
+      "total_mean_ms": 2101.540000009537,
+      "total_stdev_ms": 32.77473108022719,
+      "server_median_ms": null,
+      "transfer_median_ms": null,
+      "client_median_ms": null,
+      "payload_bytes_median": null,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 3444.6328125,
+      "browser_timed_peak_mb": 42.91015625,
+      "resident_footprint_mb": null,
+      "preload_peak_mb": 2.84375
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "tool": "datashader",
+      "source": "disk-parquet",
+      "trials": 5,
+      "total_median_ms": 5052.400000095367,
+      "total_mean_ms": 5037.800000047684,
+      "total_stdev_ms": 63.9212405711086,
+      "server_median_ms": 5020.2,
+      "transfer_median_ms": 0.5999999046325684,
+      "client_median_ms": 25.200000047683716,
+      "payload_bytes_median": 7315,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 11965.0,
+      "browser_timed_peak_mb": 24.7890625,
+      "resident_footprint_mb": null,
+      "preload_peak_mb": 0.23046875
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "tool": "flexviz",
+      "source": "in-memory",
+      "trials": 5,
+      "total_median_ms": 177.20000004768372,
+      "total_mean_ms": 161.8,
+      "total_stdev_ms": 34.15786875149596,
+      "server_median_ms": 115.70000004768372,
+      "transfer_median_ms": 0.9000000953674316,
+      "client_median_ms": 47.90000009536743,
+      "payload_bytes_median": 38663,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 15.6640625,
+      "browser_timed_peak_mb": 72.6796875,
+      "resident_footprint_mb": 4597.421875,
+      "preload_peak_mb": 9118.3671875
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "tool": "mosaic-server",
+      "source": "in-memory",
+      "trials": 5,
+      "total_median_ms": 4038.2999999523163,
+      "total_mean_ms": 4031.2599999904633,
+      "total_stdev_ms": 29.781420357440073,
+      "server_median_ms": null,
+      "transfer_median_ms": null,
+      "client_median_ms": null,
+      "payload_bytes_median": null,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 6021.828125,
+      "browser_timed_peak_mb": 46.0078125,
+      "resident_footprint_mb": 6034.00390625,
+      "preload_peak_mb": 6232.96484375
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "tool": "datashader",
+      "source": "in-memory",
+      "trials": 5,
+      "total_median_ms": 2882.7000000476837,
+      "total_mean_ms": 2884.760000038147,
+      "total_stdev_ms": 6.271203994931996,
+      "server_median_ms": 2856.6,
+      "transfer_median_ms": 0.5,
+      "client_median_ms": 25.399999856948853,
+      "payload_bytes_median": 11101,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 4695.1015625,
+      "browser_timed_peak_mb": 29.93359375,
+      "resident_footprint_mb": 6131.640625,
+      "preload_peak_mb": 17095.73046875
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "tool": "flexviz",
+      "source": "disk-parquet",
+      "trials": 5,
+      "total_median_ms": 4476.200000047684,
+      "total_mean_ms": 4474.640000009536,
+      "total_stdev_ms": 17.34943794374843,
+      "server_median_ms": 4428.0,
+      "transfer_median_ms": 0.8999998569488525,
+      "client_median_ms": 42.0,
+      "payload_bytes_median": 38659,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 7852.4609375,
+      "browser_timed_peak_mb": 71.63671875,
+      "resident_footprint_mb": null,
+      "preload_peak_mb": 1.4140625
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "tool": "mosaic-server",
+      "source": "disk-parquet",
+      "trials": 5,
+      "total_median_ms": 4092.7000000476837,
+      "total_mean_ms": 4094.5800000667573,
+      "total_stdev_ms": 12.109170113603454,
+      "server_median_ms": null,
+      "transfer_median_ms": null,
+      "client_median_ms": null,
+      "payload_bytes_median": null,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 3790.140625,
+      "browser_timed_peak_mb": 45.86328125,
+      "resident_footprint_mb": null,
+      "preload_peak_mb": 2.9375
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "tool": "datashader",
+      "source": "disk-parquet",
+      "trials": 5,
+      "total_median_ms": 11186.399999856949,
+      "total_mean_ms": 11127.319999980926,
+      "total_stdev_ms": 114.27675609810535,
+      "server_median_ms": 11159.8,
+      "transfer_median_ms": 0.5999999046325684,
+      "client_median_ms": 24.399999856948853,
+      "payload_bytes_median": 11101,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 16163.30859375,
+      "browser_timed_peak_mb": 25.140625,
+      "resident_footprint_mb": null,
+      "preload_peak_mb": 0.23046875
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "tool": "flexviz",
+      "source": "in-memory",
+      "trials": 5,
+      "total_median_ms": 343.5,
+      "total_mean_ms": 345.6400000095367,
+      "total_stdev_ms": 24.039405154409714,
+      "server_median_ms": 267.90000009536743,
+      "transfer_median_ms": 1.5999999046325684,
+      "client_median_ms": 66.80000019073486,
+      "payload_bytes_median": 95784,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 16.67578125,
+      "browser_timed_peak_mb": 75.296875,
+      "resident_footprint_mb": 9186.18359375,
+      "preload_peak_mb": 18336.27734375
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "tool": "mosaic-server",
+      "source": "in-memory",
+      "trials": 5,
+      "total_median_ms": 10033.299999952316,
+      "total_mean_ms": 10025.0,
+      "total_stdev_ms": 74.13103265700718,
+      "server_median_ms": null,
+      "transfer_median_ms": null,
+      "client_median_ms": null,
+      "payload_bytes_median": null,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 6242.2734375,
+      "browser_timed_peak_mb": 49.62109375,
+      "resident_footprint_mb": 12049.890625,
+      "preload_peak_mb": 12461.74609375
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "tool": "datashader",
+      "source": "in-memory",
+      "trials": 5,
+      "total_median_ms": 8670.299999952316,
+      "total_mean_ms": 8664.119999980927,
+      "total_stdev_ms": 28.055783679899825,
+      "server_median_ms": 8640.1,
+      "transfer_median_ms": 0.5999999046325684,
+      "client_median_ms": 31.600000143051147,
+      "payload_bytes_median": 20027,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 9209.74609375,
+      "browser_timed_peak_mb": 26.41796875,
+      "resident_footprint_mb": 10720.55859375,
+      "preload_peak_mb": 30984.07421875
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "tool": "flexviz",
+      "source": "disk-parquet",
+      "trials": 5,
+      "total_median_ms": 11422.600000143051,
+      "total_mean_ms": 11437.319999980926,
+      "total_stdev_ms": 58.26767546896935,
+      "server_median_ms": 11359.399999856949,
+      "transfer_median_ms": 1.2999999523162842,
+      "client_median_ms": 62.799999952316284,
+      "payload_bytes_median": 95786,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 7882.46875,
+      "browser_timed_peak_mb": 71.28125,
+      "resident_footprint_mb": null,
+      "preload_peak_mb": 1.4609375
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "tool": "mosaic-server",
+      "source": "disk-parquet",
+      "trials": 5,
+      "total_median_ms": 10142.5,
+      "total_mean_ms": 10147.539999961853,
+      "total_stdev_ms": 37.10738469062555,
+      "server_median_ms": null,
+      "transfer_median_ms": null,
+      "client_median_ms": null,
+      "payload_bytes_median": null,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 3898.34765625,
+      "browser_timed_peak_mb": 48.03515625,
+      "resident_footprint_mb": null,
+      "preload_peak_mb": 2.98046875
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "tool": "datashader",
+      "source": "disk-parquet",
+      "trials": 5,
+      "total_median_ms": 43070.700000047684,
+      "total_mean_ms": 43030.51999998093,
+      "total_stdev_ms": 118.98305344605437,
+      "server_median_ms": 43049.1,
+      "transfer_median_ms": 0.6000001430511475,
+      "client_median_ms": 22.09999990463257,
+      "payload_bytes_median": 20027,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "backend_timed_peak_mb": 28368.90625,
+      "browser_timed_peak_mb": 31.00390625,
+      "resident_footprint_mb": null,
+      "preload_peak_mb": 0.23046875
+    }
+  ],
+  "statuses": [
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "source": "in-memory",
+      "tool": "flexviz",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "source": "in-memory",
+      "tool": "mosaic-server",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "source": "in-memory",
+      "tool": "vaex",
+      "status": "unsupported",
+      "trials": 0,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": "vaex-viz has no line-trace function (public API verified)."
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "source": "in-memory",
+      "tool": "datashader",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "source": "disk-parquet",
+      "tool": "flexviz",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "source": "disk-parquet",
+      "tool": "mosaic-server",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "source": "disk-parquet",
+      "tool": "vaex",
+      "status": "unsupported",
+      "trials": 0,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": "vaex-viz has no line-trace function (public API verified)."
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 1,
+      "source": "disk-parquet",
+      "tool": "datashader",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "source": "in-memory",
+      "tool": "flexviz",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "source": "in-memory",
+      "tool": "mosaic-server",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "source": "in-memory",
+      "tool": "vaex",
+      "status": "unsupported",
+      "trials": 0,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": "vaex-viz has no line-trace function (public API verified)."
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "source": "in-memory",
+      "tool": "datashader",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "source": "disk-parquet",
+      "tool": "flexviz",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "source": "disk-parquet",
+      "tool": "mosaic-server",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "source": "disk-parquet",
+      "tool": "vaex",
+      "status": "unsupported",
+      "trials": 0,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": "vaex-viz has no line-trace function (public API verified)."
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 2,
+      "source": "disk-parquet",
+      "tool": "datashader",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "source": "in-memory",
+      "tool": "flexviz",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "source": "in-memory",
+      "tool": "mosaic-server",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "source": "in-memory",
+      "tool": "vaex",
+      "status": "unsupported",
+      "trials": 0,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": "vaex-viz has no line-trace function (public API verified)."
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "source": "in-memory",
+      "tool": "datashader",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "source": "disk-parquet",
+      "tool": "flexviz",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "source": "disk-parquet",
+      "tool": "mosaic-server",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "source": "disk-parquet",
+      "tool": "vaex",
+      "status": "unsupported",
+      "trials": 0,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": "vaex-viz has no line-trace function (public API verified)."
+    },
+    {
+      "rows": 200000000,
+      "n_traces": 5,
+      "source": "disk-parquet",
+      "tool": "datashader",
+      "status": "completed",
+      "trials": 5,
+      "rendered_fraction": null,
+      "rendered_rows": null,
+      "reason": null
+    }
+  ],
+  "trials": {
+    "200000000": {
+      "1": {
+        "in-memory": {
+          "flexviz": [
+            {
+              "total_ms": 114.79999995231628,
+              "server_ms": 65.09999990463257,
+              "transfer_ms": 0.7000000476837158,
+              "client_ms": 49.0,
+              "payload_bytes": 19583,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 119.70000004768372,
+              "server_ms": 70.70000004768372,
+              "transfer_ms": 0.5,
+              "client_ms": 48.5,
+              "payload_bytes": 19591,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 125.90000009536743,
+              "server_ms": 75.70000004768372,
+              "transfer_ms": 0.7000000476837158,
+              "client_ms": 49.5,
+              "payload_bytes": 19589,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 114.09999990463257,
+              "server_ms": 67.0,
+              "transfer_ms": 0.5,
+              "client_ms": 46.59999990463257,
+              "payload_bytes": 19583,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 116.0,
+              "server_ms": 70.29999995231628,
+              "transfer_ms": 0.5,
+              "client_ms": 45.200000047683716,
+              "payload_bytes": 19581,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "mosaic-server": [
+            {
+              "total_ms": 2073.0999999046326,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2055.7999999523163,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2009.3999998569489,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2068.5999999046326,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2078.4000000953674,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "datashader": [
+            {
+              "total_ms": 1441.3999998569489,
+              "server_ms": 1417.2,
+              "transfer_ms": 0.5,
+              "client_ms": 23.0,
+              "payload_bytes": 7315,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 1437.0,
+              "server_ms": 1412.3,
+              "transfer_ms": 0.5,
+              "client_ms": 23.5,
+              "payload_bytes": 7315,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 1420.7000000476837,
+              "server_ms": 1397.8,
+              "transfer_ms": 0.5,
+              "client_ms": 21.5,
+              "payload_bytes": 7315,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 1440.0,
+              "server_ms": 1406.2,
+              "transfer_ms": 0.5,
+              "client_ms": 32.39999985694885,
+              "payload_bytes": 7315,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 1421.0999999046326,
+              "server_ms": 1396.4,
+              "transfer_ms": 0.5,
+              "client_ms": 23.299999952316284,
+              "payload_bytes": 7315,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ]
+        },
+        "disk-parquet": {
+          "flexviz": [
+            {
+              "total_ms": 2208.0,
+              "server_ms": 2163.399999856949,
+              "transfer_ms": 0.8000001907348633,
+              "client_ms": 43.799999952316284,
+              "payload_bytes": 19589,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2219.7000000476837,
+              "server_ms": 2179.5,
+              "transfer_ms": 0.8000001907348633,
+              "client_ms": 39.39999985694885,
+              "payload_bytes": 19584,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2233.7000000476837,
+              "server_ms": 2192.0999999046326,
+              "transfer_ms": 0.7000000476837158,
+              "client_ms": 40.90000009536743,
+              "payload_bytes": 19594,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2235.600000143051,
+              "server_ms": 2188.7999999523163,
+              "transfer_ms": 0.5,
+              "client_ms": 46.30000019073486,
+              "payload_bytes": 19583,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2231.0,
+              "server_ms": 2188.800000190735,
+              "transfer_ms": 0.6999998092651367,
+              "client_ms": 41.5,
+              "payload_bytes": 19580,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "mosaic-server": [
+            {
+              "total_ms": 2133.399999856949,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2071.2999999523163,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2082.2000000476837,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2140.7000000476837,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2080.100000143051,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "datashader": [
+            {
+              "total_ms": 5080.299999952316,
+              "server_ms": 5054.5,
+              "transfer_ms": 0.5999999046325684,
+              "client_ms": 24.5,
+              "payload_bytes": 7315,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 5112.200000047684,
+              "server_ms": 5082.8,
+              "transfer_ms": 0.5,
+              "client_ms": 28.0,
+              "payload_bytes": 7315,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 5052.400000095367,
+              "server_ms": 5020.2,
+              "transfer_ms": 0.6000001430511475,
+              "client_ms": 30.799999952316284,
+              "payload_bytes": 7315,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4963.600000143051,
+              "server_ms": 4937.1,
+              "transfer_ms": 0.6000001430511475,
+              "client_ms": 25.200000047683716,
+              "payload_bytes": 7315,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4980.5,
+              "server_ms": 4954.8,
+              "transfer_ms": 0.5,
+              "client_ms": 24.300000190734863,
+              "payload_bytes": 7315,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ]
+        }
+      },
+      "2": {
+        "in-memory": {
+          "flexviz": [
+            {
+              "total_ms": 177.20000004768372,
+              "server_ms": 115.70000004768372,
+              "transfer_ms": 1.0,
+              "client_ms": 60.5,
+              "payload_bytes": 38666,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 128.0,
+              "server_ms": 80.20000004768372,
+              "transfer_ms": 0.9000000953674316,
+              "client_ms": 46.89999985694885,
+              "payload_bytes": 38659,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 199.59999990463257,
+              "server_ms": 133.79999995231628,
+              "transfer_ms": 1.0,
+              "client_ms": 64.79999995231628,
+              "payload_bytes": 38666,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 181.0,
+              "server_ms": 132.20000004768372,
+              "transfer_ms": 0.8999998569488525,
+              "client_ms": 47.90000009536743,
+              "payload_bytes": 38663,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 123.20000004768372,
+              "server_ms": 79.90000009536743,
+              "transfer_ms": 0.5999999046325684,
+              "client_ms": 42.700000047683716,
+              "payload_bytes": 38658,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "mosaic-server": [
+            {
+              "total_ms": 4038.2999999523163,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 3982.7000000476837,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4043.399999856949,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4029.2000000476837,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4062.7000000476837,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "datashader": [
+            {
+              "total_ms": 2882.7000000476837,
+              "server_ms": 2856.1,
+              "transfer_ms": 0.5,
+              "client_ms": 25.399999856948853,
+              "payload_bytes": 11101,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2888.4000000953674,
+              "server_ms": 2856.6,
+              "transfer_ms": 0.5,
+              "client_ms": 30.600000143051147,
+              "payload_bytes": 11101,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2882.5,
+              "server_ms": 2861.3,
+              "transfer_ms": 0.5,
+              "client_ms": 19.800000190734863,
+              "payload_bytes": 11101,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2876.9000000953674,
+              "server_ms": 2848.0,
+              "transfer_ms": 0.5,
+              "client_ms": 27.600000143051147,
+              "payload_bytes": 11101,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 2893.2999999523163,
+              "server_ms": 2868.5,
+              "transfer_ms": 0.5,
+              "client_ms": 23.5,
+              "payload_bytes": 11101,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ]
+        },
+        "disk-parquet": {
+          "flexviz": [
+            {
+              "total_ms": 4488.899999856949,
+              "server_ms": 4446.0,
+              "transfer_ms": 0.8999998569488525,
+              "client_ms": 42.0,
+              "payload_bytes": 38655,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4476.200000047684,
+              "server_ms": 4428.0,
+              "transfer_ms": 1.0,
+              "client_ms": 47.200000047683716,
+              "payload_bytes": 38657,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4450.900000095367,
+              "server_ms": 4408.799999952316,
+              "transfer_ms": 0.7000000476837158,
+              "client_ms": 41.40000009536743,
+              "payload_bytes": 38665,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4492.799999952316,
+              "server_ms": 4452.900000095367,
+              "transfer_ms": 0.7999999523162842,
+              "client_ms": 39.09999990463257,
+              "payload_bytes": 38662,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4464.400000095367,
+              "server_ms": 4418.200000047684,
+              "transfer_ms": 0.9000000953674316,
+              "client_ms": 45.299999952316284,
+              "payload_bytes": 38659,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "mosaic-server": [
+            {
+              "total_ms": 4080.7999999523163,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4111.400000095367,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4092.7000000476837,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4101.400000095367,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 4086.600000143051,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "datashader": [
+            {
+              "total_ms": 10959.900000095367,
+              "server_ms": 10937.0,
+              "transfer_ms": 0.5999999046325684,
+              "client_ms": 21.40000009536743,
+              "payload_bytes": 11101,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 11195.700000047684,
+              "server_ms": 11162.5,
+              "transfer_ms": 0.5999999046325684,
+              "client_ms": 32.0,
+              "payload_bytes": 11101,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 11060.0,
+              "server_ms": 11038.2,
+              "transfer_ms": 0.6000001430511475,
+              "client_ms": 20.399999856948853,
+              "payload_bytes": 11101,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 11186.399999856949,
+              "server_ms": 11159.8,
+              "transfer_ms": 0.5999999046325684,
+              "client_ms": 24.799999952316284,
+              "payload_bytes": 11101,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 11234.599999904633,
+              "server_ms": 11208.9,
+              "transfer_ms": 0.5,
+              "client_ms": 24.399999856948853,
+              "payload_bytes": 11101,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ]
+        }
+      },
+      "5": {
+        "in-memory": {
+          "flexviz": [
+            {
+              "total_ms": 312.0,
+              "server_ms": 243.59999990463257,
+              "transfer_ms": 1.5999999046325684,
+              "client_ms": 66.80000019073486,
+              "payload_bytes": 95784,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 375.7000000476837,
+              "server_ms": 314.0,
+              "transfer_ms": 1.4000000953674316,
+              "client_ms": 60.299999952316284,
+              "payload_bytes": 95779,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 359.7999999523163,
+              "server_ms": 259.0,
+              "transfer_ms": 3.799999952316284,
+              "client_ms": 97.0,
+              "payload_bytes": 95790,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 343.5,
+              "server_ms": 267.90000009536743,
+              "transfer_ms": 6.200000047683716,
+              "client_ms": 69.39999985694885,
+              "payload_bytes": 95802,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 337.2000000476837,
+              "server_ms": 270.5,
+              "transfer_ms": 1.2000000476837158,
+              "client_ms": 65.5,
+              "payload_bytes": 95784,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "mosaic-server": [
+            {
+              "total_ms": 10025.299999952316,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 10077.0,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 10087.900000095367,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 10033.299999952316,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 9901.5,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "datashader": [
+            {
+              "total_ms": 8660.700000047684,
+              "server_ms": 8627.7,
+              "transfer_ms": 0.5999999046325684,
+              "client_ms": 31.600000143051147,
+              "payload_bytes": 20027,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 8619.200000047684,
+              "server_ms": 8583.7,
+              "transfer_ms": 0.39999985694885254,
+              "client_ms": 34.200000047683716,
+              "payload_bytes": 20027,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 8675.399999856949,
+              "server_ms": 8640.1,
+              "transfer_ms": 0.5,
+              "client_ms": 34.0,
+              "payload_bytes": 20027,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 8670.299999952316,
+              "server_ms": 8646.7,
+              "transfer_ms": 0.7999999523162842,
+              "client_ms": 22.0,
+              "payload_bytes": 20027,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 8695.0,
+              "server_ms": 8675.5,
+              "transfer_ms": 0.6000001430511475,
+              "client_ms": 17.899999856948853,
+              "payload_bytes": 20027,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ]
+        },
+        "disk-parquet": {
+          "flexviz": [
+            {
+              "total_ms": 11358.899999856949,
+              "server_ms": 11297.099999904633,
+              "transfer_ms": 1.2000000476837158,
+              "client_ms": 60.59999990463257,
+              "payload_bytes": 95791,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 11416.099999904633,
+              "server_ms": 11359.399999856949,
+              "transfer_ms": 1.6000001430511475,
+              "client_ms": 55.09999990463257,
+              "payload_bytes": 95786,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 11422.600000143051,
+              "server_ms": 11358.5,
+              "transfer_ms": 1.1000001430511475,
+              "client_ms": 63.0,
+              "payload_bytes": 95789,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 11483.900000095367,
+              "server_ms": 11419.700000047684,
+              "transfer_ms": 1.4000000953674316,
+              "client_ms": 62.799999952316284,
+              "payload_bytes": 95775,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 11505.099999904633,
+              "server_ms": 11438.0,
+              "transfer_ms": 1.2999999523162842,
+              "client_ms": 65.79999995231628,
+              "payload_bytes": 95785,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "mosaic-server": [
+            {
+              "total_ms": 10106.799999952316,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 10142.5,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 10119.0,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 10173.599999904633,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 10195.799999952316,
+              "server_ms": null,
+              "transfer_ms": null,
+              "client_ms": null,
+              "payload_bytes": null,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ],
+          "datashader": [
+            {
+              "total_ms": 43070.700000047684,
+              "server_ms": 43049.1,
+              "transfer_ms": 0.5,
+              "client_ms": 20.300000190734863,
+              "payload_bytes": 20027,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 43010.39999985695,
+              "server_ms": 42987.0,
+              "transfer_ms": 0.6000001430511475,
+              "client_ms": 22.09999990463257,
+              "payload_bytes": 20027,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 43151.60000014305,
+              "server_ms": 43130.0,
+              "transfer_ms": 0.5999999046325684,
+              "client_ms": 20.100000143051147,
+              "payload_bytes": 20027,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 43082.39999985695,
+              "server_ms": 43050.9,
+              "transfer_ms": 0.6999998092651367,
+              "client_ms": 30.0,
+              "payload_bytes": 20027,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            },
+            {
+              "total_ms": 42837.5,
+              "server_ms": 42808.5,
+              "transfer_ms": 0.6000001430511475,
+              "client_ms": 27.5,
+              "payload_bytes": 20027,
+              "rendered_fraction": null,
+              "backend_timed_peak_mb": null,
+              "browser_timed_peak_mb": null,
+              "resident_footprint_mb": null,
+              "preload_peak_mb": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  "memory_trials": {
+    "200000000": {
+      "1": {
+        "in-memory": {
+          "flexviz": {
+            "total_ms": 147.09999990463257,
+            "server_ms": 92.29999995231628,
+            "transfer_ms": 0.6000001430511475,
+            "client_ms": 54.19999980926514,
+            "payload_bytes": 19588,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 15.0078125,
+            "browser_timed_peak_mb": 111.26953125,
+            "resident_footprint_mb": 3067.7890625,
+            "preload_peak_mb": 6124.96484375
+          },
+          "mosaic-server": {
+            "total_ms": 2102.5,
+            "server_ms": null,
+            "transfer_ms": null,
+            "client_ms": null,
+            "payload_bytes": null,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 3257.328125,
+            "browser_timed_peak_mb": 46.59765625,
+            "resident_footprint_mb": 4035.74609375,
+            "preload_peak_mb": 4142.82421875
+          },
+          "datashader": {
+            "total_ms": 3923.4000000953674,
+            "server_ms": 3896.1,
+            "transfer_ms": 0.5,
+            "client_ms": 26.100000143051147,
+            "payload_bytes": 7315,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 3191.984375,
+            "browser_timed_peak_mb": 26.828125,
+            "resident_footprint_mb": 4601.93359375,
+            "preload_peak_mb": 12467.00390625
+          }
+        },
+        "disk-parquet": {
+          "flexviz": {
+            "total_ms": 2701.2000000476837,
+            "server_ms": 2651.0,
+            "transfer_ms": 0.5999999046325684,
+            "client_ms": 49.60000014305115,
+            "payload_bytes": 19583,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 7863.8359375,
+            "browser_timed_peak_mb": 69.96875,
+            "resident_footprint_mb": null,
+            "preload_peak_mb": 1.390625
+          },
+          "mosaic-server": {
+            "total_ms": 2173.899999856949,
+            "server_ms": null,
+            "transfer_ms": null,
+            "client_ms": null,
+            "payload_bytes": null,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 3444.6328125,
+            "browser_timed_peak_mb": 42.91015625,
+            "resident_footprint_mb": null,
+            "preload_peak_mb": 2.84375
+          },
+          "datashader": {
+            "total_ms": 7594.700000047684,
+            "server_ms": 7564.7,
+            "transfer_ms": 0.6000001430511475,
+            "client_ms": 28.700000047683716,
+            "payload_bytes": 7315,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 11965.0,
+            "browser_timed_peak_mb": 24.7890625,
+            "resident_footprint_mb": null,
+            "preload_peak_mb": 0.23046875
+          }
+        }
+      },
+      "2": {
+        "in-memory": {
+          "flexviz": {
+            "total_ms": 197.40000009536743,
+            "server_ms": 142.09999990463257,
+            "transfer_ms": 0.7000000476837158,
+            "client_ms": 54.60000014305115,
+            "payload_bytes": 38664,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 15.6640625,
+            "browser_timed_peak_mb": 72.6796875,
+            "resident_footprint_mb": 4597.421875,
+            "preload_peak_mb": 9118.3671875
+          },
+          "mosaic-server": {
+            "total_ms": 4102.5,
+            "server_ms": null,
+            "transfer_ms": null,
+            "client_ms": null,
+            "payload_bytes": null,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 6021.828125,
+            "browser_timed_peak_mb": 46.0078125,
+            "resident_footprint_mb": 6034.00390625,
+            "preload_peak_mb": 6232.96484375
+          },
+          "datashader": {
+            "total_ms": 6212.900000095367,
+            "server_ms": 6173.3,
+            "transfer_ms": 1.1000001430511475,
+            "client_ms": 37.59999990463257,
+            "payload_bytes": 11101,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 4695.1015625,
+            "browser_timed_peak_mb": 29.93359375,
+            "resident_footprint_mb": 6131.640625,
+            "preload_peak_mb": 17095.73046875
+          }
+        },
+        "disk-parquet": {
+          "flexviz": {
+            "total_ms": 5578.799999952316,
+            "server_ms": 5528.799999952316,
+            "transfer_ms": 1.1000001430511475,
+            "client_ms": 48.89999985694885,
+            "payload_bytes": 38662,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 7852.4609375,
+            "browser_timed_peak_mb": 71.63671875,
+            "resident_footprint_mb": null,
+            "preload_peak_mb": 1.4140625
+          },
+          "mosaic-server": {
+            "total_ms": 4164.700000047684,
+            "server_ms": null,
+            "transfer_ms": null,
+            "client_ms": null,
+            "payload_bytes": null,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 3790.140625,
+            "browser_timed_peak_mb": 45.86328125,
+            "resident_footprint_mb": null,
+            "preload_peak_mb": 2.9375
+          },
+          "datashader": {
+            "total_ms": 14801.400000095367,
+            "server_ms": 14777.5,
+            "transfer_ms": 0.5,
+            "client_ms": 22.59999990463257,
+            "payload_bytes": 11101,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 16163.30859375,
+            "browser_timed_peak_mb": 25.140625,
+            "resident_footprint_mb": null,
+            "preload_peak_mb": 0.23046875
+          }
+        }
+      },
+      "5": {
+        "in-memory": {
+          "flexviz": {
+            "total_ms": 357.5,
+            "server_ms": 281.90000009536743,
+            "transfer_ms": 1.0,
+            "client_ms": 74.59999990463257,
+            "payload_bytes": 95779,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 16.67578125,
+            "browser_timed_peak_mb": 75.296875,
+            "resident_footprint_mb": 9186.18359375,
+            "preload_peak_mb": 18336.27734375
+          },
+          "mosaic-server": {
+            "total_ms": 10189.699999809265,
+            "server_ms": null,
+            "transfer_ms": null,
+            "client_ms": null,
+            "payload_bytes": null,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 6242.2734375,
+            "browser_timed_peak_mb": 49.62109375,
+            "resident_footprint_mb": 12049.890625,
+            "preload_peak_mb": 12461.74609375
+          },
+          "datashader": {
+            "total_ms": 14741.200000047684,
+            "server_ms": 14708.9,
+            "transfer_ms": 0.5,
+            "client_ms": 31.0,
+            "payload_bytes": 20027,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 9209.74609375,
+            "browser_timed_peak_mb": 26.41796875,
+            "resident_footprint_mb": 10720.55859375,
+            "preload_peak_mb": 30984.07421875
+          }
+        },
+        "disk-parquet": {
+          "flexviz": {
+            "total_ms": 13656.799999952316,
+            "server_ms": 13595.299999952316,
+            "transfer_ms": 1.2000000476837158,
+            "client_ms": 60.299999952316284,
+            "payload_bytes": 95784,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 7882.46875,
+            "browser_timed_peak_mb": 71.28125,
+            "resident_footprint_mb": null,
+            "preload_peak_mb": 1.4609375
+          },
+          "mosaic-server": {
+            "total_ms": 10283.700000047684,
+            "server_ms": null,
+            "transfer_ms": null,
+            "client_ms": null,
+            "payload_bytes": null,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 3898.34765625,
+            "browser_timed_peak_mb": 48.03515625,
+            "resident_footprint_mb": null,
+            "preload_peak_mb": 2.98046875
+          },
+          "datashader": {
+            "total_ms": 48107.299999952316,
+            "server_ms": 48085.4,
+            "transfer_ms": 0.6000001430511475,
+            "client_ms": 20.399999856948853,
+            "payload_bytes": 20027,
+            "rendered_fraction": null,
+            "backend_timed_peak_mb": 28368.90625,
+            "browser_timed_peak_mb": 31.00390625,
+            "resident_footprint_mb": null,
+            "preload_peak_mb": 0.23046875
+          }
+        }
+      }
+    }
+  },
+  "notes": [
+    "vaex is excluded from the line chart (unsupported): vaex-viz has no line-trace function (public API verified).",
+    "FlexViz renders a min-max envelope: argmin+argmax of y over n_points//2 equal-ROW-COUNT buckets \u2014 a fixed point budget, unlike Mosaic's pixel-driven reduction, so the two are not the same picture: on this data (sorted uniform-random x) they converge as rows grow but choose different points bucket-by-bucket at small sizes.",
+    "Mosaic IGNORES n_points: vgplot applies pixel-aware automatic M4 reduction, keeping up to 4 extrema (min, max, first, last) per pixel column of the plot width \u2014 not a fixed point budget.",
+    "Datashader renders the full raw line (no downsampling) \u2014 its native workload \u2014 over an in-memory dask frame, persisted with one partition per core per its performance docs. Store construction and persistence happen before TTFR.",
+    "Datashader's disk path keeps dask read_parquet defaults: partitioning is inferred from the file and row-group metadata, and the lazy scan runs inside TTFR.",
+    "mosaic-server on a disk source is loaded as a VIEW over the file, so the scan stays inside the timed window. This is a disclosed deviation from Mosaic's loadParquet default, which materializes a table before any query runs; the in-memory cells do use that materializing default.",
+    "datashader's dask is capped by vaex-core's `dask<2024.9` constraint in this shared environment. Datashader uses dask for its dataframe compute path; Vaex uses its own executor and depends on dask utilities and fingerprinting. The version in force is in the provenance table; the cost of the cap is measured in docs/superpowers/specs/ (dask A/B)."
+  ],
+  "failures": []
+}

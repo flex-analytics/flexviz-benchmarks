@@ -1,91 +1,58 @@
 # Current canonical results
 
-**There are none.** As of 2026-08-22 the honest-benchmark overhaul
-(`docs/superpowers/plans/2026-08-22-honest-benchmark-overhaul.md`) and the
-publication-integrity fixes
-(`docs/superpowers/plans/2026-08-22-publication-integrity-fixes.md`, Phase 7) have landed
-in the code, and **no publishable matrix has been run against them**. Nothing in
-`results/` may be published, ranked, or quoted as a current number.
+**`results/full_2026-08-23/`** — the first matrix to pass `report.publication_failures()`
+since the honest-benchmark overhaul landed. Both reports render without `--diagnostic`.
 
-**The checklist below is now executable.** `report.py` runs `publication_failures()` by
-default and refuses to render rather than trusting an operator to remember. Anything that
-fails renders only under `--diagnostic`, with the claim boundary and the measurement
-description replaced by a banner naming the failures. `results/phase7_2026-08-22/` is a
-**pipeline-validation** run of exactly that kind: it exercises driver → merge → report on
-a dirty tree, so it is refused by design and is diagnostic only.
+| file | cells | statuses |
+|---|---|---|
+| `ttfr_histogram_full.json` | 141 completed | 78 unsupported, 15 source_out_of_scope, 0 censored |
+| `ttfr_line_full.json` | 168 completed | 72 unsupported, 18 source_out_of_scope, 6 censored |
 
-`results/dask_ab_2026-08-23/` is also diagnostic: its two canonical Datashader cells
-decide whether Vaex's Dask constraint materially changes Datashader; they are not a
-cross-tool ranking. The method and decision are in
-`docs/superpowers/specs/2026-08-22-dask-ceiling-ab.md`.
+309 completed cells, **0 failures**, every cell at full `n=5`. Sizes 1M–200M, n_traces
+1/2/5, in-memory + disk-parquet, all 7 contenders. Provenance: flexviz `c0422d3` (clean),
+benchmarks `18543d1` (clean), Chromium 151 on `ANGLE (NVIDIA, Vulkan 1.4.312, RTX 2070)`,
+`duckdb-eh.wasm`, `perspective-server.memory64.wasm`.
+
+## Phase files
+
+Histogram: `hist_small`, `hist_mid`, `hist_big`, `hist_200m_in`, `hist_200m_disk`.
+Line: `line_small`, `line_mid`, `line_big`, `line_200m`.
+
+`hist_200m` was **split by data source**, not by trace count. The original single phase
+was SIGKILLed at the `200M nt5 disk-parquet` cell (the same cell that had to be re-run
+separately in the 2026-08-21 matrix). Dataset width is `max(--n-traces)`, so splitting on
+traces would have silently rebuilt the Parquet two columns wide and made those cells
+cheaper than every other disk cell; splitting on `data_sources` — a legitimate
+`CONFIG_SPLIT` key — keeps the file byte-identical. Both halves ran in the identical
+environment as the other seven phases; no `MALLOC_CONF` was applied to buy the fix,
+because that would have made one phase's environment differ from the rest without
+`merge_results.py` being able to see it.
+
+## Known caveats in these numbers
+
+- **Read `server_ms`/`client_ms`, not just `total_ms`.** Below ~10M rows flexviz's TTFR is
+  dominated by fixed Plotly render cost; at 1M–2M it is statistically indistinguishable
+  from a 1,000-row chart (`results/floor_probe_*.json`, 55.6 ms histogram floor).
+- **Fixed-cost differential.** At 1,000 rows: flexviz 55.6 ms, vaex 77.4, mosaic-server
+  82.1, mosaic-wasm 113.8, perspective-wasm 148.4, perspective-server 211.6. Roughly 26 ms
+  of every flexviz-vs-mosaic-server gap is constant, not compute.
+- **WASM contenders run single-threaded** (no COOP/COEP, `mvp`/`eh` bundles only, D3)
+  while every server tool gets 32 threads — see `provenance.execution`. mosaic-wasm is
+  2.51× slower than the 2026-08-21 run for this reason alone; that run served COOP/COEP
+  and vendored only `duckdb-coi.wasm`, the pthreads build.
+- **vaex is the one noisy tool.** Independent re-measurement of 9 cells 35 min apart:
+  median drift 0.9%, but `200M nt5 in-memory vaex` drifted 20.3%. flexviz and
+  mosaic-server held to ≤1.8%.
+- **6 perspective line cells are censored** (`rendered_fraction` 0.5 at 2M, 0.2 at 5M) by
+  viewer-charts' 2M-cell cap. Only the 1M cells are rankable.
 
 ## Superseded
 
-`results/full_2026-08-21/` (+ `full_2026-08-21_run.log`, `ttfr_histogram_full.json`) —
-**diagnostic only, superseded.** Do not rank it, do not cite it. It predates:
+`results/full_2026-08-21/` — diagnostic only. Same flexviz SHA (`c0422d3`), but a
+different harness: `total_ms` stopped before the barrier, perspective 3.1.3, vgplot 0.10,
+COOP/COEP + `duckdb-coi.wasm`, SwiftShader instead of ANGLE/Vulkan, benchmark-authored
+workloads for cells that are now `unsupported`, and no provenance or status taxonomy.
+Cross-run deltas against it measure the harness, not the engines.
 
-- **Native workloads.** Cells that are now `unsupported` were run anyway, as
-  benchmark-authored charts: datashader's histogram (bins from the shared numpy oracle,
-  datashader only rasterizing the step line — its own note in that file says so),
-  perspective's histogram (authored reshape + expressions for a chart type it does not
-  have), vaex's line (hand-rolled; `vaex-viz` has no line function), and perspective's
-  multi-trace line. Vaex's histogram binned by hand instead of through
-  `df.viz.histogram`.
-- **The timing barrier.** `total_ms` stopped *before* the double-rAF post-render barrier,
-  and the components were the old `query/transfer/render` triple (render swallowed
-  whatever the others could not name).
-- **Current engines.** Perspective 3.x (not 5.2 native X/Y Line, no `rendered_fraction`
-  and no 2M-cell cap disclosure), vgplot 0.10, duckdb-wasm 1.29, the hand-rolled mosaic
-  server fork, COOP/COEP on the static server, and SwiftShader instead of ANGLE/Vulkan.
-- **Provenance and statuses.** No provenance block, no per-cell status taxonomy, so cells
-  cannot be audited or censored after the fact.
-
-Everything older in `results/` (the July `ttfr_*` files, the PR#78 rerun) is historical
-for the same reasons and then some.
-
-## What replaces it
-
-The next canonical matrix comes from Phase 6 of the plan:
-
-1. **Feasibility protocol** — every eligible *exact* cell gets one attempt under a
-   generous cap (`--wait-timeout-max-ms`); feasible cells then run the full repeat count
-   under a cap sized from the observed time; infeasible cells keep an exact
-   `timeout`/`error` record at the cap used. **No extrapolation** across row sizes, trace
-   counts or sources.
-2. **`./run_matrix.sh`** — correctness gates first, phases from the feasibility results,
-   nonzero exit if any phase failed.
-3. **`merge_results.py` + `report.py`** — merge validates that the phases are the same
-   experiment; the report carries the generated methodology, the notes and the claim
-   boundary.
-
-Publish checklist before anything is recorded below — **enforced by
-`report.publication_failures()`, not by memory**: current `schema_version`; both repos
-committed (`dirty: false`); non-null WebGL renderer, Chromium build, plugin `.so` hash,
-`uv_lock_sha256`, `dataset.datagen_sha256`, CPU model/RAM and the relevant per-engine
-`execution` block; a non-empty matrix; exactly one status for every cell in the union of
-each phase's own matrix and no extra statuses; no zero-trial completed cells; no
-`not_requested` cells; no `--allow-missing` hole; a
-recorded engine binary in the same phase for every WASM tool that produced trials; an intact
-`rendered_fraction`/`rendered_rows` pair on every perspective cell. Partial and
-`rendered_fraction < 1.0` cells stay censored in the charts; notes + claim boundary
-present; components follow the `server_ms`/`transfer_ms`/`client_ms` schema.
-
-## Canonical run record
-
-Fill this in when the Phase-6 matrix is published — files plus the provenance that makes
-them auditable:
-
-| Field | Value |
-|---|---|
-| Result files | _(merged JSON + report HTML)_ |
-| Date (UTC) | |
-| `schema_version` | |
-| benchmarks git SHA / dirty | _(dirty must be `false`)_ |
-| flexviz git SHA / dirty | _(dirty must be `false`)_ |
-| flexviz plugin `.so` SHA-256 / size | _(release, ~35MB)_ |
-| Engine versions | _(polars, duckdb, duckdb-server, vaex, perspective-python, datashader)_ |
-| Vendored JS pins + `provenance.runtime` binaries | _(duckdb mvp/eh, perspective wasm32/memory64)_ |
-| `uv_lock_sha256` / `dataset.datagen_sha256` | |
-| Effective execution settings | _(vaex threads/chunk, dask scheduler, polars, duckdb)_ |
-| Chromium / Playwright / WebGL renderer | |
-| Host (platform, CPU model/count, total RAM, thread env) | |
+Everything older in `results/` (the July `ttfr_*` files, the PR#78 rerun) is historical.
+`results/floor_probe_*.json` and `results/dask_ab_2026-08-23/` are diagnostic by design.

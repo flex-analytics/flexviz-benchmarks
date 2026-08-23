@@ -196,11 +196,7 @@ cython_debug/
 .abstra/
 
 # Visual Studio Code
-#   Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
-#   that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
-#   and can be added to the global gitignore or merged into this file. However, if you prefer, 
-#   you could uncomment the following to ignore the entire vscode folder
-# .vscode/
+.vscode/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
@@ -224,6 +220,10 @@ data/
 # negation under it would be inert — the canonical-results pointer must be tracked.
 results/*
 !results/CURRENT.md
+# The canonical published matrix IS tracked: a benchmark repo whose evidence lives only
+# on the author's disk cannot be audited. `results/*` matches direct children only, so
+# un-ignoring the directory is enough for git to descend into it.
+!results/full_2026-08-23/
 
 # MCP server runtime directory
 .playwright-mcp/
