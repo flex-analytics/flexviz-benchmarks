@@ -1,5 +1,7 @@
 // contract.js — shared page contract. Each probe imports these helpers and finishes
-// a trial by calling benchDone(...). Render-complete requires a double-rAF (paint).
+// a trial by calling benchDone(t0, fields). The clock ends AFTER a double-rAF
+// post-render barrier — a frame barrier after the render commit, not a claim that
+// compositor presentation is proven.
 // Two render proofs are supported and BOTH count toward `marks`:
 //   1. vector marks (canvas/svg/path/rect/polyline), recursing through shadow DOM;
 //   2. <img> elements that decoded to non-zero dimensions AND are non-blank (the
@@ -7,7 +9,7 @@
 //      would always report `no_marks`). The non-blank-pixel check is always-on, per
 //      the spec's "always-on non-blank-pixel assertion".
 window.__benchHelpers = {
-  // Resolve after the next compositor paint (two nested rAFs).
+  // Resolve on the second animation frame after the render commit (frame barrier).
   afterPaint() {
     return new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
   },
@@ -56,15 +58,24 @@ window.__benchHelpers = {
       }, 2);
     });
   },
-  async benchDone(fields) {
+  // Finish a trial. `t0` is the performance.now()-timeline origin of the request that
+  // triggered the pipeline; the total is read AFTER the barrier, so the barrier is
+  // inside the measured window. Components a pipeline cannot separate stay null —
+  // never derived by subtracting a null. `fields.client_from` (the resource entry's
+  // responseEnd, same timeline) becomes client_ms = last byte -> barrier.
+  async benchDone(t0, fields = {}) {
     await window.__benchHelpers.afterPaint();
+    const now = performance.now();
     const marks = window.__benchHelpers.countVectorMarks() + window.__benchHelpers.countImageMarks();
+    const { client_from, ...rest } = fields;
     window.__bench = {
       status: marks > 0 ? "ok" : "no_marks",
       marks,
-      query_ms: null, transfer_ms: null, render_ms: null, payload_bytes: null,
-      ...fields,
+      server_ms: null, transfer_ms: null, client_ms: null, payload_bytes: null,
+      ...rest,
+      total_ms: Math.max(0, now - t0),
     };
+    if (client_from != null) window.__bench.client_ms = Math.max(0, now - client_from);
   },
   benchError(err) { window.__bench = { status: "error", err: String(err) }; },
 };

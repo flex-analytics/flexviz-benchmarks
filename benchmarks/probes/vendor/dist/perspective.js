@@ -1,4 +1,4 @@
-import perspective from './perspective-core.js';
-import './perspective-viewer.js';
-import './perspective-viewer-d3fc.js';
+import perspective from './client/dist/cdn/perspective.js';
+import './viewer/dist/cdn/perspective-viewer.js';
+import './viewer-charts/dist/cdn/perspective-viewer-charts.js';
 export { perspective };

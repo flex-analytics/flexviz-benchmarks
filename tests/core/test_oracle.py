@@ -1,5 +1,4 @@
 import numpy as np
-
 from core.datagen import histogram_columns, line_columns
 from core.oracle import histogram_counts, line_envelope
 

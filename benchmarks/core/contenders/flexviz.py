@@ -8,12 +8,7 @@ from pathlib import Path
 import polars as pl
 
 from core.contenders.base import PROBES
-
-
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
+from core.serve import free_port
 
 
 class FlexVizContender:
@@ -40,7 +35,7 @@ class FlexVizContender:
         sys.path.insert(0, str(self._repo.resolve()))
         from flexviz.figure import _start_server_thread
 
-        port = _free_port()
+        port = free_port()
         _start_server_thread("127.0.0.1", port)
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
@@ -90,9 +85,6 @@ class FlexVizContender:
 
     def init_scripts(self) -> list[str]:
         return [(PROBES / "contract.js").read_text(), (PROBES / "flexviz_probe.js").read_text()]
-
-    def ready_signal(self) -> str:
-        return "() => window.__bench !== undefined"
 
     def teardown(self) -> None:
         # Unregister this trial's source: the in-driver server's _sources dict otherwise

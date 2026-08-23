@@ -1,13 +1,16 @@
 {
-  "duckdb-browser-coi.pthread.worker.js": "ab8b55bbbfde2bdabdd1d26700f131fe97d5c7da79c65c43a3f7d3b0e28a9d2a",
-  "duckdb-browser-coi.worker.js": "aa373a59e7d8f7e28f3271ac068686ce24cc3ea81e653b0c2d49858ac236b837",
-  "duckdb-coi.wasm": "adf1253b78aa22be5df12e41b2d7770ed9a27c623d7d75d4ea4d68a55a53b847",
-  "mosaic_server_vgplot.js": "3cc27c6e85b19db55eafcad1677550312c4e7731a109d66f3f16f44c48ba14bd",
-  "mosaic_wasm.js": "09cffec0cd075333fef5ae8cc86a0a51941165683606bc93d4d6ac4756bec788",
-  "perspective-core.js": "0bc4908112f7ecd2a1f142f76a1419eac7f713f7ddf35e73ca4c530f56834188",
-  "perspective-server.wasm": "5b80926e27f7cf278441b6f5a778caa9ffb6885bdb86c3e71bbe5cd11b510dfe",
-  "perspective-viewer-d3fc.js": "432fb57946ed45ff019112221e074d41897dc4d26af90ceee159f2fa71114056",
-  "perspective-viewer.js": "97d507f02c0465bd0df3feb6e17811c62d2ed42f12b9627941684671edfccdb0",
-  "perspective-viewer.wasm": "cab96550e6c264d4fce34015205eeb4900798a61e71f0bdebbc45b5321f5c638",
-  "perspective.js": "12a72e6529a6476b242f4f059aa90cbe2ba7230e45d8d0c6ade559ad4a1c714e"
+  "client/dist/cdn/perspective.js": "ca885fd8f0ed16a6bb436f26518fc0295057293f29e75762da0c4c1863359809",
+  "duckdb-browser-eh.worker.js": "f8ab72b6b90b3ad83077d47426d4a99d5d9a4c7e07cba1a2be37d655adc7c1ab",
+  "duckdb-browser-mvp.worker.js": "b0387027f174e2b60c2d5cfa31cecca9b89d8a9762346b6449a784cd1c4dde3c",
+  "duckdb-eh.wasm": "4c221bfa59c11f24dbd750e70c90b9252eca6eec5633936e6a2ec766e55fd879",
+  "duckdb-mvp.wasm": "45d72a81fba8e57693d890da837c7041310e385e75619a8559839b15388dfe97",
+  "mosaic_server_vgplot.js": "31b0e2ef8cf378122332bf98605a9e08dab65c851cab7e892d2cd6d5fe6cd1d1",
+  "mosaic_wasm.js": "ab5fc4c1ea0ef23510acd6a5383d6be3f44972f91512f8c780cad5d0e90d6ac7",
+  "perspective.js": "2d4524522410d9798fb4363e270712dfea022fe953faadd6c6473a589e755ad6",
+  "server/dist/wasm/perspective-server.memory64.wasm": "9b5bac41c07c82443dc43dd307a3704b9f2ff4f4705b8d93d0ce593e7ff58432",
+  "server/dist/wasm/perspective-server.wasm": "ebedb356c0abdd580495b99ec3e8174432e21d6df0e1c920b33b97c579ffd781",
+  "viewer/dist/cdn/perspective-viewer.js": "e024a06915ac50172f293ba289988a2bde73d182cb83c81e7701eede78e9b54f",
+  "viewer/dist/css/themes.css": "69db78beda12957faf8f4ee33b57fb2fcd2442be7ece5d997020abada2810b1e",
+  "viewer/dist/wasm/perspective-viewer.wasm": "6852641d6dfe5cdee066b97c37af62189fac6dfab76d9dfc9d79a1b66b60f1f5",
+  "viewer-charts/dist/cdn/perspective-viewer-charts.js": "1303c9637972346217d629c28afde32d8cb67ef30cbf63af10f4f56e25c50b5b"
 }

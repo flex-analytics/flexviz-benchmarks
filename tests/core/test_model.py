@@ -4,9 +4,9 @@ from core.model import Trial, summarize
 def _t(total, q=None):
     return Trial(
         total_ms=total,
-        query_ms=q,
+        server_ms=q,
         transfer_ms=None,
-        render_ms=None,
+        client_ms=None,
         payload_bytes=None,
     )
 
@@ -14,9 +14,9 @@ def _t(total, q=None):
 def _mem_trial():
     return Trial(
         total_ms=99.0,
-        query_ms=None,
+        server_ms=None,
         transfer_ms=None,
-        render_ms=None,
+        client_ms=None,
         payload_bytes=None,
         backend_timed_peak_mb=10.0,
         browser_timed_peak_mb=5.0,
@@ -25,7 +25,7 @@ def _mem_trial():
     )
 
 
-def test_summarize_medians_and_nullable_query():
+def test_summarize_medians_and_nullable_component():
     s = summarize(
         rows=1000,
         n_traces=1,
@@ -35,11 +35,19 @@ def test_summarize_medians_and_nullable_query():
         memory_trial=_mem_trial(),
     )
     assert s.total_median_ms == 20
-    assert s.query_median_ms == 6  # median of [4, 8], Nones dropped
+    assert s.server_median_ms == 6  # median of [4, 8], Nones dropped
     assert s.trials == 3
     # memory comes from the cold isolated trial, not the timing repeats
     assert s.backend_timed_peak_mb == 10.0
     assert s.resident_footprint_mb == 20.0
+
+
+def test_summarize_records_the_rows_a_capped_tool_rendered():
+    trial = _t(10)
+    trial.rendered_fraction = 0.1
+    summary = summarize(10_000_000, 1, "perspective-wasm", "in-memory", [trial])
+
+    assert summary.rendered_rows == 1_000_000
 
 
 def test_summarize_without_memory_trial_has_none_memory():

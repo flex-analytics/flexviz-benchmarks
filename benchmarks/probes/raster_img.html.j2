@@ -11,11 +11,14 @@ try {
   img.src = "{{PNG_URL}}";                 // request triggers server-side raster
   await img.decode();                       // resolves when decoded
   const res = performance.getEntriesByName(img.src).pop();
-  H.benchDone({
-    total_ms: performance.now() - t0,
-    query_ms: res ? Math.max(0, res.responseStart - res.requestStart) : null,
+  // server_ms is the FULL server pipeline for a rasterizer — aggregation + raster +
+  // PNG encode — from the Server-Timing `raster` mark (exposed cross-origin by the
+  // PNG server's Timing-Allow-Origin).
+  const st = res ? (res.serverTiming || []).find((e) => e.name === "raster") : null;
+  H.benchDone(t0, {
+    server_ms: st ? st.duration : null,
     transfer_ms: res ? Math.max(0, res.responseEnd - res.responseStart) : null,
-    render_ms: null,
+    client_from: res ? res.responseEnd : null,   // client_ms = decode + barrier
     payload_bytes: res ? (res.encodedBodySize || res.transferSize || 0) : null,
   });
 } catch (e) { H.benchError(e); }

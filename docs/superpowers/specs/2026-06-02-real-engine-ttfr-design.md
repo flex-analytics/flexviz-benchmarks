@@ -1,5 +1,16 @@
 # Real-engine TTFR benchmark harness — design
 
+> **STATUS: partially superseded (2026-08-22).** The "same picture across tools"
+> requirement in this spec is replaced by **native workloads per tool** — every contender
+> runs the chart it natively provides, with no benchmark-authored workload prep, and
+> charts a tool does not have are recorded as `unsupported` instead of emulated.
+> Cross-tool pixel equivalence is no longer asserted; correctness is proven per engine by
+> the Phase-2A gates (`make verify-workloads`). The timing/exclusion/provenance semantics
+> here are likewise superseded. See
+> [`docs/superpowers/plans/2026-08-22-honest-benchmark-overhaul.md`](../plans/2026-08-22-honest-benchmark-overhaul.md)
+> (decision D8). The rest of this document is kept as the historical design record —
+> body unchanged.
+
 Date: 2026-06-02
 Status: design approved; spikes run (Mosaic-wasm ✅, Perspective+server ✅, Graphic
 Walker ⚠️ blocked). **Implementation plan targets a 7-tool roster — Graphic Walker is

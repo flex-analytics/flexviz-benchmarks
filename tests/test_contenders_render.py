@@ -14,9 +14,18 @@ from core.datagen import ensure_disk_dataset, frame_for  # noqa: E402
 from core.harness import RenderProbe  # noqa: E402
 
 FLEXVIZ = Path(__file__).parent.parent.parent / "flexviz"
+# A present-but-unbuilt repo must skip too: importing flexviz.* then fails at collection.
+_PLUGIN = FLEXVIZ / "flexviz_polars" / "flexviz_polars" / "_internal.abi3.so"
+FLEXVIZ_SKIP = (
+    "flexviz repo not present"
+    if not FLEXVIZ.exists()
+    else "flexviz plugin not built"
+    if not _PLUGIN.exists()
+    else ""
+)
 
 
-@pytest.mark.skipif(not FLEXVIZ.exists(), reason="flexviz repo not present")
+@pytest.mark.skipif(bool(FLEXVIZ_SKIP), reason=FLEXVIZ_SKIP)
 def test_flexviz_renders_histogram_in_memory():
     frame = frame_for("histogram", 50_000, 2, 42)
     with RenderProbe(headless=True) as probe:
@@ -75,41 +84,29 @@ def test_mosaic_wasm_renders_histogram_in_memory():
 
 
 def test_perspective_wasm_renders_line_in_memory():
-    frame = frame_for("line", 50_000, 2, 42)
+    # n_traces=1 only: native X/Y Line carries a single y series (config.MAX_TRACES).
+    frame = frame_for("line", 50_000, 1, 42)
     with RenderProbe(headless=True) as probe:
         trial = probe.run_trial(
             PerspectiveWasmContender(),
             chart="line",
             source="in-memory",
             frame_or_path=frame,
-            n_traces=2,
+            n_traces=1,
             bins=100,
             n_points=1000,
         )
     assert trial.total_ms > 0
-
-
-def test_perspective_wasm_renders_histogram_in_memory():
-    frame = frame_for("histogram", 50_000, 2, 42)
-    with RenderProbe(headless=True) as probe:
-        trial = probe.run_trial(
-            PerspectiveWasmContender(),
-            chart="histogram",
-            source="in-memory",
-            frame_or_path=frame,
-            n_traces=2,
-            bins=50,
-            n_points=1000,
-        )
-    assert trial.total_ms > 0
+    assert trial.rendered_fraction == 1.0  # 50k rows is far under the 1M-row render cap
 
 
 @pytest.mark.parametrize("source", ["in-memory", "disk-parquet"])
 def test_perspective_server_renders_line(source, tmp_path):
+    # The disk cell is INGESTION: /build reads the file and builds the Table in-window.
     data = (
-        frame_for("line", 50_000, 2, 42)
+        frame_for("line", 50_000, 1, 42)
         if source == "in-memory"
-        else ensure_disk_dataset(tmp_path / "ds", "line", 50_000, 2, 42, source, True)
+        else ensure_disk_dataset(tmp_path / "ds", "line", 50_000, 1, 42, source, True)
     )
     with RenderProbe(headless=True) as probe:
         trial = probe.run_trial(
@@ -117,33 +114,13 @@ def test_perspective_server_renders_line(source, tmp_path):
             chart="line",
             source=source,
             frame_or_path=data,
-            n_traces=2,
+            n_traces=1,
             bins=100,
             n_points=1000,
         )
     assert trial.total_ms > 0
     assert trial.backend_timed_peak_mb is not None
-
-
-@pytest.mark.parametrize("source", ["in-memory", "disk-parquet"])
-def test_perspective_server_renders_histogram(source, tmp_path):
-    data = (
-        frame_for("histogram", 50_000, 2, 42)
-        if source == "in-memory"
-        else ensure_disk_dataset(tmp_path / "ds", "histogram", 50_000, 2, 42, source, True)
-    )
-    with RenderProbe(headless=True) as probe:
-        trial = probe.run_trial(
-            PerspectiveServerContender(),
-            chart="histogram",
-            source=source,
-            frame_or_path=data,
-            n_traces=2,
-            bins=50,
-            n_points=1000,
-        )
-    assert trial.total_ms > 0
-    assert trial.backend_timed_peak_mb is not None
+    assert trial.rendered_fraction == 1.0
 
 
 def test_vaex_renders_histogram_png():
@@ -159,7 +136,7 @@ def test_vaex_renders_histogram_png():
             n_points=1000,
         )
     assert trial.total_ms > 0
-    assert trial.query_ms is not None  # Server-Timing -> responseStart split present
+    assert trial.server_ms is not None  # Server-Timing raster duration present
 
 
 def test_datashader_renders_line_png():
@@ -186,8 +163,8 @@ def test_child_backend_memory_trial_charges_resident_store(tmp_path, tool):
     # this fails if the child ever mmaps the IPC file again (file-backed = uncharged).
     from core.contenders.child import ChildBackend
 
-    if tool == "flexviz" and not FLEXVIZ.exists():
-        pytest.skip("flexviz repo not present")
+    if tool == "flexviz" and FLEXVIZ_SKIP:
+        pytest.skip(FLEXVIZ_SKIP)
     # max_traces=5 wide file, 1-trace cell: the child must project to the cell's columns
     ipc = ensure_disk_dataset(tmp_path / "ds", "histogram", 1_000_000, 5, 42, "disk-ipc", True)
     with RenderProbe(headless=True) as probe:
@@ -232,19 +209,24 @@ def assert_real_engine(page, kind: str):
 
 
 @pytest.mark.parametrize(
-    "factory, chart, kind",
+    "factory, chart, kind, n_traces",
     [
-        (MosaicWasmContender, "line", "vgplot"),
-        (PerspectiveWasmContender, "line", "perspective"),
-        (VaexContender, "histogram", "raster"),
+        (MosaicWasmContender, "line", "vgplot", 2),
+        (PerspectiveWasmContender, "line", "perspective", 1),  # X/Y Line = one y series
+        (VaexContender, "histogram", "raster", 2),
     ],
 )
-def test_engine_markers(factory, chart, kind):
-    frame = frame_for(chart, 20_000, 2, 42)
+def test_engine_markers(factory, chart, kind, n_traces):
+    frame = frame_for(chart, 20_000, n_traces, 42)
     c = factory()
-    c.start_backend(chart=chart, source="in-memory", n_traces=2, bins=50, n_points=1000)
+    c.start_backend(chart=chart, source="in-memory", n_traces=n_traces, bins=50, n_points=1000)
     c.preload(
-        chart=chart, source="in-memory", frame_or_path=frame, n_traces=2, bins=50, n_points=1000
+        chart=chart,
+        source="in-memory",
+        frame_or_path=frame,
+        n_traces=n_traces,
+        bins=50,
+        n_points=1000,
     )
     try:
         with sync_playwright() as p:
@@ -263,15 +245,15 @@ def test_engine_markers(factory, chart, kind):
 def test_no_two_contenders_emit_identical_pages():
     import urllib.request
 
-    frame = frame_for("histogram", 10_000, 2, 42)
+    frame = frame_for("line", 10_000, 1, 42)
     hashes = {}
     for make in [MosaicWasmContender, PerspectiveWasmContender]:
         c = make()
         c.preload(
-            chart="histogram",
+            chart="line",
             source="in-memory",
             frame_or_path=frame,
-            n_traces=2,
+            n_traces=1,
             bins=50,
             n_points=1000,
         )

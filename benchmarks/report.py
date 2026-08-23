@@ -9,27 +9,33 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import Counter
 from html import escape
 from pathlib import Path
 from typing import Any
 
 import plotly.graph_objects as go
+from core.provenance import SCHEMA_VERSION
 from plotly.subplots import make_subplots
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
+# Components: server_ms = request -> first byte (or a Server-Timing duration covering the
+# whole server pipeline); transfer_ms = body receive; client_ms = last byte -> barrier.
+# A component the pipeline cannot separate is None and renders as "not separable" —
+# never as zero, never back-derived from the total.
 TIMING_METRICS: list[tuple[str, str]] = [
     ("total_median_ms", "total"),
-    ("query_median_ms", "query"),
+    ("server_median_ms", "server"),
 ]
 
 # Detail metrics rendered as tables rather than chart columns.
 # (field, short column header)
 DETAIL_TIMING_METRICS: list[tuple[str, str]] = [
     ("transfer_median_ms", "Transfer"),
-    ("render_median_ms", "Render"),
+    ("client_median_ms", "Client"),
 ]
 # Browser-side memory metrics, reported in a separate table (build_browser_memory_table):
 # the per-render delta, plus the resident in-browser store + its build peak for the
@@ -69,6 +75,8 @@ TOOL_MARKER: dict[str, str] = {
     "vaex": "triangle-up",
     "datashader": "cross",
 }
+# Partial cells (n < repeats) render in this grey wherever they appear.
+CENSORED_COLOR = "#9ca3af"
 SOURCE_DASH: dict[str, str] = {
     "disk-parquet": "solid",
     "disk-csv": "dash",
@@ -91,9 +99,9 @@ def _format_size(n: int) -> str:
     return str(n)
 
 
-def _format_ms(value: Any) -> str:
+def _format_ms(value: Any, missing: str = "&mdash;") -> str:
     if value is None:
-        return "&mdash;"
+        return missing
     # Raw memory deltas can dip slightly negative (GC below baseline); the JSON keeps
     # the raw value, the report clamps for display.
     return f"{max(0.0, float(value)):.2f}"
@@ -127,6 +135,32 @@ def load_json(path: Path) -> dict[str, Any]:
         "config": raw.get("config", {}),
         "notes": raw.get("notes", []),
         "failures": raw.get("failures", []),
+        # Pre-4.1 result files have neither: they render as all-completed, no provenance.
+        "statuses": raw.get("statuses", []),
+        "provenance": raw.get("provenance", {}),
+    }
+
+
+def is_censored(status: dict[str, Any]) -> bool:
+    """True if this cell must not be published as a comparable measurement.
+
+    Two ways to fail: a PARTIAL cell kept n < repeats trials (the harness keeps what
+    completed before a tool stopped), or the tool DREW ONLY PART of the data
+    (rendered_fraction < 1 — perspective truncates to head(2M cells / view columns)),
+    which makes a fast total meaningless next to tools that reduced every row.
+    """
+    fraction = status.get("rendered_fraction")
+    return status.get("status") == "partial" or (fraction is not None and fraction < 1.0)
+
+
+def censored_cells(statuses: list[dict[str, Any]]) -> dict[tuple, dict[str, Any]]:
+    """{(rows, n_traces, source, tool): status} for cells censored per is_censored().
+
+    These render greyed/annotated and are never used for emphasis. Files without
+    statuses yield {} — all cells count as full.
+    """
+    return {
+        (s["rows"], s["n_traces"], s["source"], s["tool"]): s for s in statuses if is_censored(s)
     }
 
 
@@ -140,9 +174,9 @@ def compute_bands(trials_json: dict) -> dict[tuple, tuple[float, float]]:
 
     _METRICS = (
         "total_ms",
-        "query_ms",
+        "server_ms",
         "transfer_ms",
-        "render_ms",
+        "client_ms",
         "backend_timed_peak_mb",
         "browser_timed_peak_mb",
         "resident_footprint_mb",
@@ -200,7 +234,9 @@ def build_figure(
     add_toggle: bool = False,
     x_log: bool = False,
     title: str = "",
+    censored: dict[tuple, dict[str, Any]] | None = None,
 ) -> go.Figure:
+    censored = censored or {}
     dims = _detect_dimensions(summaries)
     sources = dims["sources"]
     tools = dims["tools"]
@@ -239,11 +275,16 @@ def build_figure(
                 ys = [s.get(m_field) for s in tool_data]
                 if m_field.endswith("_mb"):  # clamp raw memory deltas for display
                     ys = [max(0.0, y) if y is not None else None for y in ys]
+                # Partial cells stay visible but are marked censored: grey marker and an
+                # explicit n=x/y stop reason in the hover, so they can never be read as a
+                # publishable measurement.
+                cens = [censored.get((s["rows"], s["n_traces"], src, tool)) for s in tool_data]
                 hover = [
                     f"{tool} / {src}<br>{x_key}={x}<br>{m_field}={y:.2f}<br>n={s['trials']}"
+                    + (f"<br><b>CENSORED</b> — {c['reason']}" if c else "")
                     if y is not None
                     else ""
-                    for x, y, s in zip(xs, ys, tool_data)
+                    for x, y, s, c in zip(xs, ys, tool_data, cens)
                 ]
 
                 fig.add_trace(
@@ -261,8 +302,12 @@ def build_figure(
                         ),
                         marker=dict(
                             symbol=TOOL_MARKER.get(tool, "circle"),
-                            color=TOOL_COLOR.get(tool),
-                            size=6,
+                            # per-point styling only where something is censored, so an
+                            # uncensored figure keeps its plain scalar styling
+                            color=[CENSORED_COLOR if c else TOOL_COLOR.get(tool) for c in cens]
+                            if any(cens)
+                            else TOOL_COLOR.get(tool),
+                            size=[9 if c else 6 for c in cens] if any(cens) else 6,
                         ),
                         hovertext=hover,
                         hoverinfo="text",
@@ -529,99 +574,419 @@ code {
     border-radius: 3px;
 }
 .footnote { font-size: 0.78rem; color: #8888aa; margin-top: 8px; }
+.dirty { color: #b45309; font-weight: 600; }
+/* A partial cell (n < repeats) is not publishable: grey it and mark it everywhere. */
+.censored { color: #9ca3af; font-style: italic; }
 """
 
-_METHODOLOGY_HTML = """\
-<div class="card">
-  <h2>Tools &amp; Methodology</h2>
+# The methodology card is GENERATED from the loaded result (notes, provenance, cell
+# statuses) — never hand-written prose. Hand-written per-tool prose drifted out of date
+# every time a contender changed, and a stale methodology is a dishonest one.
+_CLAIM_BOUNDARY = """\
+<p><strong>Claim boundary.</strong> This is an <strong>end-to-end comparison of each
+tool&rsquo;s native workload</strong> &mdash; every engine runs the chart it provides,
+through its own documented path; known deviations and configuration choices are listed in
+Run notes below. The workloads are
+therefore <strong>not algorithm-equivalent</strong> (a pixel-driven M4 reduction, a fixed
+equal-row-count envelope and a full raw-line rasterization are different computations),
+so these numbers support <strong>no equal-work algorithm-speed claims</strong>: they say
+what each tool does when asked for its own chart of this data, and nothing more.</p>"""
 
-  <p>Seven tools across three classes. <strong>TTFR</strong> is clocked entirely in the
-  browser, from the request that triggers each tool&rsquo;s pipeline to a paint-proven
-  first render (a double <code>requestAnimationFrame</code> after the engine&rsquo;s
-  ready signal; the reported time excludes the awaited paint itself). Engines render the
-  same bounded histogram workload (<code>bins</code> bars/trace). For line charts,
-  FlexViz/Mosaic use an M4-style envelope, Vaex/Perspective a mean-per-bin line
-  (~1000 x-bins), and Datashader rasterizes the full raw line (its native workload) on a
-  dask-partitioned frame. Axis-extent discovery (min/max) runs <em>inside</em> the timed
-  window for every tool, on the tool&rsquo;s own engine. The same-engine
-  <strong>server&nbsp;vs&nbsp;WASM</strong> pairs (Mosaic, Perspective) isolate
-  compute-location as a single variable.</p>
+_MEASUREMENT = """\
+<p><strong>Timing.</strong> Clocked entirely in the browser, from the request that
+triggers a tool&rsquo;s pipeline to a <strong>double-rAF post-render barrier</strong>
+(a frame barrier after the render commit &mdash; <em>not</em> a claim that compositor
+presentation is proven; the barrier is inside the reported time). Components:
+<code>server_ms</code> = request &rarr; first byte, or a <code>Server-Timing</code>
+duration where that covers the whole server pipeline; <code>transfer_ms</code> = body
+receive; <code>client_ms</code> = last byte &rarr; barrier. A component a pipeline cannot
+separate is <strong>null</strong> and renders as &ldquo;not separable&rdquo; &mdash; never
+as zero, never back-derived from the total. Axis-extent discovery runs <em>inside</em> the
+timed window, on the tool&rsquo;s own engine.</p>
+<p><strong>Disk policy.</strong> Disk-source repeats, when present, re-scan the file into
+a cold engine. The harness does not drop the OS page cache, and the cold memory trial plus
+warmup precede recorded repeats, so those repeats normally see a <strong>warm OS page
+cache</strong>. No engine result cache is shared across trials. These are
+engine-and-decompression timings, not controlled cold-storage I/O benchmarks.</p>
+<p><strong>Memory.</strong> One <strong>cold, process-isolated trial per cell</strong>,
+never the warm timing repeats (a reused process&rsquo;s allocator collapses
+peak-minus-baseline deltas to noise). Backend peaks come from the kernel&rsquo;s
+<code>VmHWM</code> high-water mark; in-browser store footprints from <strong>PSS</strong>
+(summing RSS over a Chromium tree double-counts shared pages). Raw deltas are stored in
+the JSON and clamped at 0 for display.</p>
+<p><strong>Browser.</strong> Chromium is launched with
+<code>--use-angle=vulkan --enable-features=Vulkan</code> for <em>every</em> contender:
+headless Chromium otherwise binds SwiftShader, a CPU rasterizer that cost a GPU-rendered
+chart 33&times; at 1M rows. That is a uniform, non-default browser flag &mdash; the
+renderer it actually bound is recorded in the provenance table below.</p>"""
 
-  <p><strong>Source semantics.</strong> For an <em>in-memory</em> source the data is
-  resident in each engine&rsquo;s native store before timing (the timed window is query
-  + render only). For a <em>disk</em> source the engine holds only a handle to the file;
-  the read + parse + query + render all happen inside the timed window, re-read each
-  trial with no cross-trial cache. Client/WASM engines (mosaic-wasm, perspective-wasm)
-  have no out-of-core path and run <strong>in-memory only</strong>.</p>
+_SUPERSEDED_METHODOLOGY = """\
+<p><strong>This result file predates the current methodology.</strong> Its cells carry no
+status taxonomy, and its workloads may have been benchmark-authored charts for tool/chart
+combinations that are now recorded as <code>unsupported</code>. The claim boundary and
+measurement description that apply to current results are deliberately <em>not</em> shown
+here, because they would not be true of this file. Its own run notes are kept below as
+recorded at the time.</p>"""
 
-  <div class="tool-desc-grid">
-    <div class="tool-desc-item">
-      <h3>Class A &mdash; server-compute, browser-render</h3>
-      <p><em>FlexViz, Mosaic-server, Perspective-server.</em> The backend computes the
-      small result (envelope / bins / viewport) and the browser draws it.
-      <strong>FlexViz</strong>: Polars over HTTP <code>/update</code>, Plotly
-      <code>react</code>; timing split via <code>PerformanceResourceTiming</code>.
-      <strong>Mosaic-server</strong>: a DuckDB WebSocket server with a <em>native</em>
-      <code>CREATE TABLE</code> for in-memory (fixes the prior registered-frame re-scan
-      paradox) or a parquet view for disk; vgplot renders. <strong>Perspective-server</strong>:
-      a <code>perspective-python</code> server holds the table and streams only the
-      current viewport to <code>&lt;perspective-viewer&gt;</code>; build cost surfaces via a
-      <code>Server-Timing</code> header.</p>
-    </div>
-    <div class="tool-desc-item">
-      <h3>Class B &mdash; client-compute (WASM), browser-render</h3>
-      <p><em>Mosaic-wasm, Perspective-wasm (in-memory only).</em> The dataset ships to
-      the browser as an Arrow buffer and the engine&rsquo;s native store is built
-      <em>there</em> before timing &mdash; a DuckDB-WASM table (Mosaic) or a WASM
-      <code>Table</code> (Perspective). The store-build phase is measured separately
-      (a <code>__bench_stored</code> handshake) so it lands in resident memory, not render
-      time. JS engines are vendored offline (esbuild / prebuilt bundles); no CDN is hit.</p>
-    </div>
-    <div class="tool-desc-item">
-      <h3>Class C &mdash; server-rasterize, browser-displays-image</h3>
-      <p><em>Vaex, Datashader.</em> A live <code>GET /render.png</code> endpoint runs the
-      aggregation + raster <em>on each request</em> (no pre-baking, nonce defeats caching);
-      the probe is an <code>&lt;img&gt;</code> and the clock runs request &rarr;
-      <code>img.decode()</code> + paint. <strong>Vaex</strong> bins with
-      <code>df.count/mean(binby=&hellip;)</code> &rarr; matplotlib Agg PNG;
-      <strong>Datashader</strong> uses <code>Canvas.line</code> &rarr; <code>tf.shade</code>
-      over a dask-partitioned frame (one partition per core, its documented large-data
-      path; numba kernels are JIT-warmed in preload), histogram = numpy-oracle bin counts
-      as a step line. <code>query_ms</code> is the server raster time;
-      <code>transfer_ms</code> the image body transfer.</p>
-    </div>
-  </div>
 
-  <div class="measure-section">
-    <h3>Memory</h3>
-    <p>Memory comes from <strong>one cold, process-isolated trial per cell</strong> &mdash;
-    never from the warm timing repeats, where a reused process&rsquo;s allocator makes
-    peak-minus-baseline deltas collapse to noise (validated: the same aggregation reports
-    404&nbsp;&rarr;&nbsp;0.4&nbsp;MB across four warm in-process runs). Every backend is a
-    <em>fresh spawned child</em> for this trial: the server engines already spawn one per
-    trial; FlexViz/Vaex/Datashader are hosted in a child that also materializes the
-    in-memory source frame, so a zero-copy engine is charged the frame it references.
-    Baselines are the empty child, taken before the store build. Metrics:</p>
-    <ul class="footnote" style="line-height:1.5">
-      <li><code>backend_timed_peak_mb</code> &mdash; backend peak during the timed render
-      window, from the kernel&rsquo;s <code>VmHWM</code> high-water mark (reset via
-      <code>clear_refs</code> at window start): exact, no sampling gaps. Falls back to a
-      5&nbsp;ms RSS sampler where <code>/proc</code> is unavailable.</li>
-      <li><code>browser_timed_peak_mb</code> &mdash; incremental Chromium-tree RSS during
-      render (sampled; a tree walk costs ~8&nbsp;ms, so this is a lower bound). Unlike a
-      JS-heap delta it captures WASM heaps and canvas buffers.</li>
-      <li><code>resident_footprint_mb</code> / <code>preload_peak_mb</code> &mdash;
-      steady-state size and build-peak of the engine&rsquo;s native store. Backend child
-      RSS for server engines; for the client/WASM engines the store phase is measured in
-      the browser with <strong>PSS</strong> (summing RSS over a Chromium tree
-      double-counts shared pages ~2.5&times;). Empty on disk sources (the engine holds
-      only a handle pre-timing).</li>
-    </ul>
-    <p class="footnote">Raw deltas are stored in the JSON (small negatives possible from
-    GC below baseline); the report clamps at 0 for display. Timing repeats and the memory
-    trial are separate passes: timing is a warm median, memory is a cold single shot.</p>
-  </div>
-</div>"""
+def _dirty_html(entry: dict[str, Any] | None) -> str:
+    if not entry:
+        return "&mdash;"
+    sha = entry.get("sha") or "unknown"
+    dirty = entry.get("dirty")
+    if dirty is None:
+        mark = "dirty flag unavailable"
+    else:
+        mark = "dirty" if dirty else "clean"
+    css = ' class="dirty"' if dirty else ""
+    return f"<code>{escape(str(sha))}</code><span{css}> ({mark})</span>"
+
+
+def provenance_rows(provenance: dict[str, Any]) -> list[tuple[str, str]]:
+    """Flatten the driver's provenance block into (label, html) rows."""
+    if not provenance:
+        return []
+    host = provenance.get("host") or {}
+    git = provenance.get("git") or {}
+    plugin = provenance.get("flexviz_plugin") or {}
+    browser = provenance.get("browser") or {}
+    vendor = provenance.get("vendor_js") or {}
+    host_text = f"{host.get('platform', '?')} · {host.get('cpu_count', '?')} CPUs"
+    if host.get("cpu_model"):
+        host_text += f" · {host['cpu_model']}"
+    if host.get("total_ram_bytes"):
+        host_text += f" · {host['total_ram_bytes'] / 2**30:.1f} GiB RAM"
+    rows: list[tuple[str, str]] = [
+        ("Schema version", escape(str(provenance.get("schema_version") or "—"))),
+        ("Generated (UTC)", escape(str(provenance.get("generated_utc") or "—"))),
+        ("Host", escape(host_text)),
+        ("Python", escape(str(host.get("python", "?")))),
+        ("benchmarks git", _dirty_html(git.get("benchmarks"))),
+        ("flexviz git", _dirty_html(git.get("flexviz"))),
+    ]
+    if host.get("thread_env"):
+        rows.append(
+            (
+                "Thread env",
+                escape(", ".join(f"{k}={v}" for k, v in sorted(host["thread_env"].items()))),
+            )
+        )
+    if plugin:
+        size = plugin.get("size_mb")
+        rows.append(
+            (
+                "flexviz plugin .so",
+                f"{escape(str(size))} MB · <code>{escape(str(plugin.get('sha256') or '?'))}</code>",
+            )
+        )
+    rows.append(
+        (
+            "Browser",
+            escape(
+                f"Chromium {browser.get('chromium') or 'version not recorded'} "
+                f"(playwright {browser.get('playwright') or '?'})"
+            ),
+        )
+    )
+    # GPU vs software rasterizer is a 33x swing for a GPU-rendered chart, so results
+    # measured under different renderers are different experiments.
+    rows.append(("WebGL renderer", escape(str(browser.get("webgl_renderer") or "not recorded"))))
+    # Which binary feature detection actually bound: perspective's wasm32 vs memory64 is
+    # a 4GB vs 16GB heap, i.e. where a ceiling falls.
+    for key, value in sorted((provenance.get("runtime") or {}).items()):
+        shown = ", ".join(value) if isinstance(value, list) else str(value)
+        rows.append((key.replace("_", " "), f"<code>{escape(shown)}</code>"))
+    # Effective thread/chunk settings, read from each engine's own API — an env-var
+    # allowlist cannot see vaex's .env/YAML or dask.config.
+    for engine, settings in sorted((provenance.get("execution") or {}).items()):
+        rows.append(
+            (
+                f"{engine} settings",
+                escape(", ".join(f"{k}={v}" for k, v in sorted(settings.items()))),
+            )
+        )
+    if lock := provenance.get("uv_lock_sha256"):
+        rows.append(("uv.lock sha256", f"<code>{escape(str(lock)[:16])}&hellip;</code>"))
+    if datagen := (provenance.get("dataset") or {}).get("datagen_sha256"):
+        rows.append(("datagen.py sha256", f"<code>{escape(str(datagen)[:16])}&hellip;</code>"))
+    for dist, version in sorted((provenance.get("packages") or {}).items()):
+        rows.append((dist, f"<code>{escape(str(version))}</code>" if version else "not installed"))
+    for pkg, version in sorted((vendor.get("pins") or {}).items()):
+        rows.append((f"{pkg} (JS)", f"<code>{escape(str(version))}</code>"))
+    manifest = vendor.get("manifest") or {}
+    if manifest:
+        rows.append(
+            (
+                "Vendored bundles",
+                "<br>".join(
+                    f"<code>{escape(name)}</code> {escape(digest[:12])}&hellip;"
+                    for name, digest in sorted(manifest.items())
+                ),
+            )
+        )
+    return rows
+
+
+def build_provenance_table(provenance: dict[str, Any]) -> str:
+    rows = provenance_rows(provenance)
+    if not rows:
+        return (
+            '<p class="footnote">No provenance block in this result file (pre-4.1 run): the '
+            "exact code, engine versions and flexviz build behind these numbers are not "
+            "recoverable from it.</p>"
+        )
+    body = "".join(f"<tr><td>{escape(label)}</td><td>{value}</td></tr>" for label, value in rows)
+    return (
+        '<div class="timing-detail"><h3>Provenance</h3>'
+        '<div class="timing-table-scroll"><table class="timing-detail-table">'
+        "<thead><tr><th>Field</th><th>Value</th></tr></thead>"
+        f"<tbody>{body}</tbody></table></div></div>"
+    )
+
+
+def build_statuses_table(statuses: list[dict[str, Any]]) -> str:
+    """Cell-status summary: counts, then the cells that are not fully completed.
+
+    Exclusion states repeat identically across the matrix, so they are grouped per
+    (tool, status, reason) with a cell count; run problems are listed per cell.
+    """
+    if not statuses:
+        return ""
+    counts: dict[str, int] = {}
+    for s in statuses:
+        counts[s["status"]] = counts.get(s["status"], 0) + 1
+    tally = ", ".join(f"{status}: {n}" for status, n in sorted(counts.items()))
+
+    grouped: dict[tuple, int] = {}
+    per_cell: list[dict[str, Any]] = []
+    for s in statuses:
+        if s["status"] == "completed" and not is_censored(s):
+            continue
+        if s["status"] in ("partial", "timeout", "error") or is_censored(s):
+            per_cell.append(s)
+        else:
+            key = (s["tool"], s["status"], s.get("reason") or "")
+            grouped[key] = grouped.get(key, 0) + 1
+
+    rows = "".join(
+        f"<tr><td>{escape(tool)}</td><td>{n} cells</td>"
+        f"<td>{escape(status)}</td><td>{escape(reason)}</td></tr>"
+        for (tool, status, reason), n in sorted(grouped.items())
+    )
+    rows += "".join(
+        f"<tr><td>{escape(str(s['tool']))}</td>"
+        f"<td>{int(s['rows']):,} rows · {s['n_traces']} traces · {escape(str(s['source']))}</td>"
+        f'<td class="dirty">{escape(str(s["status"]))}</td>'
+        f"<td>{escape(str(s.get('reason') or ''))}</td></tr>"
+        for s in per_cell
+    )
+    if not rows:
+        return f'<div class="timing-detail"><h3>Cell statuses</h3><p>{escape(tally)}</p></div>'
+    return (
+        '<div class="timing-detail"><h3>Cell statuses</h3>'
+        f"<p>{escape(tally)}</p>"
+        '<p class="footnote">Exclusion states (<em>unsupported</em>, '
+        "<em>excluded_by_policy</em>, <em>source_out_of_scope</em>, <em>not_requested</em>) "
+        "are grouped per tool; cells that ran but did not complete &mdash; or where the "
+        "tool drew only part of the rows &mdash; are listed individually and are censored "
+        "in the charts and tables below.</p>"
+        '<div class="timing-table-scroll"><table class="timing-detail-table">'
+        "<thead><tr><th>Tool</th><th>Cells</th><th>Status</th><th>Reason</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></div></div>"
+    )
+
+
+# Which feature-detected binary each WASM contender must have recorded, when it ran.
+_RUNTIME_KEYS = {
+    "mosaic-wasm": "duckdb_wasm_binary",
+    "perspective-wasm": "perspective_wasm_binary",
+}
+_EXECUTION_KEYS = {
+    "flexviz": "polars",
+    "mosaic-server": "duckdb",
+    "vaex": "vaex",
+    "datashader": "dask",
+}
+_STATUS_VOCABULARY = {
+    "completed",
+    "partial",
+    "unsupported",
+    "excluded_by_policy",
+    "source_out_of_scope",
+    "timeout",
+    "error",
+    "not_requested",
+}
+
+
+def _matrix_cells(matrix: dict[str, Any]) -> set[tuple]:
+    return {
+        (rows, nt, src, tool)
+        for rows in matrix.get("sizes", [])
+        for nt in matrix.get("n_traces", [])
+        for src in matrix.get("data_sources", [])
+        for tool in matrix.get("contenders", [])
+    }
+
+
+def _expected_cells(data: dict[str, Any]) -> set[tuple]:
+    """The cells this result is accountable for: the union of each PHASE's own matrix.
+
+    Not the merged file's top-level Cartesian product — rosters shrink as rows grow, so
+    that product contains cells no phase ever requested (perspective at 200M), and
+    demanding a status for them would refuse every merged matrix.
+    """
+    cfg = data.get("config") or {}
+    phases = (data.get("provenance") or {}).get("phases") or [cfg]
+    return set().union(*(_matrix_cells(phase) for phase in phases))
+
+
+def publication_failures(data: dict[str, Any]) -> list[str]:
+    """Why this result may not be published, or [] if it may.
+
+    Not new policy: results/CURRENT.md already states this checklist in prose. Nothing
+    executed it, so a dirty tree, a null renderer, an unfinished phase or a hole left by
+    --allow-missing all published silently.
+    """
+    prov = data.get("provenance") or {}
+    statuses = data.get("statuses") or []
+    out: list[str] = []
+
+    if prov.get("schema_version") != SCHEMA_VERSION:
+        out.append(
+            f"schema_version is {prov.get('schema_version')!r}, this report renders "
+            f"{SCHEMA_VERSION!r} — see results/CURRENT.md"
+        )
+    for repo in ("benchmarks", "flexviz"):
+        entry = (prov.get("git") or {}).get(repo)
+        if not entry or not entry.get("sha"):
+            out.append(f"provenance.git.{repo} missing: the code behind these numbers is unknown")
+        elif entry.get("dirty") is not False:
+            out.append(f"{repo} tree was dirty: uncommitted code cannot be republished")
+    # Equal is not the same as present — two phases can agree on a null renderer.
+    for path in (
+        "browser.webgl_renderer",
+        "browser.chromium",
+        "flexviz_plugin.sha256",
+        "uv_lock_sha256",
+        "dataset.datagen_sha256",
+        "execution",
+        "host.cpu_model",
+        "host.total_ram_bytes",
+    ):
+        node: Any = prov
+        for part in path.split("."):
+            node = (node or {}).get(part) if isinstance(node, dict) else None
+        if not node:
+            out.append(f"provenance.{path} is missing or null")
+    if prov.get("incomplete"):
+        skipped = ", ".join(prov["incomplete"].get("skipped", []))
+        out.append(f"merged with --allow-missing, phases absent: {skipped}")
+
+    status_keys = [(s["rows"], s["n_traces"], s["source"], s["tool"]) for s in statuses]
+    counts = Counter(status_keys)
+    expected = _expected_cells(data)
+    if not expected:
+        out.append("benchmark matrix requests no cells")
+    if missing := expected - set(counts):
+        out.append(f"{len(missing)} requested cells have no status (e.g. {sorted(missing)[0]})")
+    if duplicates := {key: count for key, count in counts.items() if count > 1}:
+        out.append(
+            f"{len(duplicates)} requested cells have duplicate statuses "
+            f"(e.g. {sorted(duplicates.items())[0]})"
+        )
+    if extras := set(counts) - expected:
+        out.append(f"{len(extras)} statuses describe unrequested cells (e.g. {sorted(extras)[0]})")
+    if unknown := {s["status"] for s in statuses} - _STATUS_VOCABULARY:
+        out.append(f"unrecognized cell status values: {sorted(unknown)}")
+    if not_requested := [s for s in statuses if s["status"] == "not_requested"]:
+        out.append(f"{len(not_requested)} cells were never reached: the run did not finish")
+    if empty_results := [
+        s
+        for s in statuses
+        if s["status"] in ("completed", "partial")
+        and (not isinstance(s.get("trials"), int) or s["trials"] <= 0)
+    ]:
+        out.append(f"{len(empty_results)} completed/partial cells contain no timing trials")
+
+    ran = {s["tool"] for s in statuses if s.get("trials")}
+    execution = prov.get("execution") or {}
+    for tool, engine in _EXECUTION_KEYS.items():
+        if tool in ran and not execution.get(engine):
+            out.append(f"{tool} produced trials but provenance.execution.{engine} is missing")
+
+    phases = prov.get("phases") or [
+        {**(data.get("config") or {}), "file": "single result", "provenance": prov}
+    ]
+    for phase in phases:
+        phase_name = phase.get("file", "unnamed phase")
+        phase_prov = phase.get("provenance")
+        if not isinstance(phase_prov, dict):
+            out.append(f"{phase_name} has no phase-local provenance")
+            phase_prov = {}
+        runtime = phase_prov.get("runtime") or {}
+        cells = _matrix_cells(phase)
+        phase_ran = {
+            s["tool"]
+            for s in statuses
+            if s.get("trials") and (s["rows"], s["n_traces"], s["source"], s["tool"]) in cells
+        }
+        for tool, key in _RUNTIME_KEYS.items():
+            if tool in phase_ran and not isinstance(runtime.get(key), str):
+                out.append(
+                    f"{phase_name}: {tool} produced trials but provenance.runtime.{key} is "
+                    f"{runtime.get(key)!r}: the engine binary it loaded is unknown or ambiguous"
+                )
+    for s in statuses:
+        if s["tool"].startswith("perspective") and s.get("trials"):
+            frac, rows_drawn = s.get("rendered_fraction"), s.get("rendered_rows")
+            if frac is None or rows_drawn is None:
+                out.append(
+                    f"perspective cell {s['rows']}x{s['n_traces']} lost its render-cap disclosure"
+                )
+            elif rows_drawn != round(frac * s["rows"]):
+                out.append(
+                    f"perspective cell {s['rows']}x{s['n_traces']}: rendered_rows disagrees with the fraction"
+                )
+    return out
+
+
+def build_methodology(
+    notes: list[str],
+    provenance: dict[str, Any],
+    statuses: list[dict[str, Any]],
+    failures: list[str] | None = None,
+) -> str:
+    """The methodology card, generated from this run's own data.
+
+    `failures` non-empty means the file is being rendered in --diagnostic mode: the
+    current claim boundary and measurement description are REPLACED, never merely
+    footnoted. A superseded July run must not borrow prose about a barrier and a memory
+    protocol that did not exist when it ran.
+    """
+    notes_html = ""
+    if notes:
+        items = "".join(f"<li>{escape(n)}</li>" for n in notes)
+        notes_html = (
+            '<div class="measure-section"><h3>Run notes</h3>'
+            f'<ul class="notes-list">{items}</ul></div>'
+        )
+    if failures:
+        # The banner names the ACTUAL reasons: a superseded file and a dirty-tree rerun
+        # are both unpublishable, but they are not the same thing and must not read alike.
+        legacy = provenance.get("schema_version") != SCHEMA_VERSION
+        prose = (
+            '<p class="dirty"><strong>Diagnostic result &mdash; not publishable.</strong></p>'
+            f"<ul>{''.join(f'<li>{escape(f)}</li>' for f in failures)}</ul>"
+            f"{_SUPERSEDED_METHODOLOGY if legacy else ''}"
+        )
+    else:
+        prose = f"{_CLAIM_BOUNDARY}{_MEASUREMENT}"
+    return (
+        '<div class="card"><h2>Methodology</h2>'
+        f"{prose}{notes_html}"
+        f"{build_statuses_table(statuses)}{build_provenance_table(provenance)}</div>"
+    )
 
 
 def _build_metric_table(
@@ -632,6 +997,7 @@ def _build_metric_table(
     metrics: list[tuple[str, str]],
     heading: str,
     table_class: str,
+    censored: dict[tuple, dict[str, Any]] | None = None,
 ) -> str:
     """Render a grouped detail table.
 
@@ -639,6 +1005,7 @@ def _build_metric_table(
     ``x_key``; within each group there is one sub-column per metric. ``metrics``
     is a list of ``(summary_field, short_header)`` pairs.
     """
+    censored = censored or {}
     data_filtered = _filter(summaries, **row_filter)
     if not data_filtered:
         return ""
@@ -660,18 +1027,41 @@ def _build_metric_table(
         for _, header in metrics
     )
     rows_html = ""
+    any_censored = False
     for tool, source in row_keys:
-        metric_cells = "".join(
-            f'<td class="metric">{_format_ms(summary.get(field) if summary else None)}</td>'
-            for value in dimension_values
-            for summary in [by_row_and_dimension.get((tool, source, value))]
-            for field, _ in metrics
-        )
-        rows_html += f"<tr><td>{escape(tool)}</td><td>{escape(source)}</td>{metric_cells}</tr>"
+        cells = []
+        for value in dimension_values:
+            summary = by_row_and_dimension.get((tool, source, value))
+            cell = (
+                censored.get((summary["rows"], summary["n_traces"], source, tool))
+                if summary
+                else None
+            )
+            any_censored = any_censored or cell is not None
+            for field, _ in metrics:
+                # A null timing component means the pipeline cannot separate it, which is
+                # different from having no measurement at all for the cell.
+                missing = "not separable" if summary and field.endswith("_ms") else "&mdash;"
+                v = summary.get(field) if summary else None
+                if cell is None:
+                    cells.append(f'<td class="metric">{_format_ms(v, missing)}</td>')
+                else:
+                    cells.append(
+                        f'<td class="metric censored" title="{escape(cell.get("reason") or "")}">'
+                        f"{_format_ms(v, missing)}*</td>"
+                    )
+        rows_html += f"<tr><td>{escape(tool)}</td><td>{escape(source)}</td>{''.join(cells)}</tr>"
 
+    footnote = (
+        '<p class="footnote">* censored: a partial cell (n &lt; repeats) or one where the '
+        "tool drew only part of the rows &mdash; not publishable; hover for the reason.</p>"
+        if any_censored
+        else ""
+    )
     return f"""\
 <div class="timing-detail">
   <h3>{escape(heading)}</h3>
+  {footnote}
   <div class="timing-table-scroll">
     <table class="{table_class}">
       <thead>
@@ -697,14 +1087,16 @@ def build_timing_table(
     *,
     x_key: str,
     row_filter: dict[str, Any],
+    censored: dict[tuple, dict[str, Any]] | None = None,
 ) -> str:
     return _build_metric_table(
         summaries,
         x_key=x_key,
         row_filter=row_filter,
         metrics=DETAIL_TIMING_METRICS,
-        heading="Transfer & render median timings (ms)",
+        heading="Transfer & client median timings (ms)",
         table_class="timing-detail-table",
+        censored=censored,
     )
 
 
@@ -713,6 +1105,7 @@ def build_browser_memory_table(
     *,
     x_key: str,
     row_filter: dict[str, Any],
+    censored: dict[tuple, dict[str, Any]] | None = None,
 ) -> str:
     return _build_metric_table(
         summaries,
@@ -721,6 +1114,7 @@ def build_browser_memory_table(
         metrics=BROWSER_MEMORY_METRICS,
         heading="Browser peak memory (MB)",
         table_class="memory-detail-table",
+        censored=censored,
     )
 
 
@@ -735,20 +1129,24 @@ def build_failures_table(failures: list[dict[str, Any]]) -> str:
             f"<td>{int(failure.get('rows', 0)):,}</td>"
             f"<td>{escape(str(failure.get('n_traces', '')))}</td>"
             f"<td>{escape(str(failure.get('source', '')))}</td>"
-            f"<td>{escape(str(failure.get('kind', 'ceiling')))}</td>"
+            f"<td>{escape(str(failure.get('kind', '')))}</td>"
+            f"<td>{escape(str(failure.get('attempt', '')))}</td>"
+            f"<td>{escape(str(failure.get('phase', '')))}</td>"
             f"<td>{escape(str(failure.get('error', '')))}</td>"
             "</tr>"
         )
     return (
         '<div class="card">'
         "<h2>Failures</h2>"
-        '<p class="footnote">kind: <em>flake</em> = one failed attempt, the retry '
-        "succeeded (trials continue); <em>ceiling</em> = failed twice, the tool stops "
-        "for that cell but completed trials are kept; <em>memory / memory-flake</em> = "
+        '<p class="footnote">kind: <em>timeout</em> = the page wait exceeded the cap for '
+        "that cell; <em>error</em> = the tool raised. attempt: <em>first</em> = the initial "
+        "attempt (a retry followed); <em>retry</em> = the retry failed too, so the tool "
+        "stopped for that cell &mdash; completed trials are kept. phase: <em>memory</em> = "
         "the cold memory trial failed (timing unaffected, memory columns empty).</p>"
         '<table class="timing-detail-table">'
         "<thead><tr>"
-        "<th>Tool</th><th>Rows</th><th>Traces</th><th>Source</th><th>Kind</th><th>Error</th>"
+        "<th>Tool</th><th>Rows</th><th>Traces</th><th>Source</th><th>Kind</th>"
+        "<th>Attempt</th><th>Phase</th><th>Error</th>"
         "</tr></thead>"
         f"<tbody>{''.join(rows)}</tbody>"
         "</table>"
@@ -767,6 +1165,9 @@ def build_page(
     fixed_n_traces: int,
     fixed_rows: int,
     summaries: list[dict[str, Any]] | None = None,
+    provenance: dict[str, Any] | None = None,
+    statuses: list[dict[str, Any]] | None = None,
+    pub_failures: list[str] | None = None,
 ) -> str:
     fig1_html = fig1.to_html(
         full_html=False,
@@ -797,10 +1198,9 @@ def build_page(
     if "n_points" in config:
         extra_meta += f'<div class="meta-item"><label>Points/trace</label><span>{config["n_points"]}</span></div>'
 
-    notes_html = ""
-    if notes:
-        items = "".join(f"<li>{escape(n)}</li>" for n in notes)
-        notes_html = f'<ul class="notes-list">{items}</ul>'
+    statuses = statuses or []
+    censored = censored_cells(statuses)
+    methodology_html = build_methodology(notes, provenance or {}, statuses, pub_failures)
     failures_html = build_failures_table(failures)
 
     fixed_rows_fmt = f"{fixed_rows:,}"
@@ -810,21 +1210,25 @@ def build_page(
         summaries,
         x_key="rows",
         row_filter={"n_traces": fixed_n_traces},
+        censored=censored,
     )
     fig2_timing_table = build_timing_table(
         summaries,
         x_key="n_traces",
         row_filter={"rows": fixed_rows},
+        censored=censored,
     )
     fig1_browser_table = build_browser_memory_table(
         summaries,
         x_key="rows",
         row_filter={"n_traces": fixed_n_traces},
+        censored=censored,
     )
     fig2_browser_table = build_browser_memory_table(
         summaries,
         x_key="n_traces",
         row_filter={"rows": fixed_rows},
+        censored=censored,
     )
 
     resize_and_link_js = """
@@ -885,10 +1289,9 @@ def build_page(
       <div class="meta-item"><label>Seed</label><span>{seed}</span></div>
       {extra_meta}
     </div>
-    {notes_html}
   </div>
 
-  {_METHODOLOGY_HTML}
+  {methodology_html}
 
   {failures_html}
 
@@ -946,6 +1349,12 @@ def parse_args() -> argparse.Namespace:
         help="Output directory (default: same directory as input JSON)",
     )
     parser.add_argument("--show", action="store_true")
+    parser.add_argument(
+        "--diagnostic",
+        action="store_true",
+        help="render a result that fails the publication checks, with the claim boundary "
+        "and measurement description REPLACED by a not-publishable banner listing why",
+    )
     return parser.parse_args()
 
 
@@ -957,12 +1366,39 @@ def main() -> None:
     config = data["config"]
     notes = data["notes"]
     failures = data["failures"]
+    statuses = data["statuses"]
+    provenance = data["provenance"]
+    censored = censored_cells(statuses)
+
+    # A file that cannot be published must not borrow the current methodology's language.
+    pub_failures = publication_failures(data)
+    if pub_failures and not args.diagnostic:
+        raise SystemExit(
+            "refusing to render a publishable report:\n  - "
+            + "\n  - ".join(pub_failures)
+            + "\nPass --diagnostic to render it as a marked, not-publishable result."
+        )
 
     dims = _detect_dimensions(summaries)
+    if not summaries:
+        dims = {
+            "rows": sorted(config.get("sizes", [])),
+            "n_traces": sorted(config.get("n_traces", [])),
+            "sources": sorted(config.get("data_sources", [])),
+            "tools": sorted(config.get("contenders", [])),
+        }
     bands = compute_bands(trials_json)
 
-    fixed_n_traces = args.fixed_n_traces if args.fixed_n_traces is not None else dims["n_traces"][0]
-    fixed_rows = args.fixed_rows if args.fixed_rows is not None else dims["rows"][-1]
+    fixed_n_traces = (
+        args.fixed_n_traces
+        if args.fixed_n_traces is not None
+        else (dims["n_traces"][0] if dims["n_traces"] else 0)
+    )
+    fixed_rows = (
+        args.fixed_rows
+        if args.fixed_rows is not None
+        else (dims["rows"][-1] if dims["rows"] else 0)
+    )
 
     metrics = TIMING_METRICS + (MEMORY_METRICS if not args.no_memory else [])
 
@@ -976,6 +1412,7 @@ def main() -> None:
         add_toggle=True,
         x_log=True,
         title="Rows Scaling",
+        censored=censored,
     )
     fig2 = build_figure(
         summaries,
@@ -987,6 +1424,7 @@ def main() -> None:
         add_toggle=False,
         x_log=False,
         title="Traces Scaling",
+        censored=censored,
     )
 
     page_html = build_page(
@@ -999,6 +1437,9 @@ def main() -> None:
         fixed_n_traces=fixed_n_traces,
         fixed_rows=fixed_rows,
         summaries=summaries,
+        provenance=provenance,
+        statuses=statuses,
+        pub_failures=pub_failures,
     )
 
     out_dir = args.out_dir if args.out_dir else args.json_file.parent

@@ -5,24 +5,6 @@ import json
 import time
 
 
-def _arrow_table_from_file(path: str, cols: list[str]):
-    """Read only `cols` from parquet/csv/ipc into an Arrow table."""
-
-    suf = path.rsplit(".", 1)[-1].lower()
-    if suf == "parquet":
-        import pyarrow.parquet as pq
-
-        return pq.read_table(path, columns=cols)
-    elif suf == "csv":
-        import pyarrow.csv as pc
-
-        return pc.read_csv(path).select(cols)
-    else:  # .arrow / ipc
-        import pyarrow.feather as fa
-
-        return fa.read_table(path, columns=cols)
-
-
 def run_perspective_server(*, port: int) -> None:
     asyncio.set_event_loop(asyncio.new_event_loop())
     import tornado.ioloop
@@ -32,13 +14,16 @@ def run_perspective_server(*, port: int) -> None:
 
     server = Server()
     client = server.new_local_client()
-    deferred: dict = {"path": None, "cols": None}  # disk source, built lazily in /build
+    # `rows` answers the probe's render-cap disclosure; `path` holds a deferred disk
+    # source until /build. Perspective 5 ERRORS on a duplicate Table name, so building
+    # "bench" exactly once per process is load-bearing, not cosmetic.
+    state: dict = {"path": None, "cols": None, "rows": None}
 
     class _Cors(tornado.web.RequestHandler):
         def set_default_headers(self) -> None:
             self.set_header("Access-Control-Allow-Origin", "*")
             self.set_header("Timing-Allow-Origin", "*")
-            self.set_header("Access-Control-Expose-Headers", "Server-Timing")
+            self.set_header("Access-Control-Expose-Headers", "Server-Timing, X-Rows")
 
     class LoadHandler(_Cors):
         def post(self) -> None:
@@ -46,10 +31,11 @@ def run_perspective_server(*, port: int) -> None:
             if kind == "arrow-path":  # in-memory: temp IPC file → native Table now (resident)
                 import pyarrow.feather as fa
 
-                client.table(fa.read_table(self.request.body.decode()), name="bench")
+                data = fa.read_table(self.request.body.decode())
+                client.table(data, name="bench")
+                state["rows"] = data.num_rows
             elif kind == "path":  # disk — defer to /build (timed)
-                spec = json.loads(self.request.body)
-                deferred.update(spec)
+                state.update(json.loads(self.request.body))
             else:  # an unknown kind must never fall through to a wrong store shape
                 raise tornado.web.HTTPError(400, f"unknown X-Load-Kind: {kind!r}")
             self.set_status(200)
@@ -57,16 +43,14 @@ def run_perspective_server(*, port: int) -> None:
     class BuildHandler(_Cors):
         def get(self) -> None:
             t0 = time.perf_counter()
-            if deferred["path"] is not None:  # disk: read file + build Table in-window
-                if deferred.get("chart") == "histogram":
-                    from core.contenders.perspective_wasm import histogram_arrow_table
+            if state["path"] is not None:  # disk: read file + build Table in-window
+                from core.contenders.perspective_wasm import read_arrow_table
 
-                    data = histogram_arrow_table(deferred["path"], int(deferred["n_traces"]))
-                else:
-                    data = _arrow_table_from_file(deferred["path"], deferred["cols"])
+                data = read_arrow_table(state["path"], state["cols"])
                 client.table(data, name="bench")
-                deferred["path"] = None
+                state["path"], state["rows"] = None, data.num_rows
             self.set_header("Server-Timing", f"build;dur={(time.perf_counter() - t0) * 1000:.1f}")
+            self.set_header("X-Rows", str(state["rows"]))
             self.set_status(200)
 
     app = tornado.web.Application(

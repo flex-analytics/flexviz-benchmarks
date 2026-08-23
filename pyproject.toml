@@ -4,24 +4,45 @@ version = "0.1.0"
 description = "Benchmarking FlexViz against other tools"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
+# EXACT pins for everything whose version can move a measured number: the engines under
+# test, plus numpy (generates every dataset), pyarrow/polars (write them), matplotlib
+# (rasterizes vaex), pillow (encodes datashader), plotly (renders flexviz), tornado
+# (serves perspective), psutil (samples memory) and playwright (pins the browser build).
+# `uv.lock` is hashed into provenance, so the full graph is on the record either way —
+# these pins are what stops an incidental `uv lock` from moving the subject of the
+# experiment. Ranges remain only in the development tools, which are not measured.
+#
+# dask is capped at 2024.8.x by vaex-core's `dask!=2022.4.0,<2024.9`, which caps
+# DATASHADER's dataframe compute path. Vaex uses its own executor but depends on dask
+# utilities and fingerprinting. The vendor constraint is respected rather than overridden;
+# its measured cost is recorded at
+# docs/superpowers/plans/2026-08-22-publication-integrity-fixes.md 7.7a.
 dependencies = [
-    "duckdb>=1.5.3",
-    "duckdb-server>=0.26.0",
+    "duckdb==1.5.5",
+    "duckdb-server==0.30.0",
     "flexviz",
-    "numpy>=2.4.6",
-    "playwright>=1.52.0",
-    "psutil>=6.0.0",
-    "plotly>=5.0.0",
-    "polars>=1.40.1",
-    "pyarrow>=16.0.0",
-    "vaex-core>=4.19.0",
-    "datashader>=0.16",
-    "dask[dataframe]>=2024.8",
-    "matplotlib>=3.9",
-    "pillow>=10.0",
-    "perspective-python==3.1.3",
-    "tornado>=6.4",
+    "numpy==2.5.2",
+    "playwright==1.62.0",
+    "psutil==7.2.2",
+    "plotly==6.9.0",
+    "polars==1.43.2",
+    "pyarrow==25.0.1",
+    "vaex-core==4.19.0",
+    "datashader==0.19.1",
+    "dask[dataframe]==2024.8.2",
+    "matplotlib==3.11.1",
+    "pillow==12.3.0",
+    "perspective-python==5.2.0",
+    "tornado==6.5.8",
+    "vaex-viz==0.6.0",
 ]
+
+[tool.uv]
+# This suite measures engines on ONE machine; a universal (cross-platform) lock let
+# vaex-core's Windows-only `pyarrow<21` ceiling collapse onto Linux and silently
+# downgrade the Parquet writer 24 -> 20. Locking to the platform we measure on keeps
+# the lock (and its provenance hash) a description of the real environment.
+environments = ["sys_platform == 'linux'"]
 
 [tool.uv.sources]
 flexviz = { path = "../flexviz", editable = true }
