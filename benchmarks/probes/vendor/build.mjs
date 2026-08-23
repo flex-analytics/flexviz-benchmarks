@@ -33,46 +33,62 @@ await build({
   loader: { '.wasm': 'file' }, assetNames: '[name]', logLevel: 'info',
 });
 
-// 2. Copy DuckDB-WASM runtime assets (wasm + worker) — duckdb resolves these via a
-//    runtime config object, not import.meta.url, so esbuild won't emit them.
+// 2. Copy DuckDB-WASM runtime assets (wasm + worker) for the two bundles selectBundle()
+//    chooses between — duckdb resolves these via a runtime config object, so esbuild
+//    won't emit them. The COI/pthreads build is deliberately not vendored (experimental,
+//    and it would require cross-origin isolation headers that change the page's
+//    capability environment).
 const dd = join(nm, '@duckdb', 'duckdb-wasm', 'dist');
 for (const f of [
-  'duckdb-coi.wasm',
-  'duckdb-browser-coi.worker.js',
-  'duckdb-browser-coi.pthread.worker.js',
+  'duckdb-mvp.wasm',
+  'duckdb-browser-mvp.worker.js',
+  'duckdb-eh.wasm',
+  'duckdb-browser-eh.worker.js',
 ]) cpSync(join(dd, f), join(dist, f));
 
-// 3. Vendor Perspective from its PREBUILT cdn bundles. Each @finos/perspective* package
-//    ships a self-contained dist/cdn/*.js (the same artifact jsdelivr serves) that has no
-//    cross-package or bare imports and references its own .wasm via local import.meta.url.
-//    Re-bundling the ESM-from-source entry with esbuild fails (it imports a worker from
-//    .ts); the cdn bundles are the supported, robust offline path. We copy them flat into
-//    dist/ (so the import.meta.url wasm refs resolve) and emit a shim `perspective.js`
-//    that re-exports the engine + side-imports the viewer + d3fc plugin.
+// 3. Vendor Perspective 5.2 from its PREBUILT cdn bundles (@perspective-dev/*). Each
+//    package ships a self-contained dist/cdn/*.js with no bare imports and inlined
+//    workers. Unlike the 3.x set these do NOT resolve their wasm as flat siblings: the
+//    viewer fetches `../wasm/perspective-viewer.wasm` and the client rewrites its own
+//    URL to `<base>/server/dist/wasm/perspective-server.wasm`. So the PACKAGE-RELATIVE
+//    layout is preserved verbatim under dist/ — a flat copy 404s the engine.
+//    Both engine binaries ship: the loader picks memory64 on hosts that support it
+//    (16GB heap vs wasm32's 4GB), which is part of the WASM contender's measured ceiling.
 const perspCopies = [
-  ['@finos/perspective/dist/cdn/perspective.js', 'perspective-core.js'],
-  ['@finos/perspective/dist/cdn/perspective-server.wasm', 'perspective-server.wasm'],
-  ['@finos/perspective-viewer/dist/cdn/perspective-viewer.js', 'perspective-viewer.js'],
-  ['@finos/perspective-viewer/dist/cdn/perspective-viewer.wasm', 'perspective-viewer.wasm'],
-  ['@finos/perspective-viewer-d3fc/dist/cdn/perspective-viewer-d3fc.js', 'perspective-viewer-d3fc.js'],
+  '@perspective-dev/client/dist/cdn/perspective.js',
+  '@perspective-dev/server/dist/wasm/perspective-server.wasm',
+  '@perspective-dev/server/dist/wasm/perspective-server.memory64.wasm',
+  '@perspective-dev/viewer/dist/cdn/perspective-viewer.js',
+  '@perspective-dev/viewer/dist/wasm/perspective-viewer.wasm',
+  '@perspective-dev/viewer/dist/css/themes.css',
+  '@perspective-dev/viewer-charts/dist/cdn/perspective-viewer-charts.js',
 ];
-for (const [rel, name] of perspCopies) {
+for (const rel of perspCopies) {
   const src = join(nm, rel);
   if (!existsSync(src)) throw new Error(`missing Perspective cdn asset: ${rel}`);
-  cpSync(src, join(dist, name));
+  const target = join(dist, rel.replace('@perspective-dev/', ''));
+  mkdirSync(dirname(target), { recursive: true });
+  cpSync(src, target);
 }
+// viewer-charts self-registers all 16 chart plugins at import (register() at module scope).
 writeFileSync(join(dist, 'perspective.js'),
-  "import perspective from './perspective-core.js';\n" +
-  "import './perspective-viewer.js';\n" +
-  "import './perspective-viewer-d3fc.js';\n" +
+  "import perspective from './client/dist/cdn/perspective.js';\n" +
+  "import './viewer/dist/cdn/perspective-viewer.js';\n" +
+  "import './viewer-charts/dist/cdn/perspective-viewer-charts.js';\n" +
   "export { perspective };\n");
 
-// 4. Integrity manifest (sha256 of every emitted asset). Fail if a wasm is suspiciously tiny.
+// 4. Integrity manifest (sha256 of every emitted asset, keyed by dist-relative path —
+//    perspective's tree is nested). Fail if a wasm is suspiciously tiny.
 const manifest = {};
-for (const f of readdirSync(dist)) {
-  const buf = readFileSync(join(dist, f));
-  if (f.endsWith('.wasm') && buf.length < 1024) throw new Error(`vendored wasm too small: ${f}`);
-  manifest[f] = createHash('sha256').update(buf).digest('hex');
-}
+const walk = (rel) => {
+  for (const e of readdirSync(join(dist, rel), { withFileTypes: true })) {
+    const child = rel ? `${rel}/${e.name}` : e.name;
+    if (e.isDirectory()) { walk(child); continue; }
+    const buf = readFileSync(join(dist, child));
+    if (child.endsWith('.wasm') && buf.length < 1024) throw new Error(`vendored wasm too small: ${child}`);
+    manifest[child] = createHash('sha256').update(buf).digest('hex');
+  }
+};
+walk('');
 writeFileSync(join(out, 'manifest.json'), JSON.stringify(manifest, null, 2));
 console.log('vendored assets:', Object.keys(manifest).join(', '));
