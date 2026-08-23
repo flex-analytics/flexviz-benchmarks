@@ -103,10 +103,11 @@ the in-repo answer to "which numbers are real right now".
 **subtraction, not an allowlist**: everything in `config` except the four matrix-split
 keys, and everything in `provenance` except `generated_utc` and the feature-detected
 `runtime` block, must match. That covers the browser block (a SwiftShader phase and a
-Vulkan phase are not one experiment), `host.python`/`machine`/`thread_env`, the lock
-hash, the dataset generator and the effective execution settings — and a field added
+Vulkan phase are not one experiment), host CPU model/count/RAM, Python, machine and
+thread environment, the lock hash, the dataset generator and the resolved execution settings — and a field added
 tomorrow is checked by default instead of silently ignored. `runtime` is unioned by key,
-refusing a key two phases disagree on. Overlapping cells are always a hard error, and a
+refusing a key two phases disagree on; publication separately requires each WASM-running
+phase to carry its own capture. Overlapping cells are always a hard error, and a
 **missing phase file is a hard error** (`--allow-missing` to publish a hole, which
 stamps `provenance.incomplete`). Provenance is never recomputed here — it comes from the
 driver. Merge equality is not publication validity: see `report.publication_failures`.
@@ -186,10 +187,11 @@ a "ceiling").
   (equal-**width** x buckets, the Mosaic/M4 convention) and `line_envelope_equal_count`
   (equal-**row-count** buckets, FlexViz's convention; an independent port of the Rust
   kernel). Used by the per-engine correctness gates
-- `provenance.py` — `collect_provenance` (schema_version, host/CPU/thread env, both
+- `provenance.py` — `collect_provenance` (schema_version, host CPU model/count/RAM and
+  thread env, both
   repos' git SHA + dirty flag, plugin `.so` path/size/SHA-256, python package versions +
   **`uv_lock_sha256`** (the whole resolved graph, no curated list to keep in sync),
-  **`execution`** (each engine's *effective* thread/chunk settings read from its own API
+  **`execution`** (each engine's resolved thread/chunk settings read from its own API
   — an env-var allowlist cannot see vaex's `.env`/YAML or `dask.config`), **`dataset`**
   (`datagen.py` hashed whole + the numpy/pyarrow/polars versions that generate and write
   the files), vendored JS pins + `manifest.json` hashes, and **`runtime`** (which
@@ -235,8 +237,8 @@ a "ceiling").
   `docs/superpowers/specs/2026-08-22-mosaic-official-server-spike.md`.
 - **mosaic-wasm** — DuckDB-WASM picks its own build via `selectBundle()` feature detection
   over the vendored `mvp` + `eh` candidates (the documented default path, single-threaded).
-  The COI/pthreads build is deliberately not vendored. The selected bundle is reported by
-  the page and stamped into `provenance.vendor_js.duckdb_wasm_bundle`.
+  The COI/pthreads build is deliberately not vendored. The static server records the WASM
+  file actually fetched (including worker fetches) in `provenance.runtime`.
 - **perspective (5.2)** — native **X/Y Line** over columns `x` + `y1`: no `group_by`, no
   expressions, no sort, nothing templated per cell. **No histogram** (viewer-charts 5.2
   ships no binning at all; "Density" is a 2-D radial-splat KDE — a different trace type).

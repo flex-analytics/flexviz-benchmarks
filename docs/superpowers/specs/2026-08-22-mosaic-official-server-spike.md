@@ -1,10 +1,11 @@
 # Mosaic official `duckdb-server` — spike & adoption (plan 2.2)
 
-**Date:** 2026-08-22 · **Outcome: ADOPTED.** `benchmarks/mosaic_duckdb_server.py` (the
-hand-rolled fork) is deleted; `mosaic-server` now runs the official PyPI
-`duckdb-server` 0.26.0 unmodified as its backend child.
+**Date:** 2026-08-22 · **Outcome: ADOPTED, CURRENTLY RE-VERIFIED ON 0.30.0.**
+`benchmarks/mosaic_duckdb_server.py` (the hand-rolled fork) is deleted; `mosaic-server`
+now runs the official PyPI `duckdb-server` as its backend child. The original adoption
+spike used 0.26.0; the current 0.30.0 re-spike is recorded below.
 
-Package under test: `duckdb-server==0.26.0` (already declared in `pyproject.toml`,
+Current package under test: `duckdb-server==0.30.0` (declared in `pyproject.toml`,
 installed in `.venv`). **Import name is `pkg`**, not `duckdb_server` —
 `.venv/lib/python3.12/site-packages/pkg/{__main__,server,query}.py`, console script
 `duckdb-server = pkg.__main__:serve`. Upstream: `uwdata/mosaic`.

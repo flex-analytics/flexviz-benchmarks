@@ -14,6 +14,11 @@ description replaced by a banner naming the failures. `results/phase7_2026-08-22
 **pipeline-validation** run of exactly that kind: it exercises driver → merge → report on
 a dirty tree, so it is refused by design and is diagnostic only.
 
+`results/dask_ab_2026-08-23/` is also diagnostic: its two canonical Datashader cells
+decide whether Vaex's Dask constraint materially changes Datashader; they are not a
+cross-tool ranking. The method and decision are in
+`docs/superpowers/specs/2026-08-22-dask-ceiling-ab.md`.
+
 ## Superseded
 
 `results/full_2026-08-21/` (+ `full_2026-08-21_run.log`, `ttfr_histogram_full.json`) —
@@ -56,9 +61,11 @@ The next canonical matrix comes from Phase 6 of the plan:
 Publish checklist before anything is recorded below — **enforced by
 `report.publication_failures()`, not by memory**: current `schema_version`; both repos
 committed (`dirty: false`); non-null WebGL renderer, Chromium build, plugin `.so` hash,
-`uv_lock_sha256`, `dataset.datagen_sha256` and `execution` block; a status for every cell
-in the union of each phase's own matrix; no `not_requested` cells; no `--allow-missing`
-hole; a recorded engine binary for every WASM tool that produced trials; an intact
+`uv_lock_sha256`, `dataset.datagen_sha256`, CPU model/RAM and the relevant per-engine
+`execution` block; a non-empty matrix; exactly one status for every cell in the union of
+each phase's own matrix and no extra statuses; no zero-trial completed cells; no
+`not_requested` cells; no `--allow-missing` hole; a
+recorded engine binary in the same phase for every WASM tool that produced trials; an intact
 `rendered_fraction`/`rendered_rows` pair on every perspective cell. Partial and
 `rendered_fraction < 1.0` cells stay censored in the charts; notes + claim boundary
 present; components follow the `server_ms`/`transfer_ms`/`client_ms` schema.
@@ -81,4 +88,4 @@ them auditable:
 | `uv_lock_sha256` / `dataset.datagen_sha256` | |
 | Effective execution settings | _(vaex threads/chunk, dask scheduler, polars, duckdb)_ |
 | Chromium / Playwright / WebGL renderer | |
-| Host (platform, cpu_count, thread env) | |
+| Host (platform, CPU model/count, total RAM, thread env) | |

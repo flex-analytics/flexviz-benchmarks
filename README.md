@@ -4,8 +4,8 @@ Time-to-first-render (TTFR) benchmarks comparing **FlexViz** against six other
 visualization engines — `mosaic-server`, `mosaic-wasm`, `perspective-server`,
 `perspective-wasm`, `vaex`, `datashader` — on a `rows × n_traces × data-source` matrix.
 
-Every contender is driven **as provided**: its own engine, its own native chart, through
-its own documented path. Known deviations and configuration choices are listed in each
+Every contender runs its own engine and native chart through a documented path. Known
+deviations and configuration choices are listed in each
 result's Run notes. The clock runs browser-side from the request that triggers the pipeline to a
 double-rAF post-render barrier. Charts a tool does not natively have are not emulated —
 they are recorded as `unsupported` with a reason. See
@@ -58,9 +58,10 @@ make bench-line REPORT_ARGS="--show"
 make bench                      # both
 ```
 
-A full publishable matrix runs in phases via `./run_matrix.sh`: it runs the correctness
-gates first, aborts if they fail, writes one JSON per phase into `results/full_<date>/`,
-and exits nonzero if any phase failed.
+`./run_matrix.sh` is the current diagnostic phase template: it runs the correctness gates
+first, writes one JSON per phase into `results/full_<date>/`, and exits nonzero if any
+phase failed. Its hand-entered size ceilings do not become a publishable matrix until the
+Phase 6 feasibility protocol replaces them with measured per-cell decisions.
 
 ## Correctness gate
 

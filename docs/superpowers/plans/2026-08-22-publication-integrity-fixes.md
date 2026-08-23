@@ -10,8 +10,9 @@ rev 2's own design, and one of them (§7.10's cell-completeness check) would hav
 every merged matrix. Dispositions, including what was rejected and why, are recorded at
 the end.
 
-**Status: IMPLEMENTED 2026-08-22.** 7.0–7.12 are in the tree; 218 tests and 37 workload
-gates pass; 7.7a landed **immaterial**
+**Status: IMPLEMENTED 2026-08-22; POST-IMPLEMENTATION INTEGRITY REVIEW ADDRESSED
+2026-08-23.** 7.0–7.12 and the fail-closed corrections described below are in the tree;
+7.7a landed **immaterial** through the canonical driver
 (`docs/superpowers/specs/2026-08-22-dask-ceiling-ab.md`) so the shared environment
 stands. Phase 6 is unblocked on every axis except its own feasibility protocol.
 
@@ -130,16 +131,20 @@ identity comparison.
 - **Absent ≠ not requested:** a missing key is legitimate for a server-only phase and a
   *silent capture failure* otherwise. The driver cannot tell at checkpoint time; 7.10 can,
   from the statuses, and owns that check. One validator, not two.
-- `report.py` renders `runtime` rows in the provenance table.
+- `report.py` renders `runtime` rows in the provenance table and validates each merged
+  phase against that phase's own runtime block. The top-level runtime union cannot supply
+  missing evidence for a phase whose capture failed.
 
 ## 7.3 Dataset identity: a sidecar, and no half-written files
 
 **Blocker 2.** Structural inspection cannot see a seed or a generator change, and for
 IPC/CSV it cannot even see the row count.
 
-- `ensure_disk_dataset` writes to `path + ".tmp"`, `os.replace`s it into position, then
-  writes `<path>.meta.json` the same way (tmp + `os.replace`). A run killed mid-write
-  leaves no sidecar, so the next run regenerates instead of reading a truncated file.
+- `ensure_disk_dataset` writes both `path + ".tmp"` and the temporary sidecar completely,
+  deletes the old sidecar, then replaces the data and sidecar. Two files cannot be renamed
+  atomically as a pair; deleting the identity record first is the fail-closed step. A
+  failure before deletion preserves the old pair, while a failure after deletion leaves
+  no sidecar and forces regeneration. A new file can never be accepted under old metadata.
 - Sidecar contents: `{chart, rows, max_traces, seed, columns, dtype, bytes,
   numpy_version, pyarrow_version, polars_version, datagen_sha256}`.
   - **`datagen_sha256` hashes the whole `core/datagen.py` module**, not a curated set of
@@ -233,7 +238,8 @@ implementation — the same class of error as an overstated result.
 
 - `cell_statuses` emits `rendered_rows = round(frac * rows)` when a fraction exists —
   `rows` is in scope there; do not plumb it through `Trial`.
-- `Summary` gains the field via `summarize`'s caller. No report change needed.
+- `Summary` derives the same field in `summarize` from the cell's median
+  `rendered_fraction` and `rows`; `Trial` remains unchanged.
 
 ## 7.7 Current, exact Python pins — and a lock hash
 
@@ -241,7 +247,8 @@ implementation — the same class of error as an overstated result.
 
 - `uv lock --upgrade`, then `==` pins for the measurement-subject packages: duckdb,
   duckdb-server, polars, pyarrow, vaex-core, vaex-viz, datashader, dask,
-  perspective-python, playwright, plotly, numpy, matplotlib.
+  perspective-python, playwright, plotly, numpy, matplotlib, Pillow (timed PNG encoding),
+  Tornado (timed Perspective transport), and psutil (published memory measurements).
 - **`provenance.uv_lock_sha256`.** The curated `PACKAGES` table drifts out of sync with
   the pin list by construction — numpy generates the data, matplotlib renders vaex, plotly
   renders flexviz, and none of the three is in it today. Hashing `uv.lock` records *every*
@@ -266,11 +273,11 @@ implementation — the same class of error as an overstated result.
 
 **The constraint is real and asymmetric.** Verified by reading both engines:
 
-- **datashader's timed path is dask, end to end** — `dd.from_pandas(df,
-  npartitions=cpu_count()).persist()` for the in-memory store, `dd.read_parquet` /
-  `dd.read_csv` for disk, and `dask.compute(...)` fusing the extent aggregations into one
-  parallel pass (`core/contenders/datashader.py:49-89`), before `cvs.line` runs over the
-  dask frame.
+- **datashader's dataframe compute path uses dask.** In memory,
+  `dd.from_pandas(...).persist()` is store preload and therefore outside TTFR. On disk,
+  `dd.read_parquet` / `dd.read_csv`, extent aggregation and `cvs.line` execute inside the
+  timed request, followed by shading, PNG encoding, transfer, decode and the browser
+  barrier.
 - **vaex barely touches dask** — `dask.utils.parse_bytes` in `utils.py:956` and
   `dask.base.normalize_token.register` in `agg.py:739`, plus a `dask.array` import in one
   unrelated `dataframe.py` method. vaex executes through its own out-of-core engine.
@@ -299,7 +306,9 @@ also contradicted 7.7's own exact-pin rule.
      optimizer are most likely to matter on the disk path:
      `--chart line --sizes 10000000 --n-traces 1 --data-sources in-memory,disk-parquet
      --contenders datashader --warmup 1 --repeats 5` — the matrix's own trial settings, at
-     a size where the dask-partitioned aggregation dominates fixed overhead.
+     a size where the dask-partitioned aggregation dominates fixed overhead. Run these
+     through `ttfr_bench.py` itself, using one canonical generated dataset in both arms;
+     a custom `_make_png` microbenchmark is not the published TTFR workload.
    - **Correctness first:** `tests/core/test_datashader_gate.py` passes on **both** arms.
      A faster arm that draws a different picture is not a result.
    - **Materiality:** material iff, on either source, the medians differ by **>10%** *and*
@@ -338,8 +347,8 @@ decide anything that rungs 3–4 do not already decide.
   today. Per-phase split keys survive into `provenance.phases[]`.
 - **datagen** — same path + different seed regenerates; sidecar deleted (a killed write)
   regenerates; malformed sidecar regenerates; changed `datagen_sha256` regenerates; a size
-  that no longer matches `bytes` regenerates; a failed write leaves the previous dataset
-  **and** its sidecar intact and consistent.
+  that no longer matches `bytes` regenerates; a failure between the two final renames
+  leaves no sidecar and the next request regenerates rather than reusing mislabeled data.
 - **serve/runtime** — a served `.wasm` request is captured and keyed; two matches for one
   family record both; nothing served records nothing. `test_mosaic_marks_gate` asserts the
   duckdb binary from `SERVED_WASM` instead of `window.__bench_bundle`.
@@ -371,7 +380,9 @@ of failed checks; `--diagnostic` downgrades to 7.4's banner.
    `dataset.datagen_sha256`. Equal is not the same as present — two phases can agree on
    `null`.
 4. **Cell coverage, against the right denominator.** Every cell in the **union of each
-   phase's own Cartesian product** has exactly one status, and every status value is in
+   phase's own Cartesian product** has exactly one status, no status describes an
+   unrequested cell, the matrix is non-empty, every completed/partial cell contains at
+   least one timing trial, and every status value is in
    the known vocabulary. *This is the correction that matters:* rev 2 said "every
    requested cell", which against a merged file's top-level union of `sizes` ×
    `contenders` would demand a status for e.g. perspective × 200M — a cell `run_matrix.sh`
@@ -382,7 +393,8 @@ of failed checks; `--diagnostic` downgrades to 7.4's banner.
    publishable (see 7.11).
 6. `provenance.incomplete` absent. `--allow-missing` publishing a hole must require saying
    so twice.
-7. Every contender that produced trials has its `runtime` key where one exists
+7. Every contender that produced trials has its `runtime` key where one exists in the
+   **same phase's provenance**, not merely in the merged top-level union
    (`mosaic-wasm` → `duckdb_wasm_binary`, `perspective-wasm` → `perspective_wasm_binary`),
    and that key is unambiguous. This is 7.2's "absent ≠ not requested": the statuses say
    which tools actually ran, so a silent capture failure is distinguishable from a tool
@@ -400,10 +412,11 @@ killing the process) leaves the **previous** run's file untouched at
 `$OUT/<phase>.json`, where `merge_results.py` reads it as this run's — `run_matrix.sh`'s
 date-stamped `$OUT` makes this a same-day-rerun trap.
 
-Fix: call `write_out()` once **before** the loop. The file is immediately replaced by an
-all-`not_requested` checkpoint, which 7.10 check 5 already refuses. One line, and it
-composes with the validator instead of adding a second mechanism (unique run directories
-or refusing existing paths would both need their own).
+Fix: once arguments identify the exact output path, unlink an existing file before
+registry construction, imports or provenance hashing. After provenance is available,
+call `write_out()` once **before** the loop. Early failure therefore leaves a missing file
+(merge refuses it); later startup failure leaves an all-`not_requested` checkpoint (7.10
+refuses it). No stale valid-looking output survives either interval.
 
 ## 7.12 Effective execution settings, not an env allowlist
 
@@ -421,13 +434,15 @@ env-name allowlist and strictly stronger (verified against the installed engines
 
 - vaex — `vaex.settings.main.thread_count` (32 here), `.thread_count_io` (33),
   `.process_count`, and `chunk.{size,size_min,size_max}`.
-- dask — `dask.config.get` for `scheduler`, `num_workers`, `threaded.num-workers`,
-  `array.chunk-size`, `dataframe.query-planning`.
+- dask — resolve its DataFrame default scheduler and worker count (rather than recording
+  null config overrides), plus array chunk size and the DataFrame implementation module.
 - polars — `pl.thread_pool_size()`; duckdb — `current_setting('threads')`.
 
 Stored as `provenance.execution`, keeping `host.thread_env` alongside as the *cause* where
 one exists. 7.1 then refuses phases whose effective settings disagree, and 7.10 requires
-the block present. **Record and refuse, never tune** — no benchmark-authored thread or
+the relevant engine block for every contender that produced trials. Capture errors are
+not suppressed: all engines are locked project dependencies. **Record and refuse, never
+tune** — no benchmark-authored thread or
 chunk settings; if a host carries a nondefault, it lands in provenance and a reader can
 see it, which is the whole point.
 
