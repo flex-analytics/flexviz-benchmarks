@@ -24,9 +24,14 @@ cd ../flexviz && make build-plugin-release  # required for the flexviz contender
 overwrites it, is ~1GB instead of ~35MB and costs flexviz ~9× — the driver refuses to run
 flexviz against a `.so` over 100MB.
 
-The vendored JS engine bundles in `benchmarks/probes/vendor/dist/` are committed, so
-normal runs need no network. Re-vendor (needs node/npm) with
-`uv run python benchmarks/vendor_assets.py`.
+The vendored JS engine bundles in `benchmarks/probes/vendor/dist/` are **not** committed
+(82MB of third-party engine code). Build them once with
+`uv run python benchmarks/vendor_assets.py` (needs node/npm). They are reconstructed from
+the committed `package-lock.json` with a pinned esbuild, and every output file's SHA-256 is
+recorded in `benchmarks/probes/vendor/manifest.json`, so a rebuild is verifiable rather
+than merely plausible. `make verify-workloads` checks that tree first — the engine
+correctness gates skip when a bundle is missing, and a skip would otherwise read as a
+pass.
 
 ## Running
 
@@ -110,8 +115,9 @@ cleanly when those are absent.
 
 FlexViz Benchmarks is [Apache-2.0](LICENSE) © 2026 Flex Analytics BV.
 
-`benchmarks/probes/vendor/dist/` commits the engine bundles under test so a run needs no
-network, which makes this repository a redistributor of them.
+`benchmarks/probes/vendor/dist/` is not committed, but earlier commits carried it and
+those objects stay reachable in git history, so a clone still distributes the engine
+bundles under test.
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) reproduces the licence of every
 redistributed component (45 of them: MIT, ISC, BSD-3-Clause, Apache-2.0). It is generated
 by `benchmarks/probes/vendor/gen_notices.py` from the esbuild input markers in the shipped

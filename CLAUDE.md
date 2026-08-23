@@ -20,11 +20,16 @@ Install Chromium for Playwright (first run only):
 uv run playwright install chromium
 ```
 
-Vendor the JS engine bundles (Mosaic-wasm + Perspective) — only needed when re-vendoring;
-the built `benchmarks/probes/vendor/dist/` is committed so normal runs need no network:
+Vendor the JS engine bundles (Mosaic-wasm + Perspective). `benchmarks/probes/vendor/dist/`
+is **not** committed — it is 82MB of third-party engine bundles — so this is a required
+setup step, not a dev-only one:
 ```bash
-uv run python benchmarks/vendor_assets.py   # requires node/npm (dev-only)
+uv run python benchmarks/vendor_assets.py   # requires node/npm
 ```
+It rebuilds from the committed `package-lock.json` (esbuild pinned) and every output file's
+SHA-256 is pinned in `manifest.json`. **`verify_vendor.py` checks that tree before the
+correctness gates run**, because several gates SKIP when their bundle is missing and a skip
+reads as a pass — `make verify-workloads` would otherwise go green having verified nothing.
 
 ## Development
 

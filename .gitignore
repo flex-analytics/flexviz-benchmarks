@@ -234,9 +234,9 @@ skills-lock.json
 
 # Vendored JS build deps (lockfile is committed, node_modules is not)
 benchmarks/probes/vendor/node_modules/
-# ...but the built output IS committed (overrides the global dist/ ignore above). The
-# `/**` line is load-bearing: perspective 5.x must be vendored package-relative
-# (dist/client/dist/cdn/..., dist/server/dist/wasm/...) or its bundles resolve their
-# wasm outside the tree — and those nested `dist` segments match the global rule again.
-!benchmarks/probes/vendor/dist/
-!benchmarks/probes/vendor/dist/**
+# The built output is NOT committed: it is 82MB of third-party engine bundles that
+# `vendor_assets.py` reconstructs from the committed package-lock.json, with every file's
+# SHA-256 pinned in manifest.json. `verify_vendor.py` checks it is present and unaltered
+# before the correctness gates run — those gates SKIP when a bundle is missing, and a skip
+# reads as a pass.
+benchmarks/probes/vendor/dist/

@@ -18,6 +18,7 @@ GATE_TESTS ?= tests/core/test_vaex_oracle.py tests/test_same_picture.py \
               $(wildcard tests/test_*_gate.py) $(wildcard tests/core/test_*_gate.py)
 
 verify-workloads:
+	python3 benchmarks/probes/vendor/verify_vendor.py
 	uv run pytest -q $(GATE_TESTS)
 
 bench-histogram:
