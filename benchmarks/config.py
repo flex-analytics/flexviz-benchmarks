@@ -11,13 +11,15 @@ N_TRACES: list[int] = [1, 2, 5]
 # Server engines run all sources; wasm/client engines are in-memory only (enforced in driver).
 DATA_SOURCES: list[str] = ["in-memory", "disk-parquet"]
 
-# Tools to include in each benchmark run (7-tool roster; Graphic Walker deferred).
+# Tools to include in each benchmark run (9-tool roster; Graphic Walker deferred).
 CONTENDERS: list[str] = [
     "flexviz",
     "mosaic-server",
     "mosaic-wasm",
     "perspective-server",
     "perspective-wasm",
+    "plotly-resampler",
+    "plotly-resampler-par",
     "vaex",
     "datashader",
 ]
@@ -27,6 +29,34 @@ CONTENDERS: list[str] = [
 # DuckDB-WASM can read Parquet over HTTP; shipping a local file to it is a different
 # experiment. Kept in the same words as the status reason the driver emits.
 CLIENT_ONLY: set[str] = {"mosaic-wasm", "perspective-wasm"}
+
+# tool -> reason for tools benchmarked in-memory ONLY for a reason other than browser
+# compute. Kept separate from CLIENT_ONLY so that set keeps meaning exactly "computes in
+# the browser"; both produce `source_out_of_scope`.
+MEMORY_ONLY: dict[str, str] = {
+    tool: (
+        "plotly-resampler has no out-of-core path (hf_x/hf_y are numpy arrays), so the "
+        "file read happens at figure construction. Its timed window is the reset-axes "
+        "relayout round-trip, which re-aggregates the already-resident arrays — a disk "
+        "cell would therefore measure exactly what the in-memory cell measures and read "
+        "nothing inside the window. Recorded out of scope rather than published as a "
+        "disk number the tool never earned."
+    )
+    for tool in ("plotly-resampler", "plotly-resampler-par")
+}
+
+
+def memory_only_reason(tool: str, source: str) -> str | None:
+    """Reason this (tool, source) cell is out of scope, else None."""
+    if source == "in-memory":
+        return None
+    if tool in CLIENT_ONLY:
+        return (
+            "client/WASM engines compute in the browser and are benchmarked in-memory "
+            "only (benchmark-design choice, not an engine limit)"
+        )
+    return MEMORY_ONLY.get(tool)
+
 
 # (chart, tool) -> (status, reason) for cells that are never run. The two states are
 # distinct and never conflated: "unsupported" = the chart type does not exist in the
@@ -52,6 +82,18 @@ EXCLUSIONS: dict[tuple[str, str], tuple[str, str]] = {
         "perspective has no histogram chart type: viewer-charts 5.2 ships no binning at "
         'all and "Density" is a 2-D radial-splat KDE, a different trace type '
         "(docs/superpowers/specs/2026-08-22-perspective5-gate.md).",
+    ),
+    ("histogram", "plotly-resampler"): (
+        "unsupported",
+        "plotly-resampler resamples scatter/line traces and ships no binning API: a "
+        "histogram would have to be binned by numpy outside the library, so the timing "
+        "would not measure plotly-resampler.",
+    ),
+    ("histogram", "plotly-resampler-par"): (
+        "unsupported",
+        "plotly-resampler resamples scatter/line traces and ships no binning API: a "
+        "histogram would have to be binned by numpy outside the library, so the timing "
+        "would not measure plotly-resampler.",
     ),
 }
 

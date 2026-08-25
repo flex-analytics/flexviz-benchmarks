@@ -122,6 +122,8 @@ def _execution() -> dict[str, Any]:
     import vaex.settings
     from dask.base import get_scheduler
     from dask.system import CPU_COUNT
+    from plotly_resampler import FigureResampler
+    from plotly_resampler.aggregation import MinMaxLTTB
 
     m = vaex.settings.main
     pool = dask.config.get("pool", None)
@@ -146,6 +148,15 @@ def _execution() -> dict[str, Any]:
             "dataframe_implementation": dd.DataFrame.__module__,
         },
         "polars": {"thread_pool_size": pl.thread_pool_size()},
+        # plotly-resampler's thread budget is a CONSTRUCTOR flag on the aggregator, not
+        # an env var or a global — and the two roster entries differ only by it, so the
+        # defaults it would use are what makes those two cells distinguishable at all.
+        "plotly_resampler": {
+            "default_downsampler": type(FigureResampler()._global_downsampler).__name__,
+            "default_n_shown_samples": FigureResampler()._global_n_shown_samples,
+            "default_parallel": MinMaxLTTB().downsample_kwargs.get("parallel", False),
+            "tsdownsample_version": _version("tsdownsample"),
+        },
         "duckdb": {"threads": duckdb.sql("select current_setting('threads')").fetchone()[0]},
     }
 

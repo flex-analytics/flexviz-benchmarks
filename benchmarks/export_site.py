@@ -30,6 +30,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from merge_results import PROVENANCE_PER_PHASE, _diff_path  # noqa: E402
 from report import publication_failures  # noqa: E402
 
 # The server-compute roster the site charts. mosaic-wasm is excluded because it runs
@@ -156,7 +157,26 @@ def main() -> None:
     args = ap.parse_args()
 
     charts = {"histogram": load(args.histogram), "line": load(args.line)}
-    prov = charts["histogram"]["provenance"]
+    # The meta block below describes the WHOLE payload from the histogram file's
+    # provenance, so the two charts must be the same experiment — the same identity
+    # merge_results demands between phases of one chart. Without this a chart-only rerun
+    # (a new tool on the line matrix, say) would publish a card claiming the other
+    # chart's environment, lock hash included, for numbers that never ran under it.
+    hist_prov, line_prov = (charts[c]["provenance"] for c in ("histogram", "line"))
+    # `phases` is merge_results' per-chart manifest (which files, which cells) — chart
+    # bookkeeping, not environment; each entry carries its own generated_utc/runtime.
+    per_chart = PROVENANCE_PER_PHASE | {"phases"}
+    for key in sorted(set(hist_prov) | set(line_prov)):
+        if key in per_chart:
+            continue
+        if diff := _diff_path(hist_prov.get(key), line_prov.get(key), f"provenance.{key}"):
+            path, mine, theirs = diff
+            raise SystemExit(
+                f"REFUSING: histogram and line are not the same experiment — {path}="
+                f"{mine!r} (histogram) vs {theirs!r} (line). Re-run both charts, or "
+                f"publish them from runs that share an environment."
+            )
+    prov = hist_prov
     host = prov.get("host", {})
     # merge_results hoists the identity fields and keeps generated_utc per phase, since
     # phases legitimately run at different times. The run started at the earliest one.
