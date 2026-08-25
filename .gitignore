@@ -224,6 +224,7 @@ results/*
 # on the author's disk cannot be audited. `results/*` matches direct children only, so
 # un-ignoring the directory is enough for git to descend into it.
 !results/full_2026-08-23/
+!results/full_2026-08-25/
 
 # MCP server runtime directory
 .playwright-mcp/
