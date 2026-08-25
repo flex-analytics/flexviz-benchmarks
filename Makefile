@@ -2,7 +2,7 @@
 
 FLEXVIZ_REPO ?= ../flexviz
 SITE_REPO    ?= ../flexviz_site
-RESULTS      ?= results/full_2026-08-23
+RESULTS      ?= results/full_2026-08-25
 HISTOGRAM_JSON ?= results/ttfr_histogram.json
 LINE_JSON      ?= results/ttfr_line.json
 

@@ -33,12 +33,12 @@ fi
 FAIL=0
 SUMMARY=()
 
-run() {  # run <name> <chart> <sizes> <contenders>
-  local name=$1 chart=$2 sizes=$3 tools=$4
-  echo "=== [$(date +%H:%M:%S)] PHASE $name: chart=$chart sizes=$sizes ==="
+run() {  # run <name> <chart> <sizes> <contenders> [data-sources]
+  local name=$1 chart=$2 sizes=$3 tools=$4 sources=${5:-in-memory,disk-parquet}
+  echo "=== [$(date +%H:%M:%S)] PHASE $name: chart=$chart sizes=$sizes src=$sources ==="
   uv run python benchmarks/ttfr_bench.py \
       --chart "$chart" --sizes "$sizes" --n-traces 1,2,5 \
-      --data-sources in-memory,disk-parquet --contenders "$tools" \
+      --data-sources "$sources" --contenders "$tools" \
       --repeats 5 --warmup 1 --seed 42 \
       --flexviz-repo ../flexviz --json-out "$OUT/$name.json"
   # Capture BEFORE any command substitution: $(date) would reset $? to date's status
@@ -56,7 +56,13 @@ run line_mid    line      10000000,20000000                  "$NO_PERSP"
 run hist_big    histogram 50000000                           "$SERVERS"
 run line_big    line      50000000,100000000                 "$SERVERS"
 # 200M last: the histogram phase regenerates a 5-wide parquet (~8GB, disk permitting).
-run hist_200m   histogram 200000000                          "$SERVERS"
+# Split by data source, NOT by trace count: a single hist_200m phase was SIGKILLed at the
+# `200M nt5 disk-parquet` cell twice. Dataset width is max(--n-traces), so splitting on
+# traces would rebuild the Parquet two columns wide and make those cells cheaper than
+# every other disk cell; `data_sources` is a CONFIG_SPLIT key and leaves the file
+# byte-identical.
+run hist_200m_in   histogram 200000000                       "$SERVERS" in-memory
+run hist_200m_disk histogram 200000000                       "$SERVERS" disk-parquet
 run line_200m   line      200000000                          "$SERVERS"
 
 echo "=== [$(date +%H:%M:%S)] PHASE SUMMARY ==="
