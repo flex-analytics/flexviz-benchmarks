@@ -74,14 +74,15 @@ in-memory only, where VmHWM was already correct (`child.py` reads the frame with
 - **Read `server_ms`/`client_ms`, not just `total_ms`.** Below ~10M rows flexviz's TTFR is
   dominated by fixed Plotly render cost; at 1M–2M it is statistically indistinguishable
   from a 1,000-row chart (`results/floor_probe_*.json`, 55.6 ms histogram floor).
-- **The out-of-core line envelope has no correctness gate.**
-  `tests/test_same_picture.py::test_flexviz_line_envelope_matches_oracle` drives the
-  in-memory kernel path only, so `make verify-workloads` can pass while the scan-source
-  picture is wrong — it did, on the commit before `a60dd0b`, which collapsed the disk
-  envelope to 2 points and read as a free 1.4–1.7× speedup. The envelope now matches
-  `core.oracle.line_envelope` (equal-width) bit-for-bit on the bench data, so the gate is
-  cheap to add and should be. Until it is, diff `payload_bytes_median` per cell before
-  believing any disk-parquet line number.
+- **The out-of-core line envelope is gated as of `test_flexviz_scan_line_envelope_
+  matches_oracle`** (`tests/test_same_picture.py`), which passes a `scan_parquet`
+  LazyFrame and asserts bit-equality with `core.oracle.line_envelope` (equal-width).
+  It did not exist when this matrix ran: the sibling in-memory test drives the kernel
+  path only, so `make verify-workloads` went green on the commit before `a60dd0b`,
+  which collapsed the disk envelope to 2 points and read as a free 1.4–1.7× speedup.
+  Verified to fail on that bug. It also asserts the output *differs* from
+  `line_envelope_equal_count`, so a silent revert to the kernel here fails loudly
+  rather than passing against the wrong path.
 - The out-of-core path buckets by **equal x-width** while the in-memory kernel buckets by
   **equal row count**. Deliberate, but it means the two sources no longer draw the
   identical picture; the line `notes` do not yet say so.
