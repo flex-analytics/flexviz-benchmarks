@@ -50,6 +50,10 @@ BROWSER_MEMORY_METRICS: list[tuple[str, str]] = [
 # Backend render-memory delta is visualized as a chart column.
 MEMORY_METRICS: list[tuple[str, str]] = [
     ("backend_timed_peak_mb", "backend render peak"),
+    # Anon-only peak: VmHWM counts mmap'd file pages, which charges polars for page
+    # cache DuckDB/pyarrow never map. Read this one on a disk source. Sampled, so a
+    # lower bound; Linux-only, None elsewhere (see core.memory.rss_anon_mb).
+    ("backend_timed_anon_peak_mb", "backend render peak (anon)"),
 ]
 
 # Vibrant Tailwind-style palette. Paired engines share a hue (lighter tint for
@@ -181,6 +185,9 @@ def compute_bands(trials_json: dict) -> dict[tuple, tuple[float, float]]:
         "browser_timed_peak_mb",
         "resident_footprint_mb",
         "preload_peak_mb",
+        "backend_timed_anon_peak_mb",
+        "resident_anon_footprint_mb",
+        "preload_anon_peak_mb",
     )
     bands: dict[tuple, tuple[float, float]] = {}
 

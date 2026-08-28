@@ -353,6 +353,20 @@ browser store footprints use PSS (RSS-summing a Chromium tree double-counts ~2.5
 browser timed peaks stay RSS-sampled (lower bound). Raw deltas are stored (may be
 slightly negative); the report clamps at display time.
 
+Every backend peak is recorded **twice**: `*_peak_mb` (VmHWM, exact) and
+`*_anon_peak_mb` (`RssAnon`, 5 ms-sampled, so a lower bound). VmHWM is peak *total*
+RSS — `RssAnon + RssFile + RssShmem` — so it charges an engine for mmap'd file pages:
+on one 4.6 GB Parquet, polars holds 825 MB in `RssFile` where DuckDB holds 37 MB and
+pyarrow 64 MB, i.e. the metric penalises mmap-based engines only. **Read the anon
+column on a disk source; read VmHWM in-memory**, where `child.py` reads the frame with
+`memory_map=False` precisely so nothing is file-backed. Added, never swapped: there is
+no anon high-water mark in the kernel (only the RSS *total* has `VmHWM`), so replacing
+would trade an exact number for a sampled one. **Linux-only** — the macOS equivalent is
+`phys_footprint`, but its obvious reader needs a task port the parent cannot get for a
+child; see the `TODO(macos)` in `core/memory.py:rss_anon_mb`. `tests/core/
+test_memory_metric.py` is the guard (a known 256 MB allocation must move the metric,
+a 256 MB mapped file must not).
+
 **FlexViz dependency** is a local editable install from `../flexviz` (see `pyproject.toml`);
 `FlexVizContender` adds the repo path to `sys.path` and imports `flexviz.*`.
 
