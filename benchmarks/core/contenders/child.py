@@ -19,7 +19,7 @@ from pathlib import Path
 
 import psutil
 
-IN_PROCESS = {"flexviz", "vaex", "datashader"}
+IN_PROCESS = {"flexviz", "vaex", "datashader", "plotly-resampler", "plotly-resampler-par"}
 
 
 def _child_main(conn, name: str, flexviz_repo: str, backend_kwargs: dict) -> None:

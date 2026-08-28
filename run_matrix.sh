@@ -21,6 +21,15 @@ mkdir -p "$OUT"
 ALL=flexviz,mosaic-server,mosaic-wasm,perspective-server,perspective-wasm,vaex,datashader
 NO_PERSP=flexviz,mosaic-server,mosaic-wasm,vaex,datashader
 SERVERS=flexviz,mosaic-server,vaex,datashader
+# plotly-resampler is LINE-ONLY (config.EXCLUSIONS — no binning API) and in-memory ONLY
+# (config.MEMORY_ONLY — no out-of-core path), so it joins the line rosters and nothing
+# else. Two entries: the library default (single-threaded MinMaxLTTB) and parallel=True.
+# No hand-entered size ceiling — same rule as the rest of this file: if a cell will not
+# fit, the harness records the failure rather than a guess made here deciding for it.
+PR=plotly-resampler,plotly-resampler-par
+ALL_LINE=$ALL,$PR
+NO_PERSP_LINE=$NO_PERSP,$PR
+SERVERS_LINE=$SERVERS,$PR
 
 # Correctness gates first: a matrix run on engines that render the wrong picture is
 # machine-hours spent producing numbers that must be thrown away.
@@ -50,11 +59,11 @@ run() {  # run <name> <chart> <sizes> <contenders> [data-sources]
 }
 
 run hist_small  histogram 1000000,2000000,5000000            "$ALL"
-run line_small  line      1000000,2000000,5000000            "$ALL"
+run line_small  line      1000000,2000000,5000000            "$ALL_LINE"
 run hist_mid    histogram 10000000,20000000                  "$NO_PERSP"
-run line_mid    line      10000000,20000000                  "$NO_PERSP"
+run line_mid    line      10000000,20000000                  "$NO_PERSP_LINE"
 run hist_big    histogram 50000000                           "$SERVERS"
-run line_big    line      50000000,100000000                 "$SERVERS"
+run line_big    line      50000000,100000000                 "$SERVERS_LINE"
 # 200M last: the histogram phase regenerates a 5-wide parquet (~8GB, disk permitting).
 # Split by data source, NOT by trace count: a single hist_200m phase was SIGKILLed at the
 # `200M nt5 disk-parquet` cell twice. Dataset width is max(--n-traces), so splitting on
@@ -63,7 +72,7 @@ run line_big    line      50000000,100000000                 "$SERVERS"
 # byte-identical.
 run hist_200m_in   histogram 200000000                       "$SERVERS" in-memory
 run hist_200m_disk histogram 200000000                       "$SERVERS" disk-parquet
-run line_200m   line      200000000                          "$SERVERS"
+run line_200m   line      200000000                          "$SERVERS_LINE"
 
 echo "=== [$(date +%H:%M:%S)] PHASE SUMMARY ==="
 printf '  %s\n' "${SUMMARY[@]}"

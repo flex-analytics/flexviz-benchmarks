@@ -96,6 +96,7 @@ class RenderProbe:
 
         preload_peak = resident = None
         backend_timed_peak = browser_timed_peak = None
+        preload_anon_peak = resident_anon = backend_timed_anon_peak = None
         page = None
         try:  # teardown must also run when start_backend/preload fails (spawn timeout, OOM)
             # Spawn the backend child EMPTY and register it BEFORE preload, so the memory
@@ -118,8 +119,10 @@ class RenderProbe:
                         n_points=n_points,
                     )
                 preload_peak = pre.peak_delta_mb
+                preload_anon_peak = pre.anon_peak_delta_mb
                 # disk sources hold only a handle pre-timing; resident is in-memory-only
                 resident = pre.end_delta_mb if source == "in-memory" else None
+                resident_anon = pre.anon_end_delta_mb if source == "in-memory" else None
             else:
                 contender.preload(
                     chart=chart,
@@ -166,6 +169,7 @@ class RenderProbe:
                     bench = self._goto_and_wait(page, url, wait_timeout_ms)
                 if bw is not None:
                     backend_timed_peak = bw.peak_delta_mb
+                    backend_timed_anon_peak = bw.anon_peak_delta_mb
                 browser_timed_peak = br.peak_mb - render_browser_base
             if bench.get("status") == "no_marks":
                 raise RuntimeError(f"{contender.name}: rendered no marks")
@@ -198,6 +202,9 @@ class RenderProbe:
             browser_timed_peak_mb=browser_timed_peak,
             resident_footprint_mb=resident,
             preload_peak_mb=preload_peak,
+            backend_timed_anon_peak_mb=backend_timed_anon_peak,
+            resident_anon_footprint_mb=resident_anon,
+            preload_anon_peak_mb=preload_anon_peak,
         )
 
 

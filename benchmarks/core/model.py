@@ -28,6 +28,12 @@ class Trial:
     browser_timed_peak_mb: float | None = None  # Chromium-tree RSS peak during render (sampled)
     resident_footprint_mb: float | None = None  # engine store steady-state delta (PSS in browser)
     preload_peak_mb: float | None = None  # peak during store build, minus empty baseline
+    # Anon-only companions (Linux; None elsewhere). VmHWM counts mmap'd file pages, so
+    # read these on a disk source and the *_peak_mb ones in-memory — see memory.PeakWindow.
+    # Sampled at 5ms, so lower bounds, unlike the exact VmHWM pair.
+    backend_timed_anon_peak_mb: float | None = None
+    resident_anon_footprint_mb: float | None = None
+    preload_anon_peak_mb: float | None = None
 
 
 @dataclass
@@ -54,6 +60,9 @@ class Summary:
     browser_timed_peak_mb: float | None
     resident_footprint_mb: float | None
     preload_peak_mb: float | None
+    backend_timed_anon_peak_mb: float | None
+    resident_anon_footprint_mb: float | None
+    preload_anon_peak_mb: float | None
 
 
 def _med(values: list[float | None]) -> float | None:
@@ -94,6 +103,9 @@ def summarize(
         browser_timed_peak_mb=m.browser_timed_peak_mb if m else None,
         resident_footprint_mb=m.resident_footprint_mb if m else None,
         preload_peak_mb=m.preload_peak_mb if m else None,
+        backend_timed_anon_peak_mb=m.backend_timed_anon_peak_mb if m else None,
+        resident_anon_footprint_mb=m.resident_anon_footprint_mb if m else None,
+        preload_anon_peak_mb=m.preload_anon_peak_mb if m else None,
     )
 
 

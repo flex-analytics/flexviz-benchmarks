@@ -12,6 +12,7 @@ from core.contenders.mosaic_server import MosaicServerContender
 from core.contenders.mosaic_wasm import MosaicWasmContender
 from core.contenders.perspective_server import PerspectiveServerContender
 from core.contenders.perspective_wasm import PerspectiveWasmContender
+from core.contenders.plotly_resampler import PlotlyResamplerContender
 from core.contenders.vaex import VaexContender
 
 
@@ -26,6 +27,8 @@ def build_registry(
         "mosaic-wasm": MosaicWasmContender,
         "perspective-server": lambda: PerspectiveServerContender(spill_dir=spill_dir),
         "perspective-wasm": PerspectiveWasmContender,
+        "plotly-resampler": PlotlyResamplerContender,
+        "plotly-resampler-par": lambda: PlotlyResamplerContender(parallel=True),
         "vaex": VaexContender,
         "datashader": DatashaderContender,
     }

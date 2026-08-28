@@ -51,6 +51,41 @@ def vm_hwm_mb(pid: int) -> float:
     raise OSError(f"no VmHWM in /proc/{pid}/status")
 
 
+def rss_anon_mb(pid: int) -> float:
+    """Resident ANONYMOUS memory — heap/stack, excluding mmap'd file pages.
+
+    VmHWM is peak *total* RSS (RssAnon + RssFile + RssShmem), so an engine that
+    mmaps its input is charged for reclaimable page cache. Measured on one 4.6 GB
+    Parquet: polars keeps 825 MB in RssFile, DuckDB 37 MB, pyarrow 64 MB — the
+    metric penalises mmap-based engines only. This is the anon-only companion;
+    VmHWM stays the headline, because it is exact and this is not.
+
+    Point-in-time: the kernel keeps no anon high-water mark (VmRSS breaks down
+    into RssAnon/RssFile/RssShmem, but only the *total* has a VmHWM), so a peak
+    has to be sampled and is a lower bound.
+
+    TODO(macos): Linux-only. The macOS equivalent is phys_footprint — Apple's own
+    ledger (dirty + compressed + swapped, excluding clean file pages), what
+    Activity Monitor calls "Memory". The obvious reader, task_info(TASK_VM_INFO),
+    needs a task port for the target process: task_for_pid() on anything but self
+    requires root or the task_for_pid-allow entitlement and is SIP-blocked. Since
+    PeakWindow samples a CHILD from the parent, a self-only reader (the
+    mach_task_self_ one in flexviz-research/line_ooc/benchmark.py) does not
+    transfer. proc_pid_rusage() exposes ri_phys_footprint and
+    ri_lifetime_max_phys_footprint per-pid without entitlements — and the latter is
+    a real high-water mark, which on ChildBackend's fresh-spawned children equals
+    the window peak, so macOS would need no sampler at all. Left unwritten because
+    no macOS host was available to validate it, and an unvalidated memory reader
+    reports plausible-looking wrong numbers — the exact failure this metric exists
+    to remove. Port test_memory_metric.py's allocation check along with it.
+    """
+    with open(f"/proc/{pid}/status") as f:
+        for line in f:
+            if line.startswith("RssAnon:"):
+                return int(line.split()[1]) / 1024
+    raise OSError(f"no RssAnon in /proc/{pid}/status (needs Linux >= 4.5)")
+
+
 def reset_vm_hwm(pid: int) -> None:
     """Reset a process's VmHWM to its current RSS (Linux >= 4.0; same-UID external
     writes work — validated). Makes subsequent vm_hwm_mb reads window-local."""
@@ -69,16 +104,41 @@ class PeakWindow:
     sampling cost); where /proc is not writable it falls back to the RSS sampler.
     Deltas stay None if the process dies mid-window (a failed trial, not a zero).
     ponytail: single-process backends assumed; sum over children if one ever forks.
+
+    Reports a SECOND, anon-only pair alongside it (anon_*), sampled because the
+    kernel keeps no anon high-water mark — see rss_anon_mb. Added, not swapped:
+    VmHWM stays exact, and is the right number for in-memory sources anyway, where
+    child.py deliberately reads the frame with memory_map=False so nothing is
+    file-backed. The anon pair is what to read on a disk source. Both stay None
+    where the platform has no reader (anything but Linux, today).
     """
 
     def __init__(self, proc: psutil.Process) -> None:
         self._proc = proc
         self._sampler: ProcessTreeSampler | None = None
+        self._anon_sampler: ProcessTreeSampler | None = None
         self._base: float | None = None
+        self._anon_base: float | None = None
         self.peak_delta_mb: float | None = None
         self.end_delta_mb: float | None = None
+        self.anon_peak_delta_mb: float | None = None
+        self.anon_end_delta_mb: float | None = None
+
+    def _anon_or_zero(self) -> float:  # dead process = harmless sample, not a raise
+        try:
+            return rss_anon_mb(self._proc.pid)
+        except OSError:
+            return 0.0
 
     def start(self) -> PeakWindow:
+        try:
+            self._anon_base = rss_anon_mb(self._proc.pid)
+        except OSError:
+            self._anon_base = None  # no reader on this platform, or already gone
+        else:
+            self._anon_sampler = ProcessTreeSampler(
+                lambda: self._proc, sample_func=self._anon_or_zero
+            ).__enter__()
         try:
             reset_vm_hwm(self._proc.pid)
         except OSError:
@@ -107,6 +167,17 @@ class PeakWindow:
         self.stop()
 
     def stop(self) -> None:
+        # First: the anon sampler owns a thread, and every path below can return
+        # early (a dead process is the normal ceiling case). Joining it here means
+        # no early return can leak it for the rest of the run.
+        if self._anon_sampler is not None:
+            self._anon_sampler.__exit__()
+            if self._anon_base is not None:
+                self.anon_peak_delta_mb = self._anon_sampler.peak_mb - self._anon_base
+                try:
+                    self.anon_end_delta_mb = rss_anon_mb(self._proc.pid) - self._anon_base
+                except OSError:
+                    pass  # died mid-window: peak stands, end is unknowable
         if self._sampler is not None:
             self._sampler.__exit__()
             peak = self._sampler.peak_mb

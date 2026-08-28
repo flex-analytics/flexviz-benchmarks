@@ -17,6 +17,7 @@ from config import (  # noqa: E402
     DATA_SOURCES,
     EXCLUSIONS,
     MAX_TRACES,
+    MEMORY_ONLY,
     N_POINTS,
     N_TRACES,
     REPEATS,
@@ -25,6 +26,7 @@ from config import (  # noqa: E402
     WAIT_TIMEOUT_MAX_MS,
     WAIT_TIMEOUT_PER_MROW_MS,
     WARMUP,
+    memory_only_reason,
     unsupported_traces,
     wait_timeout_ms,
 )
@@ -109,6 +111,40 @@ def benchmark_notes(
             "(sorted uniform-random x) they converge as rows grow but choose different "
             "points bucket-by-bucket at small sizes."
         )
+    pr = sorted(n for n in eligible if n.startswith("plotly-resampler"))
+    if chart == "line" and pr:
+        notes.append(
+            "plotly-resampler is the ONLY tool here whose timed window is not the page's "
+            "first render. It downsamples inside add_trace() and show_dash serves the "
+            "already-aggregated figure with the resample callback registered "
+            "prevent_initial_call=True, so a page-load clock would measure a Dash "
+            "bootstrap and an n_points-point Plotly draw at every row count. What is "
+            "measured instead is the RESET-AXES relayout round-trip — the modebar's own "
+            "gesture, routed to construct_update_data's global-view branch — i.e. "
+            "relayout -> POST /_dash-update-component -> MinMaxLTTB over the full hf "
+            "arrays -> figure patch -> render -> barrier. That is a genuine full-n "
+            "aggregation (the downsampler is re-run unconditionally), and the same window "
+            "shape as flexviz's /dashboard/update, which also clocks a request into an "
+            "already-initialised Plotly div. The asymmetry that remains is warmth: "
+            "plotly-resampler aggregates TWICE per trial — once untimed at add_trace, "
+            "once timed at the relayout — so the measured pass runs over arrays and code "
+            "paths the untimed pass just walked, an advantage no other tool here gets."
+        )
+        notes.append(
+            "plotly-resampler renders MinMaxLTTB: a min/max preselection at "
+            "minmax_ratio=4 followed by LTTB down to n_points. That is neither flexviz's "
+            "pure min-max envelope over equal-row-count buckets nor Mosaic's pixel-driven "
+            "M4 — three different pictures at the same point budget."
+        )
+    if chart == "line" and len(pr) == 2:
+        notes.append(
+            "plotly-resampler appears twice on purpose. `plotly-resampler` is the "
+            "library's documented default, MinMaxLTTB(parallel=False) — single-threaded; "
+            "`plotly-resampler-par` is the same algorithm with parallel=True, i.e. the "
+            "thread budget flexviz's rayon kernel and DuckDB take by default. The pair "
+            "separates the algorithm from the default, so neither number has to stand in "
+            "for both."
+        )
     if chart == "line" and any(n.startswith("mosaic-") for n in contenders):
         notes.append(
             "Mosaic IGNORES n_points: vgplot applies pixel-aware automatic M4 reduction, "
@@ -171,6 +207,16 @@ def benchmark_notes(
             "stays inside the timed window. This is a disclosed deviation from Mosaic's "
             "loadParquet default, which materializes a table before any query runs; the "
             "in-memory cells do use that materializing default."
+        )
+    mem_only = sorted(n for n in eligible if n in MEMORY_ONLY)
+    if has_disk and mem_only:
+        notes.append(
+            f"{', '.join(mem_only)} record disk cells as source_out_of_scope. The engine "
+            "has no out-of-core path, so the file read lands at figure construction, "
+            "outside the relayout window that is what gets timed — a disk cell would "
+            "measure exactly what the in-memory cell measures while reading nothing "
+            "inside the window. Recorded out of scope rather than published as a disk "
+            "number the tool never earned. Never a failure."
         )
     if has_disk and any(n in CLIENT_ONLY for n in eligible):
         client = ", ".join(sorted(n for n in eligible if n in CLIENT_ONLY))
@@ -249,12 +295,8 @@ def cell_statuses(
                         status, reason = EXCLUSIONS[(chart, tool)]
                     elif why := unsupported_traces(chart, tool, n_traces):
                         status, reason = "unsupported", why
-                    elif tool in CLIENT_ONLY and source != "in-memory":
-                        status = "source_out_of_scope"
-                        reason = (
-                            "client/WASM engines compute in the browser and are benchmarked "
-                            "in-memory only (benchmark-design choice, not an engine limit)"
-                        )
+                    elif why := memory_only_reason(tool, source):
+                        status, reason = "source_out_of_scope", why
                     elif n >= repeats:
                         status = "completed"
                     elif n > 0:
@@ -455,9 +497,7 @@ def main() -> None:
                 all_memory_trials[rows][n_traces] = {}
                 runnable = [n for n in names if not unsupported_traces(a.chart, n, n_traces)]
                 for source in sources:
-                    eligible = [
-                        n for n in runnable if not (n in CLIENT_ONLY and source != "in-memory")
-                    ]
+                    eligible = [n for n in runnable if not memory_only_reason(n, source)]
                     if not eligible:
                         continue
                     base = Path(a.dataset_base.format(chart=a.chart, rows=rows))

@@ -137,7 +137,16 @@ The site tracks `main` (`site_redesign_oss/assets/bench_config.js`), so pushing 
 is what publishes. Nothing in the site repo names a version, and no SHA needs bumping.
 `SITE_TOOLS` in `export_site.py` is the charted roster: the four server-compute engines.
 mosaic-wasm and perspective are excluded there because a single browser thread and a
-1M-row truncation cap cannot share an axis with the rest honestly.
+1M-row truncation cap cannot share an axis with the rest honestly. plotly-resampler is
+not in it either — it is line-only and its window is a re-render, so charting it beside
+cold first renders would need a decision, not a default.
+
+`export_site.py` also refuses when the histogram and line inputs are **not the same
+experiment**: it applies merge_results' provenance identity (minus `generated_utc`,
+`runtime` and the per-chart `phases` manifest) across the two files, because the `meta`
+block describes the whole payload from the histogram file's provenance. Without it a
+chart-only rerun would publish a card claiming the other chart's environment — lock hash
+included — for numbers that never ran under it.
 
 ## Configuration
 
@@ -145,13 +154,20 @@ mosaic-wasm and perspective are excluded there because a single browser thread a
 - `SIZES` — row counts in the size matrix
 - `N_TRACES` — trace counts per chart
 - `DATA_SOURCES` — data source types (default: `"in-memory"`, `"disk-parquet"`; also available: `"disk-csv"`, `"disk-ipc"`; future: `"db"`)
-- `CONTENDERS` — the 7-tool roster: `"flexviz"`, `"mosaic-server"`, `"mosaic-wasm"`, `"perspective-server"`, `"perspective-wasm"`, `"vaex"`, `"datashader"`
+- `CONTENDERS` — the 9-tool roster: `"flexviz"`, `"mosaic-server"`, `"mosaic-wasm"`, `"perspective-server"`, `"perspective-wasm"`, `"plotly-resampler"`, `"plotly-resampler-par"`, `"vaex"`, `"datashader"`
 - `CLIENT_ONLY` — client/WASM tools (`"mosaic-wasm"`, `"perspective-wasm"`) that compute in the browser and are benchmarked **in-memory only** — a benchmark-design choice (status `source_out_of_scope`), not an engine limit; the driver skips them on disk sources
+- `MEMORY_ONLY` — `tool -> reason` for in-memory-only tools whose reason is *not* browser
+  compute (`plotly-resampler*`: no out-of-core path, and its timed window is a relayout
+  over already-resident arrays, so a disk cell would read nothing inside the window).
+  Kept separate so `CLIENT_ONLY` keeps meaning exactly "computes in the browser".
+  `memory_only_reason(tool, source)` is the single check the driver and `cell_statuses`
+  both call; both sets produce `source_out_of_scope`
 - `EXCLUSIONS` — `(chart, tool) -> (status, reason)` for cells never run. States stay
   distinct and are never conflated: `unsupported` = the chart type does not exist in the
   tool; `excluded_by_policy` = it exists and the benchmark declines it. Currently all
-  four entries are `unsupported`: `(histogram, datashader)`, `(line, vaex)`,
-  `(histogram, perspective-server)`, `(histogram, perspective-wasm)`
+  six entries are `unsupported`: `(histogram, datashader)`, `(line, vaex)`,
+  `(histogram, perspective-server)`, `(histogram, perspective-wasm)`,
+  `(histogram, plotly-resampler)`, `(histogram, plotly-resampler-par)`
 - `MAX_TRACES` — `(chart, tool) -> (max n_traces, reason)`; cells above the limit are
   `unsupported`. Kept separate from `EXCLUSIONS` because it is per trace-count. Currently
   `(line, perspective-*) -> 1` (native "X/Y Line" carries a single y series)
@@ -228,12 +244,14 @@ a "ceiling").
 - `contenders/` — `base.py` (duck-typed contender contract, documented in its docstring —
   no base class, no `Protocol` — plus `PageServerMixin` and `spill_arrow_path`), one
   module per tool, `child.py` (`ChildBackend` fresh-child host for the memory trial;
-  `IN_PROCESS = {flexviz, vaex, datashader}`), `__init__.py` registry (`build_registry`)
+  `IN_PROCESS = {flexviz, vaex, datashader, plotly-resampler, plotly-resampler-par}`),
+  `__init__.py` registry (`build_registry`)
 
-**Three contender classes** (7 tools):
+**Three contender classes** (9 tools):
 - **A — server-compute, browser-render:** `flexviz` (Polars + Plotly), `mosaic-server`
   (the official PyPI `duckdb-server` package, vgplot over its WebSocket), `perspective-server`
-  (`perspective-python` 5.2 tornado, native X/Y Line).
+  (`perspective-python` 5.2 tornado, native X/Y Line), `plotly-resampler` /
+  `plotly-resampler-par` (`FigureResampler` + Dash, MinMaxLTTB + Plotly).
 - **B — client-compute (WASM), browser-render, in-memory only:** `mosaic-wasm`
   (DuckDB-WASM), `perspective-wasm` (WASM `Table`). Data ships as an Arrow IPC file; the
   store is built in the browser pre-timing (a `benchStored`/`__bench_go` handshake).
@@ -251,6 +269,30 @@ a "ceiling").
   Full raw line, no downsampling; in-memory frames are dask-partitioned one per core
   (its documented path), disk reads happen lazily inside the timed `cvs.line`. Per-trace
   Okabe-Ito single-hue `cmap`s so stacked traces are distinguishable.
+- **plotly-resampler (0.11)** — **line only** (it resamples scatter/line traces; there is
+  no binning API, so a histogram would be binned by numpy outside the library) and
+  **in-memory only** (`MEMORY_ONLY`; `hf_x`/`hf_y` are numpy arrays, no out-of-core path).
+  **Its timed window is the only one in the suite that is not the page's first render**,
+  and the reason is structural: the library downsamples inside `add_trace()`, and
+  `show_dash` serves the already-aggregated figure with the resample callback registered
+  `prevent_initial_call=True`. Clocking page load would measure a Dash bootstrap plus an
+  `n_points`-point Plotly draw — flat at every row count. What is measured instead is the
+  **reset-axes relayout round-trip** (the modebar's own gesture, routed to
+  `construct_update_data`'s global-view branch): relayout → POST
+  `/_dash-update-component` → MinMaxLTTB over the full `hf` arrays → figure patch →
+  render → barrier. Same window *shape* as flexviz's `/dashboard/update`, and a genuine
+  full-n aggregation, but plotly-resampler aggregates **twice per trial** (once untimed at
+  construction, once timed) so the measured pass runs warm — disclosed in `notes`.
+  Two roster entries: `plotly-resampler` is the documented default
+  `MinMaxLTTB(parallel=False)`, `plotly-resampler-par` is `parallel=True` (measured
+  ~1.4–1.7× on the aggregation alone; the workload is memory-bandwidth bound). The
+  aggregator defaults land in `provenance.execution.plotly_resampler`.
+  Probe gotchas, all load-bearing (`probes/plotly_resampler_probe.js`): Dash fires its own
+  update round-trip while booting and firing into it makes Plotly treat reset-axes as a
+  no-op (hence the settle gate); `dcc.Graph` applies the returned `Patch` through its own
+  bundled Plotly, *not* `window.Plotly`, so the redraw is caught with the graph div's
+  `plotly_afterplot` event; and `dcc.Graph(id=...)` is the wrapper — the Plotly div is the
+  `.js-plotly-plot` inside it.
 - **mosaic-server** — the official `duckdb-server` (import name `pkg`) spawned **empty**
   per trial with only two outside injections, neither touching the query path: the listen
   port (upstream hardcodes 3000) and a per-trial diskcache dir. Loading goes through the
@@ -310,6 +352,20 @@ use kernel `VmHWM` windows (external `clear_refs` reset — exact, no sampling g
 browser store footprints use PSS (RSS-summing a Chromium tree double-counts ~2.5×);
 browser timed peaks stay RSS-sampled (lower bound). Raw deltas are stored (may be
 slightly negative); the report clamps at display time.
+
+Every backend peak is recorded **twice**: `*_peak_mb` (VmHWM, exact) and
+`*_anon_peak_mb` (`RssAnon`, 5 ms-sampled, so a lower bound). VmHWM is peak *total*
+RSS — `RssAnon + RssFile + RssShmem` — so it charges an engine for mmap'd file pages:
+on one 4.6 GB Parquet, polars holds 825 MB in `RssFile` where DuckDB holds 37 MB and
+pyarrow 64 MB, i.e. the metric penalises mmap-based engines only. **Read the anon
+column on a disk source; read VmHWM in-memory**, where `child.py` reads the frame with
+`memory_map=False` precisely so nothing is file-backed. Added, never swapped: there is
+no anon high-water mark in the kernel (only the RSS *total* has `VmHWM`), so replacing
+would trade an exact number for a sampled one. **Linux-only** — the macOS equivalent is
+`phys_footprint`, but its obvious reader needs a task port the parent cannot get for a
+child; see the `TODO(macos)` in `core/memory.py:rss_anon_mb`. `tests/core/
+test_memory_metric.py` is the guard (a known 256 MB allocation must move the metric,
+a 256 MB mapped file must not).
 
 **FlexViz dependency** is a local editable install from `../flexviz` (see `pyproject.toml`);
 `FlexVizContender` adds the repo path to `sys.path` and imports `flexviz.*`.
