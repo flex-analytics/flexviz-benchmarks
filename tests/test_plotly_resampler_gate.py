@@ -11,6 +11,11 @@ Two things must hold, and neither is checked by the harness's generic mark count
    library's own aggregator run directly on the same fixture (the same shape the
    perspective/mosaic gates take: verify the harness wired the right columns and the
    full n, not a re-derivation of someone else's algorithm).
+3. Nothing aggregates the full arrays BEFORE the clock starts. The contender builds on
+   a placeholder and swaps hf_data (see the contender's TIMED WINDOW note); if that
+   ever regresses to building on the full arrays, the timed relayout silently becomes a
+   warm second pass and the tool is 1.2-1.5x fast for a reason that is not the engine.
+   Point 2 stays green through exactly that regression, which is why this is separate.
 """
 
 import sys
@@ -20,7 +25,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
 import numpy as np  # noqa: E402
 import pytest  # noqa: E402
-from core.contenders.plotly_resampler import PlotlyResamplerContender  # noqa: E402
+from core.contenders.plotly_resampler import (  # noqa: E402
+    PLACEHOLDER_MULT,
+    PlotlyResamplerContender,
+)
 from core.datagen import frame_for  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
@@ -122,3 +130,30 @@ def test_histogram_is_refused_rather_than_faked():
             bins=10,
             n_points=N_POINTS,
         )
+
+
+def test_construction_never_aggregates_the_full_arrays():
+    """The timed relayout must be the FIRST full-n pass, so preload must not do one."""
+    frame = frame_for("line", ROWS, N_TRACES, 42)
+    c = PlotlyResamplerContender()
+    kw = dict(chart="line", source="in-memory", n_traces=N_TRACES, bins=0, n_points=N_POINTS)
+    c.start_backend(**kw)
+    c.preload(frame_or_path=frame, **kw)
+    try:
+        x = frame["x"].to_numpy()
+        head = PLACEHOLDER_MULT * N_POINTS
+        assert len(c._fig.hf_data) == N_TRACES, "traces did not register as high-frequency"
+        for t in range(N_TRACES):
+            # hf_data carries the whole column: the relayout will aggregate all of it.
+            assert len(c._fig.hf_data[t]["x"]) == len(x)
+            assert c._fig.hf_data[t]["x"][-1] == pytest.approx(x[-1])
+            # ...but what add_trace actually aggregated never went past the placeholder,
+            # so no full-n pass has run yet. Built on the full arrays this would reach
+            # x[-1] instead.
+            drawn = np.asarray(c._fig.data[t].x)
+            assert drawn[-1] <= x[head - 1], (
+                f"trace {t} was aggregated over the full range at construction "
+                f"(drawn up to {drawn[-1]}, placeholder ends at {x[head - 1]})"
+            )
+    finally:
+        c.teardown()
