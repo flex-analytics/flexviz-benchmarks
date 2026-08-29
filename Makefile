@@ -2,7 +2,9 @@
 
 FLEXVIZ_REPO ?= ../flexviz
 SITE_REPO    ?= ../flexviz_site
-RESULTS      ?= results/full_2026-08-25
+# The canonical run. Bump with results/CURRENT.md — a stale value here quietly
+# republishes an older run over the site's committed copy.
+RESULTS      ?= results/full_2026-08-28
 HISTOGRAM_JSON ?= results/ttfr_histogram.json
 LINE_JSON      ?= results/ttfr_line.json
 

@@ -37,7 +37,21 @@ from report import publication_failures  # noqa: E402
 # single-threaded against 32 threads (no cross-origin isolation, D3) and perspective
 # because its 2M-cell cap censors every cell above 1M — neither can share an axis with
 # these honestly. benchmarks.html says so in Method.
-SITE_TOOLS = ["flexviz", "mosaic-server", "vaex", "datashader"]
+#
+# plotly-resampler entries are line/in-memory only: MEMORY_ONLY records their disk cells
+# source_out_of_scope, so series() simply finds nothing for them there and the disk
+# panels keep the four-tool roster. They were held out of the site while their timed
+# window was a warm second aggregation; it is a cold first one as of the placeholder fix
+# in core/contenders/plotly_resampler.py, so they rank here like anything else. Do not
+# regenerate from a results directory produced BEFORE that fix.
+SITE_TOOLS = [
+    "flexviz",
+    "mosaic-server",
+    "vaex",
+    "datashader",
+    "plotly-resampler",
+    "plotly-resampler-par",
+]
 
 # Below this, every engine is dominated by fixed browser-render cost rather than by the
 # data (flexviz measures ~50 ms at 1,000 rows and ~48 ms at 1M). Ranking bars start here;
