@@ -139,6 +139,7 @@ def ensure_disk_dataset(
     seed: int,
     source: str,
     regenerate: bool,
+    reuse_only: bool = False,
 ) -> Path:
     """Write the dataset for `source` if missing; return the file path. Lazy/scan handles
     are created by contenders, not here — this only materializes the file once.
@@ -149,6 +150,15 @@ def ensure_disk_dataset(
     stale = ["--regenerate-datasets"] if regenerate else _stale_fields(path, identity)
     if not stale:
         return path
+    # Fail before the run, not 57GB into it. A stale-but-present dataset is the ENOSPC
+    # trap: rebuilding the matrix's files needs their full size free, and the failure
+    # otherwise lands hours in, mid-cell. Missing files still generate — this guards
+    # OVERWRITES only, so a first run and a fresh size are unaffected.
+    if reuse_only and path.exists():
+        raise RuntimeError(
+            f"{path} exists but is stale ({', '.join(stale)}); --reuse-datasets forbids "
+            f"overwriting it. Rerun with --regenerate-datasets to rebuild it deliberately."
+        )
     if path.exists() or regenerate:
         print(f"regenerating {path}: {', '.join(stale)}", flush=True)
     base.parent.mkdir(parents=True, exist_ok=True)

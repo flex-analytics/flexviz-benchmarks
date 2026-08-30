@@ -13,6 +13,9 @@
 # The size ceilings below are the 2026-08 observations; the Phase-6 feasibility protocol
 # replaces them with per-cell measurements — do not extrapolate new ones by hand here.
 # Each phase writes its own JSON; ttfr_bench.py checkpoints after every cell.
+# --reuse-datasets: an existing dataset whose identity drifted (a polars bump, an
+# edited datagen.py) is an ERROR here, not a silent 57GB rebuild discovered as
+# ENOSPC three phases in. Missing datasets still generate, so a first run works.
 set -u
 
 OUT=results/full_$(date +%Y-%m-%d)
@@ -48,7 +51,7 @@ run() {  # run <name> <chart> <sizes> <contenders> [data-sources]
   uv run python benchmarks/ttfr_bench.py \
       --chart "$chart" --sizes "$sizes" --n-traces 1,2,5 \
       --data-sources "$sources" --contenders "$tools" \
-      --repeats 5 --warmup 1 --seed 42 \
+      --repeats 5 --warmup 1 --seed 42 --reuse-datasets \
       --flexviz-repo ../flexviz --json-out "$OUT/$name.json"
   # Capture BEFORE any command substitution: $(date) would reset $? to date's status
   # and report a crashed phase as exit=0 (it did, for hist_200m).

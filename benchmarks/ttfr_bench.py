@@ -55,7 +55,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--wait-timeout-per-mrow-ms", type=int, default=WAIT_TIMEOUT_PER_MROW_MS)
     p.add_argument("--flexviz-repo", type=Path, default=Path("../flexviz"))
     p.add_argument("--dataset-base", default="data/ttfr_{chart}_{rows}")
-    p.add_argument("--regenerate-datasets", action="store_true")
+    g = p.add_mutually_exclusive_group()
+    g.add_argument("--regenerate-datasets", action="store_true")
+    # Refuse to OVERWRITE an existing-but-stale dataset (missing ones still
+    # generate). Turns the ENOSPC trap into an error before the first cell runs.
+    g.add_argument("--reuse-datasets", action="store_true")
     p.add_argument("--no-headless", action="store_true")
     p.add_argument("--json-out", type=Path, default=None)
     return p.parse_args()
@@ -514,7 +518,14 @@ def main() -> None:
                         frame_or_path = frame_for(a.chart, rows, n_traces, a.seed)
                     else:
                         frame_or_path = ensure_disk_dataset(
-                            base, a.chart, rows, max_traces, a.seed, source, a.regenerate_datasets
+                            base,
+                            a.chart,
+                            rows,
+                            max_traces,
+                            a.seed,
+                            source,
+                            a.regenerate_datasets,
+                            a.reuse_datasets,
                         )
                     contenders = [(n, registry[n]) for n in eligible]
                     print(
@@ -580,6 +591,7 @@ def main() -> None:
                                     a.seed,
                                     "disk-ipc",
                                     a.regenerate_datasets,
+                                    a.reuse_datasets,
                                 )
                                 if source == "in-memory"
                                 else frame_or_path
