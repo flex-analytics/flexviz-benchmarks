@@ -119,22 +119,3 @@ def test_identity_covers_the_whole_generating_module(tmp_path):
     }
     assert len(ident["datagen_sha256"]) == 64  # full digest, not truncated
 
-
-def test_reuse_only_refuses_to_overwrite_a_stale_dataset(tmp_path):
-    """The ENOSPC guard: a present-but-stale dataset must raise before any bytes are
-    written, while a MISSING one still generates (so a first run is unaffected)."""
-    base = tmp_path / "ds"
-    args = ("line", 1000, 2, 42, "disk-parquet")
-
-    made = ensure_disk_dataset(base, *args, False, True)  # missing -> generates
-    assert made.exists()
-    before = made.stat().st_mtime_ns
-
-    assert ensure_disk_dataset(base, *args, False, True) == made  # fresh -> reused
-    assert made.stat().st_mtime_ns == before
-
-    sidecar = made.with_suffix(made.suffix + ".meta.json")
-    sidecar.write_text(sidecar.read_text().replace('"seed": 42', '"seed": 7'))
-    with pytest.raises(RuntimeError, match="reuse-datasets"):
-        ensure_disk_dataset(base, *args, False, True)
-    assert made.stat().st_mtime_ns == before  # nothing was written

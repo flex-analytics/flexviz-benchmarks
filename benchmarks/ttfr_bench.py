@@ -32,7 +32,13 @@ from config import (  # noqa: E402
 )
 from core.contenders import build_registry  # noqa: E402
 from core.contenders.child import IN_PROCESS, ChildBackend  # noqa: E402
-from core.datagen import FORMAT_SUFFIX, ensure_disk_dataset, frame_for  # noqa: E402
+from core.datagen import (  # noqa: E402
+    FORMAT_SUFFIX,
+    _stale_fields,
+    dataset_identity,
+    ensure_disk_dataset,
+    frame_for,
+)
 from core.harness import RenderProbe, failure_kind, run_repeated_trials  # noqa: E402
 from core.model import summarize, trial_to_dict  # noqa: E402
 from core.provenance import collect_provenance, plugin_so, record_browser  # noqa: E402
@@ -63,6 +69,33 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--no-headless", action="store_true")
     p.add_argument("--json-out", type=Path, default=None)
     return p.parse_args()
+
+
+def ensure_dataset(base, chart, rows, max_traces, seed, source, regenerate, reuse_only):
+    """`ensure_disk_dataset` plus the `--reuse-datasets` overwrite guard.
+
+    Regenerating this suite's datasets rewrites tens of GB, and nothing ever *decides*
+    to: an identity field drifts and `ensure_disk_dataset` rebuilds each file as the
+    cell that wants it comes up — hours in, mid-matrix, on a disk that may not hold it.
+    This raises at that first cell instead, naming the drifted fields, before any bytes
+    are written. Guards OVERWRITES only: a missing dataset still generates, so a first
+    run and a newly added size are unaffected and `run_matrix.sh` can pass it always.
+
+    Lives HERE and not in `core/datagen.py` because dataset identity is the sha256 of
+    that whole module (`dataset_identity`), so a policy check added there would itself
+    invalidate every dataset on disk — precisely the regeneration this flag exists to
+    prevent. The first version of this guard did exactly that and failed all 9 phases.
+    """
+    path = base.with_suffix(FORMAT_SUFFIX[source])
+    if reuse_only and path.exists():
+        stale = _stale_fields(path, dataset_identity(chart, rows, max_traces, seed))
+        if stale:
+            raise RuntimeError(
+                f"{path} exists but is stale ({', '.join(stale)}); --reuse-datasets "
+                f"forbids overwriting it. Rerun with --regenerate-datasets to rebuild "
+                f"it deliberately."
+            )
+    return ensure_disk_dataset(base, chart, rows, max_traces, seed, source, regenerate)
 
 
 def benchmark_notes(
@@ -517,7 +550,7 @@ def main() -> None:
                         # child projects the columns it needs out of the IPC file.)
                         frame_or_path = frame_for(a.chart, rows, n_traces, a.seed)
                     else:
-                        frame_or_path = ensure_disk_dataset(
+                        frame_or_path = ensure_dataset(
                             base,
                             a.chart,
                             rows,
@@ -583,7 +616,7 @@ def main() -> None:
                             # the child materializes the frame itself from the IPC file,
                             # so the referenced source frame is charged to the engine
                             mem_frame = (
-                                ensure_disk_dataset(
+                                ensure_dataset(
                                     base,
                                     a.chart,
                                     rows,

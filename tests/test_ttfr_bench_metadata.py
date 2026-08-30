@@ -446,3 +446,31 @@ def test_empty_or_non_measurement_matrix_arguments_refuse(
 
     with pytest.raises(ValueError, match=message):
         ttfr_bench.main()
+
+
+def test_reuse_datasets_refuses_to_overwrite_a_stale_dataset(tmp_path):
+    """The ENOSPC guard: a present-but-stale dataset raises before any bytes are
+    written, while a MISSING one still generates (so a first run is unaffected)."""
+    base = tmp_path / "ds"
+    args = ("line", 1000, 2, 42, "disk-parquet")
+
+    made = ttfr_bench.ensure_dataset(*(base,) + args, False, True)  # missing -> generates
+    assert made.exists()
+    before = made.stat().st_mtime_ns
+
+    assert ttfr_bench.ensure_dataset(*(base,) + args, False, True) == made  # fresh -> reused
+    assert made.stat().st_mtime_ns == before
+
+    sidecar = made.with_suffix(made.suffix + ".meta.json")
+    sidecar.write_text(sidecar.read_text().replace('"seed": 42', '"seed": 7'))
+    with pytest.raises(RuntimeError, match="reuse-datasets"):
+        ttfr_bench.ensure_dataset(*(base,) + args, False, True)
+    assert made.stat().st_mtime_ns == before  # nothing was written
+
+
+def test_the_guard_does_not_live_in_the_hashed_datagen_module():
+    """dataset_identity is the sha256 of datagen.py, so a policy check added there
+    invalidates every dataset on disk. Keep the guard out of that module."""
+    from core.datagen import __file__ as datagen_file
+
+    assert "--reuse-datasets" not in Path(datagen_file).read_text()
