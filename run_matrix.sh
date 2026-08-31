@@ -18,7 +18,9 @@
 # ENOSPC three phases in. Missing datasets still generate, so a first run works.
 set -u
 
-OUT=results/full_$(date +%Y-%m-%d)
+# OUT is overridable so a killed run resumes into the same directory:
+#   OUT=results/full_2026-08-30 ./run_matrix.sh
+OUT=${OUT:-results/full_$(date +%Y-%m-%d)}
 mkdir -p "$OUT"
 
 ALL=flexviz,mosaic-server,mosaic-wasm,perspective-server,perspective-wasm,vaex,datashader
@@ -47,6 +49,20 @@ SUMMARY=()
 
 run() {  # run <name> <chart> <sizes> <contenders> [data-sources]
   local name=$1 chart=$2 sizes=$3 tools=$4 sources=${5:-in-memory,disk-parquet}
+  # Resume: a finished phase is never re-run, because ttfr_bench.py truncates its
+  # --json-out at the first checkpoint — a re-run that dies early DESTROYS the cells the
+  # previous run finished (it did, for line_big on 2026-08-30). "Finished" is
+  # zero `not_requested` statuses, not "has summary rows": a phase killed mid-matrix
+  # checkpoints real cells too, and would otherwise be skipped while still half-empty.
+  if [ -f "$OUT/$name.json" ] && python3 -c "
+import json, sys
+d = json.load(open(sys.argv[1]))
+sys.exit(any(s['status'] == 'not_requested' for s in d['statuses']))
+" "$OUT/$name.json" 2>/dev/null; then
+    echo "=== SKIP $name: $OUT/$name.json is already complete ==="
+    SUMMARY+=("$(printf '%-12s %-9s SKIPPED (complete)' "$name" "$chart")")
+    return 0
+  fi
   echo "=== [$(date +%H:%M:%S)] PHASE $name: chart=$chart sizes=$sizes src=$sources ==="
   uv run python benchmarks/ttfr_bench.py \
       --chart "$chart" --sizes "$sizes" --n-traces 1,2,5 \
