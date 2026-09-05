@@ -118,4 +118,3 @@ def test_identity_covers_the_whole_generating_module(tmp_path):
         "polars_version",
     }
     assert len(ident["datagen_sha256"]) == 64  # full digest, not truncated
-

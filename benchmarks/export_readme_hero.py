@@ -74,8 +74,6 @@ def panel_rows(data: dict, chart: str) -> list[tuple[str, float]]:
         if ms is not None:
             rows.append((DISPLAY.get(tool, tool), ms))
     rows.sort(key=lambda r: r[1])
-    if rows and rows[0][0] != "flexviz":
-        raise SystemExit(f"expected flexviz to lead the {chart} panel: {rows}")
     return rows
 
 
@@ -85,8 +83,7 @@ def fmt(ms: float) -> str:
 
 def render(data: dict, t: dict) -> str:
     parts = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
-        f'font-family="{FONT}">',
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" font-family="{FONT}">',
         f'<rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="10" '
         f'fill="{t["bg"]}" stroke="{t["border"]}"/>',
     ]
@@ -102,7 +99,9 @@ def render(data: dict, t: dict) -> str:
             color = (
                 t["accent"]
                 if name == "flexviz"
-                else t["grey_strong"] if name == "mosaic" else t["grey_soft"]
+                else t["grey_strong"]
+                if name == "mosaic"
+                else t["grey_soft"]
             )
             name_fill = t["ink"] if name == "flexviz" else t["sub"]
             weight = "600" if name == "flexviz" else "400"
@@ -143,13 +142,12 @@ def main() -> None:
         print(f"wrote {out}")
 
     alt = []
-    for (title, chart) in PANELS:
+    for title, chart in PANELS:
         pairs = ", ".join(f"{n} {fmt(ms)}" for n, ms in panel_rows(data, chart))
         alt.append(f"{title.capitalize()}: {pairs}.")
     print("\nalt text:")
     print(
-        f"Time to first render at {ROWS // 1_000_000}M rows and {TRACES} "
-        f"traces. " + " ".join(alt)
+        f"Time to first render at {ROWS // 1_000_000}M rows and {TRACES} traces. " + " ".join(alt)
     )
 
 
