@@ -12,6 +12,8 @@
 #                  hist2d: unsupported (config.EXCLUSIONS — no continuous 2-D binning).
 #   plotly-resampler-*  line only (config.EXCLUSIONS), in-memory only — so they join
 #                  the line rosters and neither histogram nor hist2d.
+#   altair-vegafusion  histogram + hist2d only (config.EXCLUSIONS — Vega-Lite has no
+#                  downsampling transform), so it joins every roster except the line ones.
 #   mosaic-wasm    DuckDB-WASM store ceiling (line >20M, hist 50Mx5)  -> <=20M
 # hist2d runs at n_traces=1 only (config.CHART_N_TRACES) and its dataset is two
 # columns wide at every trace count, so it has none of the histogram phases' width
@@ -29,9 +31,9 @@ set -u
 OUT=${OUT:-results/full_$(date +%Y-%m-%d)}
 mkdir -p "$OUT"
 
-ALL=flexviz,mosaic-server,mosaic-wasm,perspective-server,perspective-wasm,vaex,datashader
-NO_PERSP=flexviz,mosaic-server,mosaic-wasm,vaex,datashader
-SERVERS=flexviz,mosaic-server,vaex,datashader
+ALL=flexviz,altair-vegafusion,mosaic-server,mosaic-wasm,perspective-server,perspective-wasm,vaex,datashader
+NO_PERSP=flexviz,altair-vegafusion,mosaic-server,mosaic-wasm,vaex,datashader
+SERVERS=flexviz,altair-vegafusion,mosaic-server,vaex,datashader
 # plotly-resampler is LINE-ONLY (config.EXCLUSIONS — no binning API) and in-memory ONLY
 # (config.MEMORY_ONLY — no out-of-core path), so it joins the line rosters and nothing
 # else. Two entries: the library default (single-threaded MinMaxLTTB) and parallel=True.

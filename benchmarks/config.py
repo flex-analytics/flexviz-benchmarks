@@ -16,9 +16,10 @@ CHART_N_TRACES: dict[str, list[int]] = {"hist2d": [1]}
 # Server engines run all sources; wasm/client engines are in-memory only (enforced in driver).
 DATA_SOURCES: list[str] = ["in-memory", "disk-parquet"]
 
-# Tools to include in each benchmark run (9-tool roster; Graphic Walker deferred).
+# Tools to include in each benchmark run (10-tool roster; Graphic Walker deferred).
 CONTENDERS: list[str] = [
     "flexviz",
+    "altair-vegafusion",
     "mosaic-server",
     "mosaic-wasm",
     "perspective-server",
@@ -120,6 +121,14 @@ EXCLUSIONS: dict[tuple[str, str], tuple[str, str]] = {
         )
         for tool in ("plotly-resampler", "plotly-resampler-par")
     },
+    ("line", "altair-vegafusion"): (
+        "unsupported",
+        "Vega-Lite ships no downsampling transform — its roster is aggregate, bin, "
+        "density, loess, quantile, regression, sample and window, and `sample` is "
+        "random reservoir sampling that drops the extrema rather than preserving an "
+        "envelope. A line cell would inline every row (1M rows = 48.7 MB of JSON), "
+        "measuring JSON serialisation and Vega's SVG path builder, not a downsampler.",
+    ),
 }
 
 # (chart, tool) -> (max n_traces, reason). Cells above the limit are `unsupported`: the

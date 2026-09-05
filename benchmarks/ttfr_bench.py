@@ -305,6 +305,43 @@ def benchmark_notes(
             "agg=count()) and shades the grid to a PNG; the axis extents come from the "
             "same fused dask min/max pass the line workload uses, inside the timed window."
         )
+    if "altair-vegafusion" in eligible:
+        notes.append(
+            "altair-vegafusion bins with alt.Bin(maxbins=bins): Vega's bin picks a nice "
+            "step ({1,2,5}x10^n) over the engine-computed extent, so the realised bin "
+            "count moves with the data range — ~84 bins at 1M rows and ~52 at 10M on "
+            "this data, where the other tools draw exactly `bins`. Exact bins would need "
+            "the extent computed outside the engine, so the nicing is kept and disclosed; "
+            "the gate checks counts on the engine's own edges."
+        )
+        notes.append(
+            "altair-vegafusion's window is a GET /spec.json that runs VegaFusion's "
+            "pre_transform_spec (DataFusion: extent, bin, aggregate) inside the request "
+            "and returns the Vega spec with the binned rows inlined; the browser parses "
+            "it with vega and awaits View.runAsync(). server_ms is the Server-Timing of "
+            "that whole server pipeline, JSON serialisation included. The VegaFusion "
+            "task-graph cache is cleared before every request, since otherwise every "
+            "repeat after the first is a cache read."
+        )
+        store = []
+        if has_memory:
+            store.append(
+                "in-memory the polars frame is handed to VegaFusion over the Arrow C "
+                "stream without a copy"
+            )
+        if has_disk:
+            store.append(
+                "on a disk source the file path is the chart's data url and DataFusion "
+                "scans the Parquet inside the request"
+            )
+        notes.append("altair-vegafusion's store: " + "; ".join(store) + ".")
+        notes.append(
+            "VegaFusion runs a single engine: the DuckDB SQL connection was removed in "
+            "VegaFusion 2.0 (2024-11-13); a duckdb relation is still accepted as an "
+            "inline dataset but is converted to Arrow and DataFusion evaluates the plan, "
+            "so a duckdb-backed entry would be the same measurement under a different "
+            "name."
+        )
     if has_disk and "mosaic-server" in eligible:
         notes.append(
             "mosaic-server on a disk source is loaded as a VIEW over the file, so the scan "

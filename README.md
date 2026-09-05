@@ -1,8 +1,9 @@
 # flexviz-benchmarks
 
-Time-to-first-render (TTFR) benchmarks comparing **FlexViz** against six other
-visualization engines — `mosaic-server`, `mosaic-wasm`, `perspective-server`,
-`perspective-wasm`, `vaex`, `datashader` — on a `rows × n_traces × data-source` matrix.
+Time-to-first-render (TTFR) benchmarks comparing **FlexViz** against nine other
+visualization engines — `altair-vegafusion`, `mosaic-server`, `mosaic-wasm`,
+`perspective-server`, `perspective-wasm`, `plotly-resampler`, `plotly-resampler-par`,
+`vaex`, `datashader` — on a `rows × n_traces × data-source` matrix.
 
 Every contender runs its own engine and native chart through a documented path. Known
 deviations and configuration choices are listed in each

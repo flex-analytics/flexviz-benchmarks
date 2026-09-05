@@ -20,7 +20,7 @@ Install Chromium for Playwright (first run only):
 uv run playwright install chromium
 ```
 
-Vendor the JS engine bundles (Mosaic-wasm + Perspective). `benchmarks/probes/vendor/dist/`
+Vendor the JS engine bundles (Mosaic-wasm, Perspective, Vega). `benchmarks/probes/vendor/dist/`
 is **not** committed — it is 82MB of third-party engine bundles — so this is a required
 setup step, not a dev-only one:
 ```bash
@@ -44,8 +44,9 @@ make format                           # ruff format benchmarks/ tests/
 `make verify-workloads` is the publish gate: per-engine correctness tests on small
 deterministic fixtures (flexviz vs the numpy oracle in `tests/test_same_picture.py`,
 `tests/core/test_vaex_oracle.py`, `tests/test_mosaic_marks_gate.py`,
-`tests/core/test_datashader_gate.py`, `tests/test_perspective_gate.py`) plus the timing
-barrier (`tests/test_contract_barrier.py`). The same gate files cover hist2d: the numpy
+`tests/core/test_datashader_gate.py`, `tests/test_perspective_gate.py`,
+`tests/test_vegafusion_gate.py`) plus the timing barrier
+(`tests/test_contract_barrier.py`). The same gate files cover hist2d: the numpy
 2-D oracle in `tests/test_same_picture.py` / `tests/core/test_vaex_oracle.py` /
 `tests/core/test_datashader_gate.py`, and the padded raster grid's dimensions in
 `tests/test_mosaic_marks_gate.py`. The Makefile globs `tests/test_*_gate.py` and
@@ -147,7 +148,8 @@ plus both `plotly-resampler` entries (line/in-memory only — `MEMORY_ONLY` leav
 disk cells `source_out_of_scope`, so `series()` finds nothing for them there and the disk
 panels keep the four-tool roster). mosaic-wasm and perspective are excluded because a
 single browser thread and a 1M-row truncation cap cannot share an axis with the rest
-honestly. `make site-data` also runs `export_readme_hero.py`, so the README hero SVGs
+honestly. altair-vegafusion is not in it either — adding a tool to the public chart is a
+separate decision, so it is measured and reported here first. `make site-data` also runs `export_readme_hero.py`, so the README hero SVGs
 come out of the same gated payload.
 
 `export_site.py` also refuses when the histogram and line inputs are **not the same
@@ -167,7 +169,7 @@ included — for numbers that never ran under it.
   denser one. It is both the default and the allowed set; the driver refuses anything
   else for a chart that has an entry
 - `DATA_SOURCES` — data source types (default: `"in-memory"`, `"disk-parquet"`; also available: `"disk-csv"`, `"disk-ipc"`; future: `"db"`)
-- `CONTENDERS` — the 9-tool roster: `"flexviz"`, `"mosaic-server"`, `"mosaic-wasm"`, `"perspective-server"`, `"perspective-wasm"`, `"plotly-resampler"`, `"plotly-resampler-par"`, `"vaex"`, `"datashader"`
+- `CONTENDERS` — the 10-tool roster: `"flexviz"`, `"altair-vegafusion"`, `"mosaic-server"`, `"mosaic-wasm"`, `"perspective-server"`, `"perspective-wasm"`, `"plotly-resampler"`, `"plotly-resampler-par"`, `"vaex"`, `"datashader"`
 - `CLIENT_ONLY` — client/WASM tools (`"mosaic-wasm"`, `"perspective-wasm"`) that compute in the browser and are benchmarked **in-memory only** — a benchmark-design choice (status `source_out_of_scope`), not an engine limit; the driver skips them on disk sources
 - `MEMORY_ONLY` — `tool -> reason` for in-memory-only tools whose reason is *not* browser
   compute (`plotly-resampler*`: no out-of-core path, and its timed window is a relayout
@@ -178,12 +180,13 @@ included — for numbers that never ran under it.
 - `EXCLUSIONS` — `(chart, tool) -> (status, reason)` for cells never run. States stay
   distinct and are never conflated: `unsupported` = the chart type does not exist in the
   tool; `excluded_by_policy` = it exists and the benchmark declines it. Currently all
-  ten entries are `unsupported`: `(histogram, datashader)`, `(line, vaex)`,
+  eleven entries are `unsupported`: `(histogram, datashader)`, `(line, vaex)`,
   `(histogram, perspective-server)`, `(histogram, perspective-wasm)`,
   `(histogram, plotly-resampler)`, `(histogram, plotly-resampler-par)`,
   `(hist2d, perspective-server)`, `(hist2d, perspective-wasm)`,
-  `(hist2d, plotly-resampler)`, `(hist2d, plotly-resampler-par)` — so the hist2d roster
-  is flexviz, mosaic-server, mosaic-wasm (in-memory), vaex and datashader
+  `(hist2d, plotly-resampler)`, `(hist2d, plotly-resampler-par)` and
+  `(line, altair-vegafusion)` — so the hist2d roster is flexviz, altair-vegafusion,
+  mosaic-server, mosaic-wasm (in-memory), vaex and datashader
 - `MAX_TRACES` — `(chart, tool) -> (max n_traces, reason)`; cells above the limit are
   `unsupported`. Kept separate from `EXCLUSIONS` because it is per trace-count. Currently
   `(line, perspective-*) -> 1` (native "X/Y Line" carries a single y series)
@@ -261,11 +264,13 @@ a "ceiling").
 - `contenders/` — `base.py` (duck-typed contender contract, documented in its docstring —
   no base class, no `Protocol` — plus `PageServerMixin` and `spill_arrow_path`), one
   module per tool, `child.py` (`ChildBackend` fresh-child host for the memory trial;
-  `IN_PROCESS = {flexviz, vaex, datashader, plotly-resampler, plotly-resampler-par}`),
+  `IN_PROCESS = {flexviz, vaex, datashader, plotly-resampler, plotly-resampler-par,
+  altair-vegafusion}`),
   `__init__.py` registry (`build_registry`)
 
-**Three contender classes** (9 tools):
-- **A — server-compute, browser-render:** `flexviz` (Polars + Plotly), `mosaic-server`
+**Three contender classes** (10 tools):
+- **A — server-compute, browser-render:** `flexviz` (Polars + Plotly), `altair-vegafusion`
+  (Altair + VegaFusion/DataFusion, drawn by Vega), `mosaic-server`
   (the official PyPI `duckdb-server` package, vgplot over its WebSocket), `perspective-server`
   (`perspective-python` 5.2 tornado, native X/Y Line), `plotly-resampler` /
   `plotly-resampler-par` (`FigureResampler` + Dash, MinMaxLTTB + Plotly).
@@ -325,6 +330,34 @@ a "ceiling").
   bundled Plotly, *not* `window.Plotly`, so the redraw is caught with the graph div's
   `plotly_afterplot` event; and `dcc.Graph(id=...)` is the wrapper — the Plotly div is the
   `.js-plotly-plot` inside it.
+- **altair-vegafusion** — Altair specs (`mark_bar` + `alt.Bin(maxbins=bins)` per trace,
+  one layer each; `mark_rect` over two binned axes for hist2d) compiled once to Vega by
+  vl-convert in `preload` — benchmark plumbing, outside every window. The timed window is
+  a `GET /spec.json` that runs `vegafusion.runtime.pre_transform_spec` **inside** the
+  request (DataFusion evaluates extent + bin + aggregate) and returns the Vega spec with
+  the binned rows inlined; the page parses it with the vendored `vega` and awaits
+  `View.runAsync()` (SVG renderer, so the contract's vector-mark liveness works
+  unchanged). `server_ms` is the whole server pipeline from a `Server-Timing` mark, JSON
+  serialisation included — like the rasterizers. **`clear_cache()` before every request is
+  mandatory**: `cache_capacity = 0` does not disable VegaFusion's task-graph cache, and
+  without it every repeat after the first is a ~10x cache read. A non-empty `warnings`
+  list is raised as a failure — it means part of the plan fell back to the client.
+  `maxbins` is a **niced maximum**: Vega's bin picks a `{1,2,5}x10^n` step over the
+  engine-computed extent, so the realised count moves with the data range (~84 bins at 1M
+  rows, ~52 at 10M) where the other tools draw exactly `bins`; computing an exact count
+  would need the extent taken outside the engine, so the nicing is kept, disclosed, and
+  the gate checks counts on the engine's own edges. In-memory the polars frame crosses to
+  VegaFusion over the Arrow C stream with no copy; on disk the file path is the chart's
+  data URL and DataFusion scans the Parquet inside the request (a `format` block would
+  silently kick the planner off the server path), so disk cells are first-class. **No
+  line** (`EXCLUSIONS`): Vega-Lite ships no downsampling transform — `sample` is random
+  reservoir sampling that drops the extrema — so a line cell would inline every row.
+  **One roster entry**, because VegaFusion runs one engine: the DuckDB SQL connection was
+  removed in VegaFusion 2.0, and a duckdb relation is now accepted only as an inline
+  dataset that is converted to Arrow for DataFusion. Its resolved
+  `worker_threads`/`memory_limit`/`cache_capacity` and the Vega-Lite schema version land
+  in `provenance.execution.vegafusion` (the runtime resolves them lazily, so the block
+  touches the property to force it up).
 - **mosaic-server** — the official `duckdb-server` (import name `pkg`) spawned **empty**
   per trial with only two outside injections, neither touching the query path: the listen
   port (upstream hardcodes 3000) and a per-trial diskcache dir. Loading goes through the
@@ -374,9 +407,10 @@ bundles, kept in their **package-relative** layout (a flat copy 404s the engine'
 (TTFB), or a `Server-Timing` duration where that header covers the whole server pipeline;
 `transfer_ms` = body receive; `client_ms` = last byte → barrier. **A component a pipeline
 cannot separate is `None` and stays `None`** — never back-derived by subtracting a null,
-and the report renders it "not separable", never zero. Current mapping: flexviz and the
+and the report renders it "not separable", never zero. Current mapping: flexviz, altair-vegafusion and the
 rasterizers report all three (the rasterizers' `server_ms` is the *full* server pipeline —
-aggregation + raster + PNG encode); mosaic and perspective report `total_ms` only (vgplot
+aggregation + raster + PNG encode, and altair-vegafusion's is the pre-transform plus the
+JSON serialisation of the spec); mosaic and perspective report `total_ms` only (vgplot
 and the viewer expose no split). Axis-extent discovery (min/max) runs inside the timed
 window for every tool, on the tool's own engine.
 

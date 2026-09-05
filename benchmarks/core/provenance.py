@@ -42,6 +42,9 @@ PACKAGES = (
     "pyarrow",
     "datashader",
     "dask",
+    "altair",
+    "vegafusion",
+    "vl-convert-python",
     "playwright",
     # Not engines under test, but they shape what is measured: numpy generates every
     # dataset, matplotlib rasterizes vaex, plotly renders flexviz.
@@ -122,11 +125,16 @@ def _execution() -> dict[str, Any]:
     import duckdb
     import polars as pl
     import vaex.settings
+    import vegafusion
+    from altair.vegalite.v6.display import SCHEMA_VERSION as VEGA_LITE_SCHEMA
     from dask.base import get_scheduler
     from dask.system import CPU_COUNT
     from plotly_resampler import FigureResampler
     from plotly_resampler.aggregation import MinMaxLTTB
 
+    # VegaFusion resolves its thread count and memory limit LAZILY, on first touch of
+    # the runtime, and reads None until then — touching the property IS the initialization.
+    vegafusion.runtime.runtime  # noqa: B018
     m = vaex.settings.main
     pool = dask.config.get("pool", None)
     scheduler_fn = get_scheduler(cls=dd.DataFrame)
@@ -160,6 +168,14 @@ def _execution() -> dict[str, Any]:
             "tsdownsample_version": _version("tsdownsample"),
         },
         "duckdb": {"threads": duckdb.sql("select current_setting('threads')").fetchone()[0]},
+        "vegafusion": {
+            "worker_threads": vegafusion.runtime.worker_threads,
+            "memory_limit": vegafusion.runtime.memory_limit,
+            "cache_capacity": vegafusion.runtime.cache_capacity,
+            # The Vega-Lite dialect altair compiles to; vl-convert turns it into the
+            # Vega spec VegaFusion plans over, so it decides which transforms exist.
+            "vega_lite_schema_version": VEGA_LITE_SCHEMA,
+        },
     }
 
 

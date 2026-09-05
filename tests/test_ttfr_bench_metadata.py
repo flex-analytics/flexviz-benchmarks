@@ -92,6 +92,27 @@ def test_histogram_notes_keep_the_multi_trace_bin_range_note():
     assert any("bins every trace over the shared x-axis range" in note for note in notes)
 
 
+def test_altair_vegafusion_notes_fire_for_the_charts_it_draws():
+    for chart in ("histogram", "hist2d"):
+        notes = benchmark_notes(chart, ["altair-vegafusion"], SOURCES, traces=[1])
+        assert any("nice step" in n and "{1,2,5}" in n for n in notes)  # bin nicing
+        assert any("pre_transform_spec" in n and "cache is cleared" in n for n in notes)
+        assert any("Arrow C stream" in n and "scans the Parquet" in n for n in notes)
+        assert any("single engine" in n and "DuckDB SQL connection was removed" in n for n in notes)
+
+    line = benchmark_notes("line", ["altair-vegafusion"], SOURCES)
+    assert any("excluded from the line chart (unsupported)" in n for n in line)
+    assert not any("pre_transform_spec" in n for n in line)
+
+
+def test_the_altair_store_note_names_only_the_sources_in_the_run():
+    memory = benchmark_notes("histogram", ["altair-vegafusion"], ["in-memory"])
+    disk = benchmark_notes("histogram", ["altair-vegafusion"], ["disk-parquet"])
+
+    assert not any("scans the Parquet" in n for n in memory)
+    assert not any("Arrow C stream" in n for n in disk)
+
+
 def test_line_notes_call_out_datashader_raw_dask():
     notes = benchmark_notes("line", ["datashader"], SOURCES)
 

@@ -6,6 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from core.contenders.altair_vegafusion import AltairVegaFusionContender
 from core.contenders.datashader import DatashaderContender
 from core.contenders.flexviz import FlexVizContender
 from core.contenders.mosaic_server import MosaicServerContender
@@ -31,4 +32,5 @@ def build_registry(
         "plotly-resampler-par": lambda: PlotlyResamplerContender(parallel=True),
         "vaex": VaexContender,
         "datashader": DatashaderContender,
+        "altair-vegafusion": AltairVegaFusionContender,
     }

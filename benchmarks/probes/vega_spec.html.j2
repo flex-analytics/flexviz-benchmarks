@@ -1,0 +1,27 @@
+<!doctype html><meta charset=utf-8><style>body{margin:0}#chart{width:900px;height:400px}</style>
+<div id="chart"></div>
+<script src="./contract.js"></script>
+<script type="module">
+import * as vega from "./dist/vega.js";   // Vega 6 only: VegaFusion emits a Vega spec
+const H = window.__benchHelpers;
+try {
+  const t0 = performance.now();
+  // The request runs VegaFusion's pre_transform_spec server-side (extent + bin +
+  // aggregate on DataFusion) and answers with the Vega spec carrying the binned rows.
+  const res = await fetch("{{SPEC_URL}}");
+  const spec = await res.json();
+  // svg renderer: contract.js proves liveness by counting vector marks, and a canvas
+  // Vega view would draw none.
+  const view = new vega.View(vega.parse(spec), {
+    renderer: "svg", container: "#chart", hover: false,
+  });
+  await view.runAsync();
+  const entry = H.lastResourceEntry("{{SPEC_URL}}");
+  // server_ms is the FULL server pipeline from the Server-Timing `vf` mark — the
+  // pre-transform AND the JSON serialisation of the spec it returns — like the
+  // rasterizers, not a TTFB. (Timing-Allow-Origin exposes it cross-origin.)
+  const st = entry ? (entry.serverTiming || []).find((e) => e.name === "vf") : null;
+  const fields = H.resourceFields(entry);
+  H.benchDone(t0, { ...fields, server_ms: st ? st.duration : fields.server_ms });
+} catch (e) { H.benchError(e); }
+</script>

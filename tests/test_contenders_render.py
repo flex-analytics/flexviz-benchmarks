@@ -3,6 +3,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 import pytest  # noqa: E402
+from core.contenders.altair_vegafusion import AltairVegaFusionContender  # noqa: E402
+from core.contenders.base import VENDOR_DIST  # noqa: E402
 from core.contenders.datashader import DatashaderContender  # noqa: E402
 from core.contenders.flexviz import FlexVizContender  # noqa: E402
 from core.contenders.mosaic_server import MosaicServerContender  # noqa: E402
@@ -137,6 +139,26 @@ def test_vaex_renders_histogram_png():
         )
     assert trial.total_ms > 0
     assert trial.server_ms is not None  # Server-Timing raster duration present
+
+
+@pytest.mark.skipif(not (VENDOR_DIST / "vega.js").exists(), reason="run vendor_assets.py first")
+@pytest.mark.parametrize("chart", ["histogram", "hist2d"])
+def test_altair_vegafusion_renders_in_memory(chart):
+    # Both charts it supports; `line` is unsupported (config.EXCLUSIONS). Grid
+    # correctness is gated in tests/test_vegafusion_gate.py.
+    frame = frame_for(chart, 50_000, 1, 42)
+    with RenderProbe(headless=True) as probe:
+        trial = probe.run_trial(
+            AltairVegaFusionContender(),
+            chart=chart,
+            source="in-memory",
+            frame_or_path=frame,
+            n_traces=1,
+            bins=50,
+            n_points=1000,
+        )
+    assert trial.total_ms > 0
+    assert trial.server_ms is not None  # Server-Timing `vf` pre-transform duration
 
 
 def test_datashader_renders_line_png():
