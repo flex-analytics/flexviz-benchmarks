@@ -132,6 +132,21 @@ def test_histogram_is_refused_rather_than_faked():
         )
 
 
+def test_hist2d_is_refused_rather_than_faked():
+    # config marks (hist2d, plotly-resampler) unsupported for the same reason: no 2-D
+    # binning API, so a grid could only come from numpy outside the library.
+    c = PlotlyResamplerContender()
+    with pytest.raises(RuntimeError, match="line-only"):
+        c.preload(
+            chart="hist2d",
+            source="in-memory",
+            frame_or_path=frame_for("hist2d", 100, 1, 42),
+            n_traces=1,
+            bins=10,
+            n_points=N_POINTS,
+        )
+
+
 def test_construction_never_aggregates_the_full_arrays():
     """The timed relayout must be the FIRST full-n pass, so preload must not do one."""
     frame = frame_for("line", ROWS, N_TRACES, 42)

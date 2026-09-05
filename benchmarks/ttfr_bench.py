@@ -1,4 +1,4 @@
-"""Unified TTFR benchmark: `--chart histogram|line` over the size/trace/source matrix."""
+"""Unified TTFR benchmark: `--chart histogram|line|hist2d` over the size/trace/source matrix."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent))  # make `core` importable
 
 from config import (  # noqa: E402
     BINS,
+    CHART_N_TRACES,
     CLIENT_ONLY,
     CONTENDERS,
     DATA_SOURCES,
@@ -47,9 +48,10 @@ from core.serve import runtime_selection  # noqa: E402
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--chart", choices=["histogram", "line"], required=True)
+    p.add_argument("--chart", choices=["histogram", "line", "hist2d"], required=True)
     p.add_argument("--sizes", default=",".join(map(str, SIZES)))
-    p.add_argument("--n-traces", default=",".join(map(str, N_TRACES)))
+    # Default is per chart (CHART_N_TRACES, else N_TRACES), so it cannot be built here.
+    p.add_argument("--n-traces", default=None)
     p.add_argument("--data-sources", default=",".join(DATA_SOURCES))
     p.add_argument("--contenders", default=",".join(CONTENDERS))
     p.add_argument("--bins", type=int, default=BINS)
@@ -125,6 +127,25 @@ def benchmark_notes(
                     f"{tool} is unsupported above n_traces={limit} for the {chart} chart "
                     f"(unsupported): {why}"
                 )
+    if "flexviz" in eligible:
+        notes.append(
+            "flexviz: the timed window starts at the page's first Plotly.newPlot — the "
+            "empty-stub-trace bootstrap that precedes the single POST /dashboard/update "
+            "— and ends at the post-render barrier, so the browser-side setup mosaic and "
+            "perspective carry inside their own windows is inside flexviz's too. "
+            "server_ms/transfer_ms/client_ms are still measured on the /dashboard/update "
+            "entry alone and therefore do not sum to total_ms (~33 ms of bootstrap sits "
+            "between newPlot and the request on the reference host)."
+        )
+    spawned = sorted(n for n in eligible if n in ("mosaic-server", "perspective-server"))
+    if "flexviz" in eligible and spawned:
+        notes.append(
+            "flexviz's timing pass runs against ONE in-driver server started once per "
+            f"matrix, while {' and '.join(spawned)} "
+            f"{'is' if len(spawned) == 1 else 'are'} spawned fresh per trial. Process "
+            "spawn and engine import are outside every window either way, but allocator "
+            "and thread-pool warmth are not the same across the two."
+        )
     if chart == "line" and any(n.startswith("perspective-") for n in eligible):
         notes.append(
             "Perspective renders the RAW line: native X/Y Line over the x and y1 columns, "
@@ -160,17 +181,19 @@ def benchmark_notes(
             "gesture, routed to construct_update_data's global-view branch — i.e. "
             "relayout -> POST /_dash-update-component -> MinMaxLTTB over the full hf "
             "arrays -> figure patch -> render -> barrier. That is a genuine full-n "
-            "aggregation (the downsampler is re-run unconditionally), and the same window "
-            "shape as flexviz's /dashboard/update, which also clocks a request into an "
-            "already-initialised Plotly div. So that the timed relayout is the FIRST "
-            "full-n pass and not a second one, the figure is constructed on a "
-            "placeholder of 2*n_points rows and its hf_data is then pointed at the full "
-            "arrays: built on the full arrays, add_trace would aggregate them once "
-            "before the clock starts and hand the timed pass warm arrays and warm code "
-            "paths, an advantage no other tool here gets (measured at 1.2-1.5x). The "
-            "aggregation the relayout performs is bit-identical either way; what the "
-            "placeholder changes is the untimed FIRST PAINT, which shows the placeholder "
-            "window rather than the whole series."
+            "aggregation (the downsampler is re-run unconditionally). So that the timed "
+            "relayout is the FIRST full-n pass and not a second one, the figure is "
+            "constructed on a placeholder of 2*n_points rows and its hf_data is then "
+            "pointed at the full arrays; the aggregation the relayout performs is "
+            "bit-identical either way, and what the placeholder changes is the untimed "
+            "FIRST PAINT, which shows the placeholder window rather than the whole "
+            "series. The full matrix showed no measurable difference between the two "
+            "constructions (server_ms 0.91-1.13x across every in-memory line cell, "
+            "centred on 1.00x, Aug 28 vs Aug 31 on the reference host), so the "
+            "placeholder is kept because it is the principled window, not because it "
+            "moved a number. flexviz's window starts at its first Plotly.newPlot and "
+            "plotly-resampler's at the relayout request into an already-drawn figure, so "
+            "plotly-resampler's is the narrower of the two."
         )
         notes.append(
             "plotly-resampler renders MinMaxLTTB: a min/max preselection at "
@@ -242,6 +265,45 @@ def benchmark_notes(
             f"{per_trace_tools} {verb} each trace over its own column extent. "
             "Per-trace counts sum to rows "
             "either way and the scan cost is equivalent."
+        )
+    if chart == "hist2d":
+        notes.append(
+            "hist2d runs at n_traces=1 only: overlaid heatmaps occlude one another, and "
+            "vaex-viz draws a pair of them as SUBPLOTS — a different picture, not a "
+            "denser one."
+        )
+    if chart == "hist2d" and "flexviz" in eligible:
+        notes.append(
+            "flexviz draws the grid with Figure.add_histogram2d(x_bins=bins, "
+            "y_bins=bins): the fixed_hist2d Rust kernel on a resident frame, and on a "
+            "disk source a streaming group-by over a combined (xbin, ybin) key that "
+            "resolves the two axes' extents in a separate collect first — both passes "
+            "inside the timed window."
+        )
+    if chart == "hist2d" and any(n.startswith("mosaic-") for n in eligible):
+        notes.append(
+            "mosaic renders vg.raster with width/height pinned to the bin count, forcing "
+            "a bins x bins grid instead of vgplot's pixel-driven default; fill:'density' "
+            "is vgplot's own count-per-cell channel and bandwidth stays at its 0 default, "
+            "so the image is the unsmoothed counts. vgplot pads its raster bins (the grid "
+            "spans bins-1 intervals plus an edge), so mosaic's cell edges are not the "
+            "flush numpy bins."
+        )
+    if chart == "hist2d" and "vaex" in eligible:
+        notes.append(
+            "vaex draws df.viz.heatmap(x, y, shape=(bins, bins), limits='minmax') onto "
+            "one matplotlib Agg figure — its own count(binby=[x, y]) kernel bins, "
+            "half-open on both axes, so rows sitting exactly on either maximum fall "
+            "outside the grid. vaex-viz 0.6 calls a matplotlib colormap entry point "
+            "removed in matplotlib 3.9; the harness re-aliases it before the memory "
+            "baseline and outside every timed window, and nothing in the binning or "
+            "drawing path is changed."
+        )
+    if chart == "hist2d" and "datashader" in eligible:
+        notes.append(
+            "datashader bins with Canvas(plot_width=bins, plot_height=bins).points(x, y, "
+            "agg=count()) and shades the grid to a PNG; the axis extents come from the "
+            "same fused dask min/max pass the line workload uses, inside the timed window."
         )
     if has_disk and "mosaic-server" in eligible:
         notes.append(
@@ -412,11 +474,18 @@ def check_flexviz_release_build(repo: Path) -> None:
 def main() -> None:
     a = parse_args()
     sizes = [int(s) for s in a.sizes.split(",") if s.strip()]
-    traces = [int(s) for s in a.n_traces.split(",") if s.strip()]
+    allowed_traces = CHART_N_TRACES.get(a.chart)  # None = no per-chart restriction
+    traces = (
+        [int(s) for s in a.n_traces.split(",") if s.strip()]
+        if a.n_traces is not None
+        else list(allowed_traces or N_TRACES)
+    )
     if not sizes or any(v <= 0 for v in sizes):
         raise ValueError("--sizes must be a non-empty comma-separated list of positive ints")
     if not traces or any(v <= 0 for v in traces):
         raise ValueError("--n-traces must be a non-empty comma-separated list of positive ints")
+    if allowed_traces is not None and any(v not in allowed_traces for v in traces):
+        raise ValueError(f"--n-traces for chart={a.chart} must be within {allowed_traces}")
     sources = [s.strip() for s in a.data_sources.split(",") if s.strip()]
     names = [s.strip() for s in a.contenders.split(",") if s.strip()]
     allowed_sources = {"in-memory", *FORMAT_SUFFIX}
@@ -426,7 +495,7 @@ def main() -> None:
         raise ValueError("--contenders must be a non-empty comma-separated list")
     if a.repeats <= 0 or a.warmup < 0:
         raise ValueError("--repeats must be positive and --warmup must be non-negative")
-    if (a.chart == "histogram" and a.bins <= 0) or (a.chart == "line" and a.n_points <= 0):
+    if (a.chart != "line" and a.bins <= 0) or (a.chart == "line" and a.n_points <= 0):
         raise ValueError("--bins and --n-points must be positive")
     if a.wait_timeout_max_ms <= 0 or a.wait_timeout_per_mrow_ms < 0:
         raise ValueError("timeout maximum must be positive and per-Mrow increment non-negative")
@@ -483,7 +552,7 @@ def main() -> None:
                         "wait_timeout_max_ms": a.wait_timeout_max_ms,
                         "wait_timeout_per_mrow_ms": a.wait_timeout_per_mrow_ms,
                         "dataset_base": a.dataset_base,
-                        **({"bins": a.bins} if a.chart == "histogram" else {}),
+                        **({"bins": a.bins} if a.chart != "line" else {}),
                         **({"n_points": a.n_points} if a.chart == "line" else {}),
                     },
                     "provenance": provenance,

@@ -8,10 +8,12 @@ from core.datagen import frame_columns
 
 
 class VaexContender(RasterContender):
-    """Vaex as provided: `df.viz.histogram` from vaex-viz, drawn with matplotlib Agg.
+    """Vaex as provided: `df.viz.histogram` / `df.viz.heatmap` from vaex-viz, drawn with
+    matplotlib Agg.
 
-    Histogram only. vaex-viz exposes no line-trace function, so `line` is `unsupported`
-    (plan 2026-08-22-honest-benchmark-overhaul.md, D5); the config excludes the cell.
+    Histogram and hist2d only. vaex-viz exposes no line-trace function, so `line` is
+    `unsupported` (plan 2026-08-22-honest-benchmark-overhaul.md, D5); the config excludes
+    the cell.
     """
 
     name = "vaex"
@@ -25,16 +27,26 @@ class VaexContender(RasterContender):
         import vaex.viz  # noqa: F401
 
         matplotlib.use("Agg")
+        import matplotlib.cm
         import matplotlib.pyplot  # noqa: F401
+
+        # vaex-viz 0.6's colormap reduction calls matplotlib.cm.get_cmap, removed in
+        # matplotlib 3.9 — heatmap() raises AttributeError without this alias. Restores a
+        # removed matplotlib entry point so vaex's own code runs; it touches nothing in
+        # the binning or drawing path (1-D histogram never reaches it).
+        if not hasattr(matplotlib.cm, "get_cmap"):
+            matplotlib.cm.get_cmap = lambda name=None: matplotlib.colormaps[
+                name or matplotlib.rcParams["image.cmap"]
+            ]
 
     def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
         import vaex
 
-        assert chart == "histogram", (
+        assert chart in ("histogram", "hist2d"), (
             "vaex renders histograms only — vaex-viz has no line function; see D5 in "
             "docs/superpowers/plans/2026-08-22-honest-benchmark-overhaul.md"
         )
-        self._n_traces, self._bins = n_traces, bins
+        self._chart, self._n_traces, self._bins = chart, n_traces, bins
         if isinstance(frame_or_path, Path):
             # Lazy/mmap; scan at render. Disclosed: Parquet is the suite's shared input,
             # not vaex's preferred on-disk format (vaex recommends HDF5) — plan 2.1.
@@ -53,11 +65,21 @@ class VaexContender(RasterContender):
         # vaex-viz draws through the pyplot state machine (plt.gcf()/plt.plot), so make our
         # figure current rather than passing figsize= (that opens its own figure at dpi 80).
         fig = plt.figure(figsize=(9, 4), dpi=100)
-        for t in range(self._n_traces):
-            col = f"value{t + 1}"
-            # limits='minmax' is vaex's own default: one min/max pass per trace, inside
-            # the timed window. Binning + drawing are entirely vaex-viz's.
-            self._df.viz.histogram(self._df[col], shape=self._bins, limits="minmax", label=col)
+        if self._chart == "hist2d":
+            # vaex-viz's own 2-D histogram: what='count(*)' over a shape x shape grid,
+            # binned by vaex's `count(binby=[x, y])` kernel inside the timed window.
+            self._df.viz.heatmap(
+                self._df.value1,
+                self._df.value2,
+                shape=(self._bins, self._bins),
+                limits="minmax",
+            )
+        else:
+            for t in range(self._n_traces):
+                col = f"value{t + 1}"
+                # limits='minmax' is vaex's own default: one min/max pass per trace,
+                # inside the timed window. Binning + drawing are entirely vaex-viz's.
+                self._df.viz.histogram(self._df[col], shape=self._bins, limits="minmax", label=col)
         buf = io.BytesIO()
         fig.savefig(buf, format="png")
         plt.close(fig)

@@ -4,6 +4,20 @@
 <script type="module">
 import { makeDuckDB, connectorFor, insertArrow, vg } from './dist/mosaic_wasm.js';
 const H = window.__benchHelpers;
+const CHART = {{CHART_TYPE}}, N_TRACES = {{N_TRACES}}, K = {{BINS_OR_NPTS}};  // K = bins or n_points
+function mark(t) {
+  const color = `hsl(${t*36},70%,55%)`;
+  if (CHART === "histogram")
+    return vg.rectY(vg.from("bench"), { x: vg.bin(`value${t+1}`, {steps:K}), y: vg.count(), fill: color, fillOpacity: 0.6 });
+  if (CHART === "line")
+    return vg.lineY(vg.from("bench"), { x: "x", y: `y${t+1}`, stroke: color });
+  // hist2d: width/height force the raster grid to K x K (binDimensions is otherwise
+  // pixel-driven); fill:"density" is vgplot's own count-per-cell channel; bandwidth stays
+  // at its 0 default, so the grid is the counts, unsmoothed.
+  if (CHART === "hist2d")
+    return vg.raster(vg.from("bench"), { x: "value1", y: "value2", fill: "density", width: K, height: K });
+  throw new Error("unknown chart " + CHART);
+}
 try {
   // --- Phase 1: build the native in-browser store (NOT timed). ---
   const { db } = await makeDuckDB();          // DuckDB-WASM selectBundle() over mvp + eh
@@ -15,11 +29,7 @@ try {
   await H.benchStored();                          // signal store built; block until harness samples + releases
   // --- Phase 2: timed render (store already resident). ---
   const marks = [];
-  for (let t = 0; t < {{N_TRACES}}; t++) {
-    marks.push({{CHART_TYPE}} === "histogram"
-      ? vg.rectY(vg.from("bench"), { x: vg.bin(`value${t+1}`, {steps:{{BINS_OR_NPTS}}}), y: vg.count(), fill:`hsl(${t*36},70%,55%)`, fillOpacity: 0.6 })
-      : vg.lineY(vg.from("bench"), { x:"x", y:`y${t+1}`, stroke:`hsl(${t*36},70%,55%)` }));
-  }
+  for (let t = 0; t < N_TRACES; t++) marks.push(mark(t));
   const t0 = performance.now();
   const plot = vg.plot(...marks, vg.width(900), vg.height(400));
   document.getElementById('chart').replaceChildren(plot);

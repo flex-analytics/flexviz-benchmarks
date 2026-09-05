@@ -38,6 +38,7 @@ pass.
 ```bash
 uv run python benchmarks/ttfr_bench.py --chart histogram --flexviz-repo ../flexviz
 uv run python benchmarks/ttfr_bench.py --chart line --flexviz-repo ../flexviz
+uv run python benchmarks/ttfr_bench.py --chart hist2d --flexviz-repo ../flexviz
 
 # smoke run
 uv run python benchmarks/ttfr_bench.py --chart line --sizes 20000 --n-traces 1 \
@@ -47,9 +48,11 @@ uv run python benchmarks/ttfr_bench.py --chart line --sizes 20000 --n-traces 1 \
 
 Flags (defaults in `benchmarks/config.py`): `--chart` (required), `--sizes`,
 `--n-traces`, `--data-sources`, `--contenders`, `--repeats`, `--warmup`, `--seed`,
-`--bins` (histogram), `--n-points` (line), `--wait-timeout-max-ms`,
+`--bins` (histogram and hist2d), `--n-points` (line), `--wait-timeout-max-ms`,
 `--wait-timeout-per-mrow-ms`, `--flexviz-repo`, `--dataset-base`,
-`--regenerate-datasets`, `--no-headless`, `--json-out`.
+`--regenerate-datasets`, `--no-headless`, `--json-out`. `--n-traces` defaults per chart
+(`CHART_N_TRACES`, else `N_TRACES`) and refuses a value a chart does not run: hist2d is
+`n_traces=1` only.
 
 The two `--wait-timeout-*` flags override the rows-scaled page-wait cap (30s + 2s/Mrow,
 capped at 240s); the feasibility pass raises them, and the cap actually used is recorded
@@ -60,7 +63,8 @@ Makefile shortcuts run the driver and then `report.py`:
 ```bash
 make bench-histogram ARGS="--sizes 1000000 --repeats 3"
 make bench-line REPORT_ARGS="--show"
-make bench                      # both
+make bench-hist2d
+make bench                      # all three
 ```
 
 `./run_matrix.sh` is the current diagnostic phase template: it runs the correctness gates

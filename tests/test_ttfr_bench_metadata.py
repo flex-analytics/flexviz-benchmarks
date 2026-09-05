@@ -27,7 +27,7 @@ def test_exclusion_notes_only_fire_for_their_own_chart():
 
 def test_perspective_authored_workload_notes_are_gone():
     # The authored binning workloads were removed; perspective runs native X/Y Line.
-    for chart in ("histogram", "line"):
+    for chart in ("histogram", "line", "hist2d"):
         notes = benchmark_notes(chart, ["perspective-server", "perspective-wasm"], SOURCES)
         assert not any("mean-per-bin" in n for n in notes)
         assert not any("floor()" in n for n in notes)
@@ -58,7 +58,7 @@ def test_line_notes_say_mosaic_ignores_n_points_and_reduces_per_pixel():
 
 def test_notes_disclose_mosaic_wasm_coi_bundle():
     # The bundle is DuckDB-WASM's own choice (selectBundle over mvp+eh), not a tuned pick.
-    for chart in ("histogram", "line"):
+    for chart in ("histogram", "line", "hist2d"):
         note = next(
             n for n in benchmark_notes(chart, ["mosaic-wasm"], SOURCES) if "selectBundle()" in n
         )
@@ -319,7 +319,7 @@ def test_no_note_states_a_resolved_engine_version():
     """
     import re
 
-    for chart in ("line", "histogram"):
+    for chart in ("line", "histogram", "hist2d"):
         for note in benchmark_notes(chart, CONTENDERS, SOURCES):
             assert not re.search(r"\b\d+\.\d+\.\d+\b", note), note
 
@@ -474,3 +474,53 @@ def test_the_guard_does_not_live_in_the_hashed_datagen_module():
     from core.datagen import __file__ as datagen_file
 
     assert "--reuse-datasets" not in Path(datagen_file).read_text()
+
+
+def test_hist2d_notes_disclose_the_vaex_shim_and_the_padded_mosaic_grid():
+    notes = benchmark_notes("hist2d", ["flexviz", "mosaic-server", "vaex", "datashader"], SOURCES)
+
+    shim = next(n for n in notes if "df.viz.heatmap" in n)
+    assert "colormap entry point" in shim and "outside every timed window" in shim
+    grid = next(n for n in notes if "vg.raster" in n)
+    assert "pads its raster bins" in grid and "not the flush numpy bins" in grid
+    assert any("n_traces=1 only" in n for n in notes)
+
+
+def test_no_note_claims_the_retired_plotly_resampler_warm_pass_speedup():
+    """The placeholder fix moved nothing measurable (server_ms 0.91-1.13x, Aug 28 vs
+    Aug 31), so the "1.2-1.5x" it used to claim must not survive anywhere."""
+    for chart in ("histogram", "line", "hist2d"):
+        for note in benchmark_notes(chart, CONTENDERS, SOURCES):
+            assert "1.2" not in note and "1.5x" not in note, note
+
+
+def test_hist2d_defaults_to_one_trace_and_refuses_any_other(tmp_path):
+    """CHART_N_TRACES is the default AND the allowed set: hist2d is 1-trace only."""
+    import json
+    import subprocess
+
+    # A DEBUG-sized plugin aborts the run right after the config block is written, so
+    # the default lands in the file without driving a browser (same trick as above).
+    so = tmp_path / "repo" / "flexviz_polars" / "flexviz_polars" / "_internal.abi3.so"
+    so.parent.mkdir(parents=True)
+    with so.open("wb") as f:
+        f.truncate(101_000_000)
+
+    def drive(out, *extra):
+        return subprocess.run(
+            [sys.executable, "benchmarks/ttfr_bench.py", "--chart", "hist2d"]
+            + "--sizes 1000 --data-sources in-memory --contenders flexviz".split()
+            + "--repeats 1 --warmup 0".split()
+            + ["--flexviz-repo", str(tmp_path / "repo"), "--json-out", str(out), *extra],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+    out = tmp_path / "phase.json"
+    assert drive(out).returncode != 0  # the debug-build abort
+    assert json.loads(out.read_text())["config"]["n_traces"] == [1]
+
+    refused = drive(tmp_path / "refused.json", "--n-traces", "2")
+    assert refused.returncode != 0
+    assert "--n-traces for chart=hist2d" in refused.stdout + refused.stderr

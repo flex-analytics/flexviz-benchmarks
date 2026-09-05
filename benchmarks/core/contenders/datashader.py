@@ -23,7 +23,7 @@ TRACE_CMAPS = [
 
 
 class DatashaderContender(RasterContender):
-    """Line only: datashader has no 1-D histogram (config.EXCLUSIONS)."""
+    """Line and hist2d: datashader has no 1-D histogram (config.EXCLUSIONS)."""
 
     name = "datashader"
 
@@ -35,8 +35,8 @@ class DatashaderContender(RasterContender):
         self._warm_numba()
 
     def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
-        assert chart == "line", "datashader benchmarks line only (no 1-D histogram)"
-        self._n_traces = n_traces
+        assert chart in ("line", "hist2d"), "datashader has no 1-D histogram"
+        self._chart, self._n_traces, self._bins = chart, n_traces, bins
         self._cols = frame_columns(chart, n_traces)
         # disk: keep only the path; the read happens inside _make_png (timed). in-memory:
         # hold the store as a dask-partitioned frame (datashader's documented path for
@@ -55,11 +55,12 @@ class DatashaderContender(RasterContender):
 
     @staticmethod
     def _warm_numba() -> None:
-        # JIT-compile the line kernels OUTSIDE every timed window (parity: the other
-        # engines' compute is precompiled).
+        # JIT-compile the line AND points kernels OUTSIDE every timed window (parity: the
+        # other engines' compute is precompiled).
         tiny = pd.DataFrame({"x": [0.0, 1.0], "y": [0.0, 1.0]})
         cvs = ds.Canvas(plot_width=8, plot_height=8, x_range=(0.0, 1.0), y_range=(0.0, 1.0))
         tf.shade(cvs.line(tiny, "x", "y"))
+        tf.shade(cvs.points(tiny, "x", "y", agg=ds.count()))
 
     def _frame(self):
         if self._df is not None:
@@ -78,13 +79,28 @@ class DatashaderContender(RasterContender):
 
     def _make_png(self) -> bytes:
         df = self._frame()
+        import dask
+
+        if self._chart == "hist2d":
+            # datashader's own 2-D binning: one `bins` x `bins` count grid over the two
+            # columns. Extents come from the same fused dask pass the line path uses,
+            # inside the timed window.
+            lo_x, hi_x, lo_y, hi_y = dask.compute(
+                df["value1"].min(), df["value1"].max(), df["value2"].min(), df["value2"].max()
+            )
+            cvs = ds.Canvas(
+                plot_width=self._bins,
+                plot_height=self._bins,
+                x_range=(float(lo_x), float(hi_x)),
+                y_range=(float(lo_y), float(hi_y)),
+            )
+            agg = cvs.points(df, "value1", "value2", agg=ds.count())
+            return self._encode(tf.shade(agg, cmap=TRACE_CMAPS[0]))
         # Shared axes across traces: x is the common column; y spans all traces. Without
         # an explicit range each trace auto-ranges to its own extent, giving mismatched
         # image coordinates that tf.stack cannot align (xarray fills NaN -> `over` fails).
         # dask.compute fuses all extent aggregations into ONE parallel pass (and is a
         # no-op passthrough for plain pandas scalars).
-        import dask
-
         ys = [f"y{t + 1}" for t in range(self._n_traces)]
         lo_x, hi_x, *ymm = dask.compute(
             df["x"].min(),
@@ -99,10 +115,12 @@ class DatashaderContender(RasterContender):
             tf.shade(cvs.line(df, "x", c), cmap=TRACE_CMAPS[i % len(TRACE_CMAPS)])
             for i, c in enumerate(ys)
         ]
-        img = tf.stack(*imgs)
-        pil = tf.set_background(img, "white").to_pil()
+        return self._encode(tf.stack(*imgs))
+
+    @staticmethod
+    def _encode(img) -> bytes:
         buf = io.BytesIO()
-        pil.save(buf, format="png")
+        tf.set_background(img, "white").to_pil().save(buf, format="png")
         return buf.getvalue()
 
     def teardown(self) -> None:

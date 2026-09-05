@@ -1,6 +1,13 @@
 import numpy as np
 import polars as pl
-from core.datagen import ensure_disk_dataset, histogram_columns, line_columns
+import pytest
+from core.datagen import (
+    columns_for,
+    ensure_disk_dataset,
+    frame_columns,
+    histogram_columns,
+    line_columns,
+)
 
 
 def test_line_columns_deterministic_and_shaped():
@@ -38,3 +45,18 @@ def test_existing_disk_dataset_is_regenerated_when_columns_are_missing(tmp_path)
     path = ensure_disk_dataset(tmp_path / "ds", "histogram", 1000, 2, 42, "disk-parquet", False)
 
     assert pl.read_parquet(path).columns == ["value1", "value2"]
+
+
+def test_hist2d_uses_the_two_histogram_value_columns():
+    assert frame_columns("hist2d", 1) == ["value1", "value2"]
+    cols = columns_for("hist2d", 500, 1, 7)
+    assert set(cols) == {"value1", "value2"}
+    # Independent draws: x and y must not be the same column twice (a degenerate blob).
+    assert not np.array_equal(cols["value1"], cols["value2"])
+
+
+def test_unknown_chart_raises_instead_of_falling_back_to_histogram():
+    with pytest.raises(ValueError):
+        frame_columns("scatter", 1)
+    with pytest.raises(ValueError):
+        columns_for("scatter", 100, 1, 7)

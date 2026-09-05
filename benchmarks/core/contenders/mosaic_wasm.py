@@ -27,9 +27,9 @@ class MosaicWasmContender(PageServerMixin):
         html = (
             (PROBES / "mosaic_wasm.html.j2")
             .read_text()
-            .replace("{{CHART_TYPE}}", '"histogram"' if chart == "histogram" else '"line"')
+            .replace("{{CHART_TYPE}}", f'"{chart}"')  # the page switches on it; unknown -> throw
             .replace("{{N_TRACES}}", str(n_traces))
-            .replace("{{BINS_OR_NPTS}}", str(bins if chart == "histogram" else n_points))
+            .replace("{{BINS_OR_NPTS}}", str(n_points if chart == "line" else bins))
         )
         self._url = self.serve_page(html)
         # drop bench.arrow into the served dir

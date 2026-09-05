@@ -3,6 +3,11 @@ SIZES: list[int] = [1_000_000, 2_000_000, 10_000_000]
 # Trace counts per chart.
 N_TRACES: list[int] = [1, 2, 5]
 
+# Per-chart override of N_TRACES. hist2d runs at 1 trace only: overlaid heatmaps occlude
+# each other (there is no equivalent of a line's stacked traces), and vaex-viz draws a
+# pair of them as SUBPLOTS, which is a different picture, not a denser one.
+CHART_N_TRACES: dict[str, list[int]] = {"hist2d": [1]}
+
 # Data source types included in each benchmark run.
 # "disk-parquet"  — wide Parquet file on disk.
 # "disk-csv"      — same dataset as CSV.
@@ -95,6 +100,26 @@ EXCLUSIONS: dict[tuple[str, str], tuple[str, str]] = {
         "histogram would have to be binned by numpy outside the library, so the timing "
         "would not measure plotly-resampler.",
     ),
+    **{
+        ("hist2d", tool): (
+            "unsupported",
+            'perspective has no continuous 2-D binning: viewer-charts 5.2\'s "Heatmap" '
+            'is a categorical pivot grid over group_by/split_by and its "Density" is a '
+            "radial-splat KDE with no bin count "
+            "(docs/superpowers/specs/2026-08-22-perspective5-gate.md), so the grid would "
+            "have to be binned outside the tool.",
+        )
+        for tool in ("perspective-server", "perspective-wasm")
+    },
+    **{
+        ("hist2d", tool): (
+            "unsupported",
+            "plotly-resampler resamples scatter/line traces and ships no binning API: a "
+            "2-D histogram would have to be binned by numpy outside the library, so the "
+            "timing would not measure plotly-resampler.",
+        )
+        for tool in ("plotly-resampler", "plotly-resampler-par")
+    },
 }
 
 # (chart, tool) -> (max n_traces, reason). Cells above the limit are `unsupported`: the

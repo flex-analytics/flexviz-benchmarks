@@ -154,6 +154,38 @@ def test_datashader_renders_line_png():
     assert trial.total_ms > 0
 
 
+@pytest.mark.parametrize(
+    "make",
+    [
+        pytest.param(
+            lambda: FlexVizContender(FLEXVIZ),
+            id="flexviz",
+            marks=pytest.mark.skipif(bool(FLEXVIZ_SKIP), reason=FLEXVIZ_SKIP or "built"),
+        ),
+        pytest.param(MosaicServerContender, id="mosaic-server"),
+        pytest.param(MosaicWasmContender, id="mosaic-wasm"),
+        pytest.param(VaexContender, id="vaex"),
+        pytest.param(DatashaderContender, id="datashader"),
+    ],
+)
+def test_hist2d_renders_in_memory(make):
+    # Smoke: every tool that runs the hist2d cell draws SOMETHING through its own probe
+    # page. Correctness of the grid is gated per engine (tests/test_same_picture.py,
+    # tests/test_mosaic_marks_gate.py, tests/core/test_{vaex_oracle,datashader_gate}.py).
+    frame = frame_for("hist2d", 50_000, 1, 42)
+    with RenderProbe(headless=True) as probe:
+        trial = probe.run_trial(
+            make(),
+            chart="hist2d",
+            source="in-memory",
+            frame_or_path=frame,
+            n_traces=1,
+            bins=50,
+            n_points=1000,
+        )
+    assert trial.total_ms > 0
+
+
 @pytest.mark.parametrize("tool", ["vaex", "flexviz"])
 def test_child_backend_memory_trial_charges_resident_store(tmp_path, tool):
     # End-to-end canary for the memory pass: the in-process engine runs in a fresh

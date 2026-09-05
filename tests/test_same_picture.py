@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 import pytest  # noqa: E402
 from core.datagen import histogram_columns, line_columns  # noqa: E402
 from core.oracle import (  # noqa: E402
+    hist2d_counts,
     histogram_counts,
     line_envelope,
     line_envelope_equal_count,
@@ -51,6 +52,8 @@ def _flexviz_updates(chart, frame, n_traces, *, bins=50, n_points=1000):
     for t in range(n_traces):
         if chart == "line":
             fig.add_line(x="x", y=f"y{t + 1}", n_points=n_points)
+        elif chart == "hist2d":
+            fig.add_histogram2d(x="value1", y="value2", x_bins=bins, y_bins=bins)
         else:
             fig.add_histogram(x=f"value{t + 1}", bins=bins)
     _register_source_if_needed(fig._uid, fig._backend_lf)
@@ -163,6 +166,73 @@ def test_flexviz_scan_line_envelope_matches_oracle(tmp_path, rows, n_points):
     # give a different answer on this sorted-uniform-random x.
     ec_x, _ = line_envelope_equal_count(cols["x"], cols["y1"], n_points)
     assert not np.array_equal(got_x, ec_x)
+
+
+def _hist2d_grid(upd, bins: int):
+    """The heatmap payload as (counts[x_bin, y_bin], x_centers, y_centers).
+
+    flexviz sends a Plotly heatmap: `z` is a list of y rows (`z[j][i]` = cell x=i, y=j)
+    with an EMPTY bin sent as None (the gap-rendering contract), plus the two axes' bin
+    centers. Transposed here to the oracle's [x, y] orientation.
+    """
+    import numpy as np
+
+    z = np.array([[0 if v is None else v for v in row] for row in upd["z"]], dtype=np.int64)
+    assert z.shape == (bins, bins)
+    return z.T, np.array(upd["x"]), np.array(upd["y"])
+
+
+def _oracle_centers(values, bins: int):
+    import numpy as np
+
+    edges = np.linspace(float(values.min()), float(values.max()), bins + 1)
+    return (edges[:-1] + edges[1:]) / 2
+
+
+@requires_flexviz
+def test_flexviz_hist2d_matches_oracle():
+    # The RESIDENT path: the fixed_hist2d kernel. Bit-exact against numpy — the kernel
+    # widens the span by 1e-10 so a value at the maximum lands in the top bin, which is
+    # numpy's last-bin-closed convention on both axes.
+    import numpy as np
+    import polars as pl
+
+    bins = 50
+    cols = histogram_columns(20_000, 2, 42)
+    (upd,) = _flexviz_updates("hist2d", pl.DataFrame(cols), 1, bins=bins)
+    got, x_centers, y_centers = _hist2d_grid(upd, bins)
+    assert np.array_equal(got, hist2d_counts(cols["value1"], cols["value2"], bins))
+    assert got.sum() == 20_000  # every row landed in a cell
+    assert np.allclose(x_centers, _oracle_centers(cols["value1"], bins))
+    assert np.allclose(y_centers, _oracle_centers(cols["value2"], bins))
+
+
+@requires_flexviz
+def test_flexviz_scan_hist2d_matches_oracle(tmp_path):
+    """The DISK-source grid. Gates the streaming plan, not the kernel.
+
+    Every disk-parquet hist2d cell runs `_streaming_hist2d_spec` (a group-by over the
+    combined `xbin + ybin * nb_x` key, with a separate extents collect first), never the
+    kernel — and the line gate's sibling exists because exactly this path once went
+    ungated (see `test_flexviz_scan_line_envelope_matches_oracle`). Unlike the line case
+    the two plans agree by construction (the streaming plan reimplements the kernel's bin
+    arithmetic), so there is no inequality tell to assert: equality with the oracle,
+    including the densified zero cells, is the gate.
+    """
+    import numpy as np
+    import polars as pl
+
+    bins = 50
+    cols = histogram_columns(20_000, 2, 42)
+    path = tmp_path / "hist2d.parquet"
+    pl.DataFrame(cols).write_parquet(path)
+
+    (upd,) = _flexviz_updates("hist2d", pl.scan_parquet(path), 1, bins=bins)
+    got, x_centers, y_centers = _hist2d_grid(upd, bins)
+    assert np.array_equal(got, hist2d_counts(cols["value1"], cols["value2"], bins))
+    assert got.sum() == 20_000
+    assert np.allclose(x_centers, _oracle_centers(cols["value1"], bins))
+    assert np.allclose(y_centers, _oracle_centers(cols["value2"], bins))
 
 
 def test_mosaic_histogram_bins_match_oracle():

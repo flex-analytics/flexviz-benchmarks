@@ -96,3 +96,64 @@ def test_the_gate_would_fail_on_an_empty_plot(chart):
         c.teardown()
     for trace in traces:
         assert trace is None or (trace["rects"] == 0 and trace["vertices"] == 0)
+
+
+# The raster mark draws ONE <image> whose src is a data-URL canvas of the bin grid, so
+# the per-trace colour probe above does not apply. Decode it and report its natural size
+# (the grid dimensions) and how many distinct RGBA values it carries.
+_RASTER_JS = """() => {
+  const el = document.querySelector('svg image');
+  if (!el) return null;
+  const src = el.getAttribute('href') || el.getAttribute('xlink:href');
+  return new Promise((res) => {
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = im.naturalWidth; c.height = im.naturalHeight;
+      c.getContext('2d', { willReadFrequently: true }).drawImage(im, 0, 0);
+      const px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+      const seen = new Set();
+      for (let i = 0; i < px.length; i += 4) seen.add(px.slice(i, i + 4).join(','));
+      res({ w: im.naturalWidth, h: im.naturalHeight, colors: seen.size });
+    };
+    im.onerror = () => res(null);
+    im.src = src;
+  });
+}"""
+
+
+def _render_raster(frame) -> dict | None:
+    kw = dict(chart="hist2d", source="in-memory", n_traces=1, bins=BINS, n_points=N_POINTS)
+    c = MosaicWasmContender()
+    c.start_backend(**kw)
+    c.preload(frame_or_path=frame, **kw)
+    try:
+        with sync_playwright() as p:
+            b = p.chromium.launch(headless=True)
+            pg = b.new_page()
+            pg.add_init_script("window.__bench_go = true")
+            pg.goto(c.get_url(), wait_until="load")
+            pg.wait_for_function("() => window.__bench !== undefined", timeout=60_000)
+            assert pg.evaluate("() => window.__bench.status") == "ok"
+            out = pg.evaluate(_RASTER_JS)
+            b.close()
+    finally:
+        c.teardown()
+    return out
+
+
+def test_hist2d_rasters_a_bins_by_bins_grid_of_counts():
+    out = _render_raster(frame_for("hist2d", ROWS, 1, 42))
+    assert out is not None, "no <image> mark — vg.raster did not rasterize"
+    # The grid is the width/height we pass, NOT the pixel-driven default (which would be
+    # the plot's ~860x400 inner box): that is the whole point of forcing it to bins.
+    assert (out["w"], out["h"]) == (BINS, BINS), out
+    # Counts vary cell to cell, so the density encoding paints many distinct values; an
+    # axes-only or single-count image would be one or two.
+    assert out["colors"] > 10, out
+
+
+def test_the_hist2d_gate_would_fail_on_an_empty_plot():
+    # Control: no rows -> no density grid -> either no image at all or a flat one.
+    out = _render_raster(frame_for("hist2d", ROWS, 1, 42).head(0))
+    assert out is None or out["colors"] <= 2, out

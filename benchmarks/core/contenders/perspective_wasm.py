@@ -36,7 +36,10 @@ class PerspectiveWasmContender(PageServerMixin):
 
     def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
         assert source == "in-memory", "perspective-wasm is in-memory only"
-        assert chart == "line", "perspective has no histogram chart type (config.EXCLUSIONS)"
+        assert chart == "line", (
+            "perspective has no binning chart type — neither histogram nor hist2d "
+            "(config.EXCLUSIONS)"
+        )
         assert n_traces == 1, "X/Y Line carries a single y series (config.MAX_TRACES)"
         table = frame_or_path.select(frame_columns(chart, n_traces)).to_arrow()
         sink = io.BytesIO()

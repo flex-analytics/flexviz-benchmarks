@@ -66,6 +66,10 @@ class FlexVizContender:
         for t in range(n_traces):
             if chart == "line":
                 fig.add_line(x="x", y=f"y{t + 1}", n_points=n_points)
+            elif chart == "hist2d":
+                # One `bins` x `bins` count grid (the fixed_hist2d kernel on a resident
+                # frame, the streaming plan on a scan source). n_traces is 1 here.
+                fig.add_histogram2d(x="value1", y="value2", x_bins=bins, y_bins=bins)
             else:
                 fig.add_histogram(x=f"value{t + 1}", bins=bins)
         _register_source_if_needed(fig._uid, fig._backend_lf)

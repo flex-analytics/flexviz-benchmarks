@@ -14,7 +14,13 @@ def frame_columns(chart: str, n_traces: int) -> list[str]:
     """Column names a chart/trace-count cell uses (also the dataset schema order)."""
     if chart == "line":
         return ["x"] + [f"y{t + 1}" for t in range(n_traces)]
-    return [f"value{t + 1}" for t in range(n_traces)]
+    if chart == "histogram":
+        return [f"value{t + 1}" for t in range(n_traces)]
+    if chart == "hist2d":
+        # x and y of one 2-D density blob; one trace only (config.CHART_N_TRACES).
+        assert n_traces == 1, "hist2d runs at n_traces=1"
+        return ["value1", "value2"]
+    raise ValueError(f"unknown chart {chart!r}")
 
 
 def line_columns(rows: int, max_traces: int, seed: int) -> dict[str, np.ndarray]:
@@ -42,7 +48,13 @@ def histogram_columns(rows: int, max_traces: int, seed: int) -> dict[str, np.nda
 def columns_for(chart: str, rows: int, max_traces: int, seed: int) -> dict[str, np.ndarray]:
     if chart == "line":
         return line_columns(rows, max_traces, seed)
-    return histogram_columns(rows, max_traces, seed)
+    if chart == "histogram":
+        return histogram_columns(rows, max_traces, seed)
+    if chart == "hist2d":
+        # value1/value2 are independent heavy-tailed normals — a 2-D density blob.
+        assert max_traces == 1, "hist2d runs at n_traces=1"
+        return histogram_columns(rows, 2, seed)
+    raise ValueError(f"unknown chart {chart!r}")
 
 
 def frame_for(chart: str, rows: int, max_traces: int, seed: int) -> pl.DataFrame:

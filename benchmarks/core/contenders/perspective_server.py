@@ -47,7 +47,10 @@ class PerspectiveServerContender(PageServerMixin):
     def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
         import requests
 
-        assert chart == "line", "perspective has no histogram chart type (config.EXCLUSIONS)"
+        assert chart == "line", (
+            "perspective has no binning chart type — neither histogram nor hist2d "
+            "(config.EXCLUSIONS)"
+        )
         assert n_traces == 1, "X/Y Line carries a single y series (config.MAX_TRACES)"
         cols = frame_columns(chart, n_traces)
         base = f"http://127.0.0.1:{self._port}"

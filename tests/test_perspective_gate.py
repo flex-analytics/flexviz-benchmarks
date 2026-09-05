@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
 import polars as pl  # noqa: E402
 import pytest  # noqa: E402
+from core.contenders.perspective_server import PerspectiveServerContender  # noqa: E402
 from core.contenders.perspective_wasm import PerspectiveWasmContender  # noqa: E402
 from core.datagen import frame_for  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
@@ -127,3 +128,20 @@ def test_render_cap_fraction_matches_the_tools_own_banner():
     assert ink > 1000, f"capped X/Y Line drew only {ink} ink px"
     assert bench["rendered_fraction"] == pytest.approx(1_000_000 / rows)
     assert f"Rendering {round(100 * bench['rendered_fraction'])}% of points" in text, text
+
+
+@pytest.mark.parametrize("factory", [PerspectiveWasmContender, PerspectiveServerContender])
+def test_binned_charts_are_refused_rather_than_faked(factory):
+    # config marks (histogram|hist2d, perspective-*) unsupported: viewer-charts 5.2 has no
+    # continuous binning at all. The contender must not quietly grow a pre-binned path
+    # that would be timed as if the tool had done the binning.
+    for chart in ("histogram", "hist2d"):
+        with pytest.raises(AssertionError, match="no binning"):
+            factory().preload(
+                chart=chart,
+                source="in-memory",
+                frame_or_path=frame_for(chart, 100, 1, 42),
+                n_traces=1,
+                bins=10,
+                n_points=1000,
+            )

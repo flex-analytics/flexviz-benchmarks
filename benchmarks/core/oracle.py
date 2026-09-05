@@ -12,6 +12,22 @@ def histogram_counts(values: np.ndarray, bins: int) -> tuple[np.ndarray, np.ndar
     return centers, counts
 
 
+def hist2d_counts(x: np.ndarray, y: np.ndarray, bins: int) -> np.ndarray:
+    """Counts on a `bins` x `bins` grid, each axis spanning its own min/max.
+
+    Indexed [x_bin, y_bin] (numpy's orientation; datashader's aggregate is the
+    transpose). numpy closes the LAST bin on both axes, which is also what flexviz's
+    `fixed_hist2d` kernel does (it widens the span by 1e-10 so a value at the maximum
+    lands in the top bin) and what datashader's `Canvas.points` does. vaex bins
+    half-open instead — see `tests/core/test_vaex_oracle.py`, which subtracts the rows
+    sitting exactly on a maximum rather than bending this function.
+    """
+    counts, _, _ = np.histogram2d(
+        x, y, bins=[bins, bins], range=[[x.min(), x.max()], [y.min(), y.max()]]
+    )
+    return counts.astype(np.int64)
+
+
 def line_envelope(x: np.ndarray, y: np.ndarray, n_points: int) -> tuple[np.ndarray, np.ndarray]:
     """Argmin/argmax-of-y per **equal-width x-range** bucket — the Mosaic/M4 convention.
 

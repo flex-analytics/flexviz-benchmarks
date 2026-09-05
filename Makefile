@@ -1,12 +1,16 @@
-.PHONY: format lint verify-workloads site-data bench bench-histogram bench-line
+.PHONY: format lint verify-workloads site-data bench bench-histogram bench-line bench-hist2d
 
 FLEXVIZ_REPO ?= ../flexviz
 SITE_REPO    ?= ../flexviz_site
 # The canonical run. Bump with results/CURRENT.md — a stale value here quietly
-# republishes an older run over the site's committed copy.
+# republishes an older run over the site's committed copy. NOTE: no schema-4 run
+# exists yet (flexviz's timed window changed, SCHEMA_VERSION 3 -> 4), so both this
+# run and results/full_2026-08-31 fail the publication gate and `make site-data`
+# refuses until the matrix is rerun.
 RESULTS      ?= results/full_2026-08-28
 HISTOGRAM_JSON ?= results/ttfr_histogram.json
 LINE_JSON      ?= results/ttfr_line.json
+HIST2D_JSON    ?= results/ttfr_hist2d.json
 
 format:
 	uv run ruff format benchmarks/ tests/
@@ -30,6 +34,7 @@ site-data:
 	  --line      $(RESULTS)/ttfr_line_full.json \
 	  --out       site_data/benchmarks.json \
 	  --fallback  $(SITE_REPO)/site_redesign_oss/assets/benchmarks.js
+	uv run python benchmarks/export_readme_hero.py
 
 verify-workloads:
 	python3 benchmarks/probes/vendor/verify_vendor.py
@@ -43,4 +48,8 @@ bench-line:
 	uv run python benchmarks/ttfr_bench.py --chart line --flexviz-repo $(FLEXVIZ_REPO) --json-out $(LINE_JSON) $(ARGS)
 	uv run python benchmarks/report.py $(LINE_JSON) $(REPORT_ARGS)
 
-bench: bench-histogram bench-line
+bench-hist2d:
+	uv run python benchmarks/ttfr_bench.py --chart hist2d --flexviz-repo $(FLEXVIZ_REPO) --json-out $(HIST2D_JSON) $(ARGS)
+	uv run python benchmarks/report.py $(HIST2D_JSON) $(REPORT_ARGS)
+
+bench: bench-histogram bench-line bench-hist2d
