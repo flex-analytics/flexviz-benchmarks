@@ -11,7 +11,8 @@
 // payload, which construct_update_data routes to the "reset to the global data view"
 // branch, i.e. a full-n re-aggregation). t0 is the resulting POST
 // /_dash-update-component, and benchDone reads the clock after the post-render barrier.
-// Same window shape as flexviz_probe.js: request that triggers the pipeline -> barrier.
+// Same window shape as flexviz's: the gesture that triggers the pipeline -> barrier
+// (flexviz's t0 sits one step earlier still, at its first Plotly.newPlot).
 //
 // THREE THINGS ABOUT THIS PAGE THE HOOK HAS TO SURVIVE:
 //   1. Dash fires its OWN update-component POST while booting — Plotly's initial
@@ -36,36 +37,44 @@
   // publishes the entry. window.__pr_t0 is read by the correctness gate.
   var origFetch = window.fetch;
   window.fetch = function (input, init) {
-    var url = typeof input === 'string' ? input : (input && input.url) || '';
+    var url = window.__benchHelpers.fetchUrl(input);
     if (url.indexOf(UPDATE) === -1) return origFetch.apply(this, arguments);
     lastReq = performance.now();
     var mine = triggeredAt !== null && requestedAt === null;
     if (mine) { requestedAt = lastReq; window.__pr_t0 = requestedAt; }
     var p = origFetch.apply(this, arguments);
-    return mine ? p.then(function (r) { responded = true; return r; }) : p;
+    if (!mine) return p;
+    // `responded` flips at BODY END, not at response headers: a local redraw landing
+    // between the headers and the patch redraw would otherwise end the window ~16 ms
+    // early. Draining a clone is the option that cannot hang — gating on the POST's
+    // resource entry instead would depend on when the resource-timing buffer publishes
+    // it. The clone read is CHAINED (Dash gets the response only after it resolves), not
+    // fire-and-forget: fire-and-forget resolves after Dash has already applied the patch,
+    // so plotly_afterplot arrived with responded still false and nothing ever captured.
+    // The original body is untouched by the clone, so Dash reads it as usual; a failed
+    // body rejects into Dash's own error path rather than stalling to the wait cap.
+    return p.then(function (r) {
+      return r.clone().arrayBuffer().then(function () {
+        responded = true;
+        return r;
+      });
+    });
   };
 
   function onAfterPlot() {
     plots++;
     // Local redraws from our own Plotly.relayout fire this too — they happen before the
-    // server answers, so `responded` is what separates them from the patch redraw.
+    // server's response body has landed, so `responded` is what separates them from the
+    // patch redraw.
     if (captured || !responded || !window.__benchHelpers) return;
     captured = true;
-    var entries = performance.getEntriesByType('resource'), entry = null;
-    for (var i = entries.length - 1; i >= 0; i--) {
-      if (entries[i].name.indexOf(UPDATE) !== -1 && entries[i].startTime >= triggeredAt) {
-        entry = entries[i];
-        break;
-      }
-    }
+    var entry = window.__benchHelpers.lastResourceEntry(UPDATE, triggeredAt);
     // The entry gives the server/transfer split; without it (buffer not yet published)
     // the components stay null rather than being derived — total_ms is exact either way.
-    window.__benchHelpers.benchDone(entry ? entry.requestStart : requestedAt, {
-      server_ms:     entry ? Math.max(0, entry.responseStart - entry.requestStart) : null,
-      transfer_ms:   entry ? Math.max(0, entry.responseEnd - entry.responseStart) : null,
-      client_from:   entry ? entry.responseEnd : null,
-      payload_bytes: entry ? (entry.transferSize || 0) : null,
-    });
+    window.__benchHelpers.benchDone(
+      entry ? entry.requestStart : requestedAt,
+      window.__benchHelpers.resourceFields(entry),
+    );
   }
 
   function ready() {

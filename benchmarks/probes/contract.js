@@ -58,6 +58,35 @@ window.__benchHelpers = {
       }, 2);
     });
   },
+  // Normalise a fetch() input (string | Request | URL) to a URL string.
+  fetchUrl(input) {
+    return typeof input === "string" ? input : (input && input.url) || "";
+  },
+  // The most recent resource-timing entry whose name contains `needle`, optionally
+  // starting at or after `since` (performance.now() timeline). Null when the resource
+  // timing buffer has not published it yet — callers keep their own fetch-hook fallback.
+  lastResourceEntry(needle, since = null) {
+    const entries = performance.getEntriesByType("resource");
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const e = entries[i];
+      if (e.name.indexOf(needle) !== -1 && (since === null || e.startTime >= since)) return e;
+    }
+    return null;
+  },
+  // The benchDone timing fields a resource entry yields: server_ms = TTFB (request ->
+  // first byte), transfer_ms = body receive, client_from = last byte. Without an entry
+  // every component stays null — never derived, never zero.
+  resourceFields(entry) {
+    if (!entry) {
+      return { server_ms: null, transfer_ms: null, client_from: null, payload_bytes: null };
+    }
+    return {
+      server_ms: Math.max(0, entry.responseStart - entry.requestStart),
+      transfer_ms: Math.max(0, entry.responseEnd - entry.responseStart),
+      client_from: entry.responseEnd,
+      payload_bytes: entry.transferSize || 0,
+    };
+  },
   // Finish a trial. `t0` is the performance.now()-timeline origin of the request that
   // triggered the pipeline; the total is read AFTER the barrier, so the barrier is
   // inside the measured window. Components a pipeline cannot separate stay null —

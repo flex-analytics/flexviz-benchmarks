@@ -23,7 +23,9 @@ from typing import Any
 
 import psutil
 
-SCHEMA_VERSION = "3"
+# 4: flexviz's timed window now starts at the first Plotly.newPlot (was: the
+# /dashboard/update request), so every earlier result file is not comparable.
+SCHEMA_VERSION = "4"
 
 REPO = Path(__file__).resolve().parents[2]
 VENDOR_DIR = REPO / "benchmarks" / "probes" / "vendor"
