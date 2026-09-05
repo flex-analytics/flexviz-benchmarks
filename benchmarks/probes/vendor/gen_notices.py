@@ -39,7 +39,7 @@ VERBATIM = [
     "@perspective-dev/viewer",
     "@perspective-dev/viewer-charts",
 ]
-BUNDLES = ["mosaic_wasm.js", "mosaic_server_vgplot.js"]
+BUNDLES = ["mosaic_wasm.js", "mosaic_server_vgplot.js", "vega.js"]
 MARKER = re.compile(r"^// node_modules/((?:@[^/\s]+/)?[^/\s]+)/", re.M)
 
 
@@ -103,13 +103,19 @@ def main() -> None:
         "| Component | Version | Licence | In dist/ |\n|---|---|---|---|\n"
         + "\n".join(rows)
         + "\n\n"
-        + ("> Licence text not found in the package for: "
-           + ", ".join(f"`{m}`" for m in missing)
-           + ". Refer to the upstream project.\n\n" if missing else "")
+        + (
+            "> Licence text not found in the package for: "
+            + ", ".join(f"`{m}`" for m in missing)
+            + ". Refer to the upstream project.\n\n"
+            if missing
+            else ""
+        )
         + "---\n\n## Licence texts\n\n"
         + "\n".join(bodies)
     )
-    print(f"wrote {OUT.relative_to(OUT.parents[1])}: {len(pkgs)} components, {len(missing)} missing text")
+    print(
+        f"wrote {OUT.relative_to(OUT.parents[1])}: {len(pkgs)} components, {len(missing)} missing text"
+    )
 
 
 if __name__ == "__main__":

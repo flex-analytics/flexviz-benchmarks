@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "@uwdata/vgplot": "0.30.0",
+    "vega": "6.2.0",
     "@duckdb/duckdb-wasm": "1.32.0",
     "@perspective-dev/client": "5.2.0",
     "@perspective-dev/server": "5.2.0",

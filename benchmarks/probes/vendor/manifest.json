@@ -9,6 +9,7 @@
   "perspective.js": "2d4524522410d9798fb4363e270712dfea022fe953faadd6c6473a589e755ad6",
   "server/dist/wasm/perspective-server.memory64.wasm": "9b5bac41c07c82443dc43dd307a3704b9f2ff4f4705b8d93d0ce593e7ff58432",
   "server/dist/wasm/perspective-server.wasm": "ebedb356c0abdd580495b99ec3e8174432e21d6df0e1c920b33b97c579ffd781",
+  "vega.js": "73ccbd5225025442a6e1ee4c76428db69d645ef43f2dfee562c7b1caf1bd4ec8",
   "viewer/dist/cdn/perspective-viewer.js": "e024a06915ac50172f293ba289988a2bde73d182cb83c81e7701eede78e9b54f",
   "viewer/dist/css/themes.css": "69db78beda12957faf8f4ee33b57fb2fcd2442be7ece5d997020abada2810b1e",
   "viewer/dist/wasm/perspective-viewer.wasm": "6852641d6dfe5cdee066b97c37af62189fac6dfab76d9dfc9d79a1b66b60f1f5",

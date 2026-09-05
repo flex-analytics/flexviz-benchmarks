@@ -21,6 +21,8 @@ def main() -> None:
         sys.exit("vendor build did not produce mosaic_wasm.js")
     if not (VENDOR / "dist" / "perspective.js").exists():
         sys.exit("vendor build did not produce perspective.js")
+    if not (VENDOR / "dist" / "vega.js").exists():
+        sys.exit("vendor build did not produce vega.js")
 
 
 if __name__ == "__main__":

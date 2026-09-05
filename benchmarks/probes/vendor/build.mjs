@@ -23,10 +23,13 @@ mkdirSync(dist, { recursive: true });
 //    prebuilt bundle: the offline DuckDB-WASM path requires our own wiring (makeDuckDB
 //    instantiates a LOCAL AsyncDuckDB from the vendored wasm and passes it to
 //    wasmConnector — vgplot/mosaic-core otherwise fetch duckdb wasm from jsdelivr).
+// `vega` needs no wiring at all (the altair-vegafusion probe just parses a Vega spec
+// the server already pre-transformed), so its own ESM entry is the entry point.
 await build({
   entryPoints: {
     'mosaic_wasm': join(here, 'src', 'mosaic_wasm.js'),
     'mosaic_server_vgplot': join(here, 'src', 'mosaic_server_vgplot.js'),
+    'vega': join(nm, 'vega', 'build', 'vega.module.js'),
   },
   bundle: true, format: 'esm', outdir: dist,
   define: { 'process.env.NODE_ENV': '"production"' },
