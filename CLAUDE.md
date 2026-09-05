@@ -45,7 +45,10 @@ make format                           # ruff format benchmarks/ tests/
 deterministic fixtures (flexviz vs the numpy oracle in `tests/test_same_picture.py`,
 `tests/core/test_vaex_oracle.py`, `tests/test_mosaic_marks_gate.py`,
 `tests/core/test_datashader_gate.py`, `tests/test_perspective_gate.py`) plus the timing
-barrier (`tests/test_contract_barrier.py`). The Makefile globs `tests/test_*_gate.py` and
+barrier (`tests/test_contract_barrier.py`). The same gate files cover hist2d: the numpy
+2-D oracle in `tests/test_same_picture.py` / `tests/core/test_vaex_oracle.py` /
+`tests/core/test_datashader_gate.py`, and the padded raster grid's dimensions in
+`tests/test_mosaic_marks_gate.py`. The Makefile globs `tests/test_*_gate.py` and
 `tests/core/test_*_gate.py`, so a new gate file needs no Makefile edit. `run_matrix.sh`
 runs this target first and aborts the matrix if it fails.
 
@@ -59,17 +62,21 @@ One unified entrypoint, parameterized by `--chart`:
 ```bash
 uv run python benchmarks/ttfr_bench.py --chart histogram --flexviz-repo ../flexviz
 uv run python benchmarks/ttfr_bench.py --chart line --flexviz-repo ../flexviz
+uv run python benchmarks/ttfr_bench.py --chart hist2d --flexviz-repo ../flexviz
 
 # Or via Makefile (runs the driver then report.py)
 make bench-histogram ARGS="--sizes 1000000 --repeats 3"
 make bench-line REPORT_ARGS="--show"
-make bench                            # both
+make bench-hist2d
+make bench                            # all three
 ```
 
 Shared flags: `--chart`, `--sizes`, `--n-traces`, `--data-sources`, `--contenders`,
 `--repeats`, `--warmup`, `--seed`, `--wait-timeout-max-ms`, `--wait-timeout-per-mrow-ms`,
 `--flexviz-repo`, `--dataset-base`, `--regenerate-datasets`, `--no-headless`,
-`--json-out`. Histogram also takes `--bins`; line takes `--n-points`.
+`--json-out`. Histogram and hist2d take `--bins`; line takes `--n-points`. `--n-traces`
+defaults per chart (`CHART_N_TRACES.get(chart, N_TRACES)`) and refuses a value outside a
+chart's own list, so `--chart hist2d --n-traces 2` is an error, not a silent extra cell.
 
 `./run_matrix.sh` is the phase **template** (gates first, one JSON per phase into
 `results/full_<date>/`, per-phase exit codes aggregated — nonzero if any phase failed).
@@ -135,11 +142,13 @@ flagged: they must never reach a public ranking.
 
 The site tracks `main` (`site_redesign_oss/assets/bench_config.js`), so pushing this repo
 is what publishes. Nothing in the site repo names a version, and no SHA needs bumping.
-`SITE_TOOLS` in `export_site.py` is the charted roster: the four server-compute engines.
-mosaic-wasm and perspective are excluded there because a single browser thread and a
-1M-row truncation cap cannot share an axis with the rest honestly. plotly-resampler is
-not in it either — it is line-only and its window is a re-render, so charting it beside
-cold first renders would need a decision, not a default.
+`SITE_TOOLS` in `export_site.py` is the charted roster: the four server-compute engines
+plus both `plotly-resampler` entries (line/in-memory only — `MEMORY_ONLY` leaves their
+disk cells `source_out_of_scope`, so `series()` finds nothing for them there and the disk
+panels keep the four-tool roster). mosaic-wasm and perspective are excluded because a
+single browser thread and a 1M-row truncation cap cannot share an axis with the rest
+honestly. `make site-data` also runs `export_readme_hero.py`, so the README hero SVGs
+come out of the same gated payload.
 
 `export_site.py` also refuses when the histogram and line inputs are **not the same
 experiment**: it applies merge_results' provenance identity (minus `generated_utc`,
@@ -153,6 +162,10 @@ included — for numbers that never ran under it.
 **`benchmarks/config.py`** is the single file for shared defaults across all benchmark scripts:
 - `SIZES` — row counts in the size matrix
 - `N_TRACES` — trace counts per chart
+- `CHART_N_TRACES` — per-chart override of `N_TRACES` (`{"hist2d": [1]}`): overlaid
+  heatmaps occlude, and vaex-viz draws a pair as subplots — a different picture, not a
+  denser one. It is both the default and the allowed set; the driver refuses anything
+  else for a chart that has an entry
 - `DATA_SOURCES` — data source types (default: `"in-memory"`, `"disk-parquet"`; also available: `"disk-csv"`, `"disk-ipc"`; future: `"db"`)
 - `CONTENDERS` — the 9-tool roster: `"flexviz"`, `"mosaic-server"`, `"mosaic-wasm"`, `"perspective-server"`, `"perspective-wasm"`, `"plotly-resampler"`, `"plotly-resampler-par"`, `"vaex"`, `"datashader"`
 - `CLIENT_ONLY` — client/WASM tools (`"mosaic-wasm"`, `"perspective-wasm"`) that compute in the browser and are benchmarked **in-memory only** — a benchmark-design choice (status `source_out_of_scope`), not an engine limit; the driver skips them on disk sources
@@ -165,9 +178,12 @@ included — for numbers that never ran under it.
 - `EXCLUSIONS` — `(chart, tool) -> (status, reason)` for cells never run. States stay
   distinct and are never conflated: `unsupported` = the chart type does not exist in the
   tool; `excluded_by_policy` = it exists and the benchmark declines it. Currently all
-  six entries are `unsupported`: `(histogram, datashader)`, `(line, vaex)`,
+  ten entries are `unsupported`: `(histogram, datashader)`, `(line, vaex)`,
   `(histogram, perspective-server)`, `(histogram, perspective-wasm)`,
-  `(histogram, plotly-resampler)`, `(histogram, plotly-resampler-par)`
+  `(histogram, plotly-resampler)`, `(histogram, plotly-resampler-par)`,
+  `(hist2d, perspective-server)`, `(hist2d, perspective-wasm)`,
+  `(hist2d, plotly-resampler)`, `(hist2d, plotly-resampler-par)` — so the hist2d roster
+  is flexviz, mosaic-server, mosaic-wasm (in-memory), vaex and datashader
 - `MAX_TRACES` — `(chart, tool) -> (max n_traces, reason)`; cells above the limit are
   `unsupported`. Kept separate from `EXCLUSIONS` because it is per trace-count. Currently
   `(line, perspective-*) -> 1` (native "X/Y Line" carries a single y series)
@@ -176,7 +192,8 @@ included — for numbers that never ran under it.
   (30s floor + 2s/Mrow, 240s cap) so hung tools fail fast at small sizes; overridable per
   run with `--wait-timeout-max-ms` / `--wait-timeout-per-mrow-ms` (the feasibility pass
   needs a generous cap) and the cap used is recorded in the result
-- `BINS` (histogram), `N_POINTS` (line) — chart-specific defaults
+- `BINS` (histogram, and the hist2d grid's side — the grid is `bins` x `bins`),
+  `N_POINTS` (line) — chart-specific defaults
 
 Each of these can be overridden per run via the matching CLI flag (`--sizes`, `--n-traces`, `--data-sources`, `--contenders`, etc.).
 
@@ -262,13 +279,21 @@ a "ceiling").
 **Per-tool workload notes** (all disclosed in the result's `"notes"`):
 - **vaex** — the official `vaex-viz` API: one `df.viz.histogram(col, shape=bins,
   limits="minmax")` per trace onto one matplotlib Agg figure, `savefig` → PNG.
-  **Histogram only**: vaex-viz has no line function (D5), so `(line, vaex)` is
-  `unsupported`. Disclosed: Parquet is the suite's shared input, not vaex's preferred
-  format (its docs recommend HDF5).
-- **datashader** — **line only** (no 1-D histogram: the bins would come from numpy).
-  Full raw line, no downsampling; in-memory frames are dask-partitioned one per core
+  **Histogram and hist2d**: vaex-viz has no line function (D5), so `(line, vaex)` is
+  `unsupported`. hist2d is `df.viz.heatmap(x, y, shape=(bins, bins), limits="minmax")` —
+  vaex's own `count(binby=[x, y])` kernel, half-open on both axes, so a row sitting
+  exactly on either maximum falls outside the grid. vaex-viz 0.6 calls
+  `matplotlib.cm.get_cmap`, removed in matplotlib 3.9; the contender re-aliases it in
+  `start_backend`, before the memory baseline and outside every timed window, and nothing
+  in the binning or drawing path changes. Disclosed: Parquet is the suite's shared input,
+  not vaex's preferred format (its docs recommend HDF5).
+- **datashader** — **line and hist2d** (no 1-D histogram: the bins would come from numpy).
+  Line: full raw line, no downsampling; in-memory frames are dask-partitioned one per core
   (its documented path), disk reads happen lazily inside the timed `cvs.line`. Per-trace
-  Okabe-Ito single-hue `cmap`s so stacked traces are distinguishable.
+  Okabe-Ito single-hue `cmap`s so stacked traces are distinguishable. hist2d:
+  `Canvas(plot_width=bins, plot_height=bins).points(x, y, agg=count())` shaded to PNG, with
+  the extents from the same fused dask min/max pass, inside the timed window. Both kernels
+  are numba-warmed outside every window.
 - **plotly-resampler (0.11)** — **line only** (it resamples scatter/line traces; there is
   no binning API, so a histogram would be binned by numpy outside the library) and
   **in-memory only** (`MEMORY_ONLY`; `hf_x`/`hf_y` are numpy arrays, no out-of-core path).
@@ -280,9 +305,16 @@ a "ceiling").
   **reset-axes relayout round-trip** (the modebar's own gesture, routed to
   `construct_update_data`'s global-view branch): relayout → POST
   `/_dash-update-component` → MinMaxLTTB over the full `hf` arrays → figure patch →
-  render → barrier. Same window *shape* as flexviz's `/dashboard/update`, and a genuine
-  full-n aggregation, but plotly-resampler aggregates **twice per trial** (once untimed at
-  construction, once timed) so the measured pass runs warm — disclosed in `notes`.
+  render → barrier — a genuine full-n aggregation. So the timed relayout is the **first**
+  full-n pass and not a second one, the figure is constructed on a placeholder of
+  `2*n_points` rows and its `hf_data` is then pointed at the full arrays; the aggregation
+  the relayout performs is bit-identical either way, and only the untimed first paint
+  differs. The full matrix showed **no measurable difference** between the two
+  constructions (`server_ms` 0.91–1.13×, centred on 1.00×, `full_2026-08-28` vs
+  `full_2026-08-31`), so the placeholder is kept because it is the principled window, not
+  because it moved a number. Its window is the **narrower** of the two request-shaped
+  ones: flexviz clocks from its first `Plotly.newPlot`, this one from the relayout
+  request into an already-drawn figure — disclosed in `notes`.
   Two roster entries: `plotly-resampler` is the documented default
   `MinMaxLTTB(parallel=False)`, `plotly-resampler-par` is `parallel=True` (measured
   ~1.4–1.7× on the aggregation alone; the workload is memory-bandwidth bound). The
@@ -304,6 +336,13 @@ a "ceiling").
   drops the status), so `_exec` treats a non-empty body as failure. The hand-rolled
   `mosaic_duckdb_server.py` fork is **deleted** —
   `docs/superpowers/specs/2026-08-22-mosaic-official-server-spike.md`.
+- **mosaic (hist2d)** — `vg.raster` with `width`/`height` pinned to the bin count, which
+  forces a `bins` x `bins` grid instead of vgplot's pixel-driven default; `fill:"density"`
+  is vgplot's own count-per-cell channel and `bandwidth` stays at its `0` default, so the
+  image is the unsmoothed counts. vgplot **pads** its raster bins (the grid spans
+  `bins-1` intervals plus an edge), so its cell edges are not the flush numpy bins — the
+  gate asserts the rasterized grid is `bins` x `bins` and non-degenerate, not that its
+  edges match numpy's.
 - **mosaic-wasm** — DuckDB-WASM picks its own build via `selectBundle()` feature detection
   over the vendored `mvp` + `eh` candidates (the documented default path, single-threaded).
   The COI/pthreads build is deliberately not vendored. The static server records the WASM
@@ -340,6 +379,15 @@ rasterizers report all three (the rasterizers' `server_ms` is the *full* server 
 aggregation + raster + PNG encode); mosaic and perspective report `total_ms` only (vgplot
 and the viewer expose no split). Axis-extent discovery (min/max) runs inside the timed
 window for every tool, on the tool's own engine.
+
+flexviz's `t0` is its first `Plotly.newPlot`, not its `/dashboard/update` request.
+FlexViz's page draws empty stub traces at module top level and only then issues the single
+update POST, so clocking the request would leave a row-independent ~33 ms Plotly bootstrap
+outside its window while mosaic (`t0` before `vg.plot`) and perspective (`t0` before
+`viewer.load`) carry their equivalent setup inside theirs. Its `server_ms`/`transfer_ms`/
+`client_ms` still come from the update entry, so for flexviz alone `total_ms` is not the
+sum of the three components. `SCHEMA_VERSION` is `"4"`; every result recorded under `"3"`
+measured the narrower window and fails `report.publication_failures`.
 
 **Memory model (two passes)** — timing repeats run warm with `memory=False` (no
 instrumentation); memory comes from **one cold, process-isolated trial per cell**

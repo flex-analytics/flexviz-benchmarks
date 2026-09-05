@@ -1,21 +1,47 @@
 # Current canonical results
 
-**`results/full_2026-08-28/`** — the matrix that measures flexviz `a60dd0b`, the first
-commit after the `perf/line_ooc` streaming out-of-core envelope. Both reports render
-without `--diagnostic`, and `make site-data RESULTS=results/full_2026-08-28` emits.
+**Nothing on disk is publishable right now.** flexviz's timed window changed — `t0` is
+its first `Plotly.newPlot`, not the `/dashboard/update` request — and
+`provenance.SCHEMA_VERSION` went `"3"` → `"4"` with it. Every run below is schema 3, so
+`report.publication_failures()` refuses all of them and `make site-data` refuses with
+them. **A full rerun is required before the site is regenerated.** hist2d has not been
+run at all yet.
 
-| file | cells | statuses |
+- **`results/full_2026-08-28/`** — the last **published** run (flexviz `a60dd0b`,
+  benchmarks `fea816e`). It is what `site_data/benchmarks.json` and the site's committed
+  copy currently carry.
+- **`results/full_2026-08-31/`** — the latest **complete** run: benchmarks `1f01983`,
+  flexviz `5d092c5`, 357 completed cells (141 histogram + 216 line — the same matrix
+  as Aug 28), **0 failures**, every cell at full `n=5`, gate-clean under schema 3.
+  Never published: schema 4 landed before it could be.
+
+Both: sizes 1M–200M, n_traces 1/2/5, in-memory + disk-parquet, Chromium on
+`ANGLE (NVIDIA, Vulkan 1.4.312, RTX 2070)`, `duckdb-eh.wasm`,
+`perspective-server.memory64.wasm`.
+
+| file (both runs) | cells | statuses |
 |---|---|---|
 | `ttfr_histogram_full.json` | 141 completed | 78 unsupported, 15 source_out_of_scope, 0 censored |
 | `ttfr_line_full.json` | 216 completed | 72 unsupported, 66 source_out_of_scope, 6 censored |
 
-357 completed cells, **0 failures**, every cell at full `n=5`. Sizes 1M–200M, n_traces
-1/2/5, in-memory + disk-parquet. Provenance: flexviz `a60dd0b` (clean), benchmarks
-`fea816e` (clean), Chromium on `ANGLE (NVIDIA, Vulkan 1.4.312, RTX 2070)`,
-`duckdb-eh.wasm`, `perspective-server.memory64.wasm`.
+The line roster is **9 tools**: `plotly-resampler` and `plotly-resampler-par` joined it
+(in-memory only — `MEMORY_ONLY`, hence line's `source_out_of_scope` count rising 18 → 66).
+Both are in `export_site.SITE_TOOLS` and rank on the site like any other tool.
 
-The line roster is now **9 tools**: `plotly-resampler` and `plotly-resampler-par` joined
-it (in-memory only — `MEMORY_ONLY`, hence line's `source_out_of_scope` count rising 18 → 66).
+## What Aug 31 showed
+
+- **The plotly-resampler placeholder fix (`30af74d`) moved nothing measurable.**
+  `server_ms` ratios between `full_2026-08-28` (pre-fix: the timed relayout was the
+  second aggregation, warm) and `full_2026-08-31` (post-fix: it is the first) run
+  **0.91–1.13× across all 20 in-memory line cells, centred on 1.00×**. The placeholder is
+  kept because the timed pass being the first full-n pass is the principled window — the
+  "1.2–1.5×" warm-pass advantage the code used to claim is **unsupported** and has been
+  removed everywhere.
+- **flexviz `client_ms` fell 20–30 ms at every size** between the two runs, after the
+  `setTimeout` → microtask probe fix (`681278e`) armed the render barrier synchronously.
+  That fix claimed one frame (~16 ms), so **part of the delta is unattributed**; flexviz
+  also moved `a60dd0b` → `5d092c5` in the same interval, and the two were not separated.
+  Do not quote the difference as a flexviz speedup.
 
 ## Phase files
 
@@ -45,9 +71,7 @@ environment is comparable and the line deltas below are the change, not drift.
 - **Line, in-memory: unchanged**, correctly — those commits do not touch the kernel.
 - **Line win rate 39/48 → 47/48.** Every ≥50M disk loss flipped: the ≥100M band went
   from losing to mosaic-server by ~6% to beating it by ~2×. The one remaining loss is
-  `1M nt=5 disk` at 0.99× — a 4 ms margin, inside noise. plotly-resampler is **censored
-  from the ranking**: its timed window is a warm reset-axes relayout, not a cold first
-  render (see the line notes), so it is measured and reported but never ranked.
+  `1M nt=5 disk` at 0.99× — a 4 ms margin, inside noise.
 - **Histogram: unchanged** (see the control above).
 
 ## Reading the memory columns

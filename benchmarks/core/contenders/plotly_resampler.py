@@ -1,5 +1,5 @@
 """plotly-resampler contender — LINE ONLY (the library resamples scatter/line traces;
-it has no binning, so there is no histogram workload).
+it has no binning, so there is no histogram or hist2d workload).
 
 Native path: `FigureResampler` + Dash assembled exactly the way `show_dash()` assembles
 it (`Div > dcc.Graph(figure=self)` plus `register_update_graph_callback`), minus the
@@ -11,20 +11,26 @@ downsamples inside `add_trace()` (`_check_update_trace_data` runs at constructio
 resample callback registered `prevent_initial_call=True`. Page load therefore renders
 precomputed points and measures nothing about the engine. So the probe clocks the
 RESET-AXES relayout round-trip instead: relayout -> POST /_dash-update-component ->
-MinMaxLTTB over the full hf arrays -> figure patch -> Plotly.react -> barrier. That is
-the same window shape flexviz gets (flexviz_probe.js clocks /dashboard/update
-requestStart -> barrier), and it is a genuine full-n aggregation:
-`_check_update_trace_data` re-runs the downsampler unconditionally, with no
-"view unchanged" short-circuit.
+MinMaxLTTB over the full hf arrays -> figure patch -> Plotly.react -> barrier. It is a
+genuine full-n aggregation: `_check_update_trace_data` re-runs the downsampler
+unconditionally, with no "view unchanged" short-circuit. It is also the NARROWER of the
+two request-shaped windows here: flexviz_probe.js clocks its first `Plotly.newPlot` ->
+barrier, i.e. the page bootstrap plus the /dashboard/update round-trip, while this one
+starts at the relayout request into an already-drawn figure.
 
 WHY THE PLACEHOLDER — construct on `PLACEHOLDER_MULT * n_points` rows, then point
 `hf_data` at the full arrays. Built on the full arrays instead, `add_trace` aggregates
 them once BEFORE the clock starts, and the timed relayout is then a second pass over
-arrays and code paths the first one just walked. Measured on 5 traces, MinMaxLTTB over
-uniform-random x: that untimed pass makes the timed one 1.2-1.5x faster (20M parallel,
-17.1 -> 12.4 ms; 5M single-threaded, 19.5 -> 13.4 ms) — an advantage no other tool here
-gets, since every one of them aggregates for the first time inside its own window. The
-swap moves that first pass INTO the window without changing the window's shape.
+arrays and code paths the first one just walked — an advantage no other tool here gets,
+since every one of them aggregates for the first time inside its own window. The swap
+moves that first pass INTO the window without changing the window's shape.
+
+That advantage turns out not to be worth anything measurable: across every in-memory line
+cell of the full matrix, `server_ms` moved 0.91-1.13x (centred on 1.00x) between the
+pre-placeholder run (`results/full_2026-08-28`) and the post-placeholder one
+(`results/full_2026-08-31`) on the reference host. The placeholder is kept because the
+timed pass being the FIRST full-n pass is the principled window, not because it moved a
+number. No warm-pass advantage may be claimed for it.
 `hf_data` is the library's own documented handle for replacing a trace's data, the
 placeholder is above `n_points` so the traces register as high-frequency (at or below
 it plotly-resampler draws them directly and `hf_data` stays empty), and the aggregation
