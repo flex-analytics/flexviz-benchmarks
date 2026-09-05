@@ -5,7 +5,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
 import pytest  # noqa: E402
 from core.datagen import histogram_columns, line_columns  # noqa: E402
-from core.oracle import histogram_counts, line_envelope_equal_count  # noqa: E402
+from core.oracle import (  # noqa: E402
+    histogram_counts,
+    line_envelope,
+    line_envelope_equal_count,
+)
 
 FLEXVIZ = Path(__file__).parent.parent.parent / "flexviz"
 # A present-but-unbuilt repo must skip too: importing flexviz.* then fails at collection.
@@ -28,7 +32,12 @@ def _flexviz_updates(chart, frame, n_traces, *, bins=50, n_points=1000):
 
     Builds the figure exactly as `FlexVizContender.preload` does, so what this asserts
     on is the picture the TTFR run actually clocks — not a side path.
+
+    `frame` may be a DataFrame (resident: the kernel path) or a LazyFrame from
+    `scan_parquet` (a scan: the streaming path). Which one it is decides the
+    formulation flexviz picks, so the disk-source gate passes a scan here.
     """
+    import polars as pl
     import requests
     from core.contenders.flexviz import FlexVizContender
     from flexviz.figure import Figure, _register_source_if_needed
@@ -38,7 +47,7 @@ def _flexviz_updates(chart, frame, n_traces, *, bins=50, n_points=1000):
     contender.start_backend(
         chart=chart, source="in-memory", n_traces=n_traces, bins=bins, n_points=n_points
     )
-    fig = Figure(frame.lazy())
+    fig = Figure(frame.lazy() if isinstance(frame, pl.DataFrame) else frame)
     for t in range(n_traces):
         if chart == "line":
             fig.add_line(x="x", y=f"y{t + 1}", n_points=n_points)
@@ -111,6 +120,49 @@ def test_flexviz_line_envelope_matches_oracle(rows, n_points):
     # An envelope must keep the global extremes a stride sampler would drop.
     assert min(upd["y"]) == cols["y1"].min()
     assert max(upd["y"]) == cols["y1"].max()
+
+
+@requires_flexviz
+@pytest.mark.parametrize("rows,n_points", [(20_000, 1000), (7_777, 1000)])
+def test_flexviz_scan_line_envelope_matches_oracle(tmp_path, rows, n_points):
+    """The DISK-source envelope. Gates the streaming plan, not the kernel.
+
+    Every disk-parquet line cell in the matrix runs this path, and until this test
+    existed nothing checked it: `test_flexviz_line_envelope_matches_oracle` passes a
+    resident DataFrame, so `make verify-workloads` went green while the scan-source
+    picture collapsed to two points and read as a free 1.4-1.7x speedup
+    (flexviz b3887e9; fixed in a60dd0b).
+
+    A scan buckets by equal x-WIDTH (the M4/Mosaic convention), where the kernel
+    buckets by equal ROW COUNT — a deliberate divergence, so the two sources no
+    longer draw the identical picture. Asserting equality with the equal-width
+    oracle *and* inequality with the equal-count one is what proves the streaming
+    plan actually ran: if flexviz ever silently reverted to the kernel here, the
+    second assert fails instead of the test quietly passing against the wrong path.
+    """
+    import numpy as np
+    import polars as pl
+
+    cols = line_columns(rows, 1, 42)
+    path = tmp_path / f"line_{rows}.parquet"
+    pl.DataFrame({"x": cols["x"], "y1": cols["y1"]}).write_parquet(path)
+
+    (upd,) = _flexviz_updates("line", pl.scan_parquet(path), 1, n_points=n_points)
+    got_x, got_y = np.array(upd["x"]), np.array(upd["y"])
+
+    exp_x, exp_y = line_envelope(cols["x"], cols["y1"], n_points)
+    assert np.array_equal(got_x, exp_x)
+    assert np.array_equal(got_y, exp_y)
+    # Resolution: n_points//2 buckets, each contributing a min and a max. The
+    # collapsed-envelope bug returned 2 points here at any n_points.
+    assert len(got_x) == n_points
+    # An envelope must keep the global extremes a stride sampler would drop.
+    assert got_y.min() == cols["y1"].min()
+    assert got_y.max() == cols["y1"].max()
+    # Proves the scan took the streaming plan: the kernel's equal-count buckets
+    # give a different answer on this sorted-uniform-random x.
+    ec_x, _ = line_envelope_equal_count(cols["x"], cols["y1"], n_points)
+    assert not np.array_equal(got_x, ec_x)
 
 
 def test_mosaic_histogram_bins_match_oracle():
