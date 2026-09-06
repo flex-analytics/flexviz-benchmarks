@@ -165,10 +165,9 @@ def benchmark_notes(
     if chart == "line" and "flexviz" in contenders:
         notes.append(
             "FlexViz renders a min-max envelope: argmin+argmax of y over n_points//2 "
-            "equal-ROW-COUNT buckets — a fixed point budget, unlike Mosaic's "
-            "pixel-driven reduction, so the two are not the same picture: on this data "
-            "(sorted uniform-random x) they converge as rows grow but choose different "
-            "points bucket-by-bucket at small sizes."
+            "equal-WIDTH x buckets spanning the data range — a fixed point budget, "
+            "unlike Mosaic's pixel-driven reduction (one bucket per pixel column), so "
+            "the two draw the same picture only when the budget matches the plot width."
         )
     pr = sorted(n for n in eligible if n.startswith("plotly-resampler"))
     if chart == "line" and pr:
@@ -196,7 +195,7 @@ def benchmark_notes(
         notes.append(
             "plotly-resampler renders MinMaxLTTB: a min/max preselection at "
             "minmax_ratio=4 followed by LTTB down to n_points. That is neither flexviz's "
-            "pure min-max envelope over equal-row-count buckets nor Mosaic's pixel-driven "
+            "pure min-max envelope over equal-width x buckets nor Mosaic's pixel-driven "
             "M4 — three different pictures at the same point budget."
         )
     if chart == "line" and len(pr) == 2:

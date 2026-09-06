@@ -9,7 +9,6 @@ from core.oracle import (  # noqa: E402
     hist2d_counts,
     histogram_counts,
     line_envelope,
-    line_envelope_equal_count,
 )
 
 FLEXVIZ = Path(__file__).parent.parent.parent / "flexviz"
@@ -110,14 +109,14 @@ def test_flexviz_histogram_multi_trace_bins_over_shared_axis_range():
 @requires_flexviz
 @pytest.mark.parametrize("rows,n_points", [(20_000, 1000), (7_777, 1000)])
 def test_flexviz_line_envelope_matches_oracle(rows, n_points):
-    # Bit-exact vs an independent numpy port of the kernel's equal-row-count buckets.
-    # 7_777 rows leaves a ragged remainder, exercising the one-longer-window layout.
+    # Bit-exact vs an independent numpy port of the kernel's equal-width x buckets.
+    # 7_777 rows leaves the last bucket ragged.
     import numpy as np
     import polars as pl
 
     cols = line_columns(rows, 1, 42)
     (upd,) = _flexviz_updates("line", pl.DataFrame(cols), 1, n_points=n_points)
-    exp_x, exp_y = line_envelope_equal_count(cols["x"], cols["y1"], n_points)
+    exp_x, exp_y = line_envelope(cols["x"], cols["y1"], n_points)
     assert np.array_equal(np.array(upd["x"]), exp_x)
     assert np.array_equal(np.array(upd["y"]), exp_y)
     # An envelope must keep the global extremes a stride sampler would drop.
@@ -136,12 +135,8 @@ def test_flexviz_scan_line_envelope_matches_oracle(tmp_path, rows, n_points):
     picture collapsed to two points and read as a free 1.4-1.7x speedup
     (flexviz b3887e9; fixed in a60dd0b).
 
-    A scan buckets by equal x-WIDTH (the M4/Mosaic convention), where the kernel
-    buckets by equal ROW COUNT — a deliberate divergence, so the two sources no
-    longer draw the identical picture. Asserting equality with the equal-width
-    oracle *and* inequality with the equal-count one is what proves the streaming
-    plan actually ran: if flexviz ever silently reverted to the kernel here, the
-    second assert fails instead of the test quietly passing against the wrong path.
+    Both sources bucket by equal x-width, so the scan must draw the resident
+    kernel's picture exactly.
     """
     import numpy as np
     import polars as pl
@@ -162,10 +157,6 @@ def test_flexviz_scan_line_envelope_matches_oracle(tmp_path, rows, n_points):
     # An envelope must keep the global extremes a stride sampler would drop.
     assert got_y.min() == cols["y1"].min()
     assert got_y.max() == cols["y1"].max()
-    # Proves the scan took the streaming plan: the kernel's equal-count buckets
-    # give a different answer on this sorted-uniform-random x.
-    ec_x, _ = line_envelope_equal_count(cols["x"], cols["y1"], n_points)
-    assert not np.array_equal(got_x, ec_x)
 
 
 def _hist2d_grid(upd, bins: int):

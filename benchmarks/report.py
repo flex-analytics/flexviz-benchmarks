@@ -595,7 +595,7 @@ tool&rsquo;s native workload</strong> &mdash; every engine runs the chart it pro
 through its own documented path; known deviations and configuration choices are listed in
 Run notes below. The workloads are
 therefore <strong>not algorithm-equivalent</strong> (a pixel-driven M4 reduction, a fixed
-equal-row-count envelope and a full raw-line rasterization are different computations),
+equal-width-bucket envelope and a full raw-line rasterization are different computations),
 so these numbers support <strong>no equal-work algorithm-speed claims</strong>: they say
 what each tool does when asked for its own chart of this data, and nothing more.</p>"""
 
