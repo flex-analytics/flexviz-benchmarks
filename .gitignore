@@ -225,6 +225,8 @@ results/*
 # un-ignoring the directory is enough for git to descend into it.
 !results/full_2026-08-23/
 !results/full_2026-08-25/
+!results/full_2026-08-28/
+!results/full_2026-09-06_v2/
 
 # MCP server runtime directory
 .playwright-mcp/

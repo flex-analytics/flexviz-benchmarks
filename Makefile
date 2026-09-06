@@ -3,11 +3,10 @@
 FLEXVIZ_REPO ?= ../flexviz
 SITE_REPO    ?= ../flexviz_site
 # The canonical run. Bump with results/CURRENT.md — a stale value here quietly
-# republishes an older run over the site's committed copy. NOTE: no schema-4 run
-# exists yet (flexviz's timed window changed, SCHEMA_VERSION 3 -> 4), so both this
-# run and results/full_2026-08-31 fail the publication gate and `make site-data`
-# refuses until the matrix is rerun.
-RESULTS      ?= results/full_2026-08-28
+# republishes an older run over the site's committed copy. This is the schema-4
+# canonical run (benchmarks de86129, flexviz 8ddcdfc): histogram, line and hist2d all
+# pass the publication gate.
+RESULTS      ?= results/full_2026-09-06_v2
 HISTOGRAM_JSON ?= results/ttfr_histogram.json
 LINE_JSON      ?= results/ttfr_line.json
 HIST2D_JSON    ?= results/ttfr_hist2d.json
