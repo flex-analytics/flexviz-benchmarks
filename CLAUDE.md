@@ -340,7 +340,11 @@ a "ceiling").
   unchanged). `server_ms` is the whole server pipeline from a `Server-Timing` mark, JSON
   serialisation included — like the rasterizers. **`clear_cache()` before every request is
   mandatory**: `cache_capacity = 0` does not disable VegaFusion's task-graph cache, and
-  without it every repeat after the first is a ~10x cache read. A non-empty `warnings`
+  without it every repeat after the first is a ~10x cache read, and **`runtime.reset()` in
+  `teardown()` is mandatory too**: the runtime retains every dataset a pre-transform
+  scanned and `clear_cache()` does not release it (+20 GB per trial at 200M x 5 traces
+  from Parquet, which OOM-killed the driver's six in-process trials on the first
+  2026-09-06 matrix); `start_backend` re-warms the fresh runtime. A non-empty `warnings`
   list is raised as a failure — it means part of the plan fell back to the client.
   `maxbins` is a **niced maximum**: Vega's bin picks a `{1,2,5}x10^n` step over the
   engine-computed extent, so the realised count moves with the data range (~84 bins at 1M

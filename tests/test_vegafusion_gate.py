@@ -132,3 +132,27 @@ def test_line_is_refused():
             bins=BINS,
             n_points=100,
         )
+
+
+def test_repeated_trials_do_not_retain_the_scanned_dataset(tmp_path):
+    """Without runtime.reset() in teardown every trial keeps its scanned data alive:
+    +1.8 GB per trial at 20M rows from Parquet (+450 MB at this size), enough to
+    OOM-kill the driver's six in-process trials at 200M. The first two trials absorb
+    allocator warm-up, so the assertion is on the tail: trials 3..5 must stay flat."""
+    rows = 5_000_000
+    path = ensure_disk_dataset(tmp_path / "ds", "histogram", rows, 5, 42, "disk-parquet", True)
+
+    def rss_mb():
+        with open("/proc/self/status") as f:
+            return next(int(line.split()[1]) / 1024 for line in f if line.startswith("VmRSS:"))
+
+    seen = []
+    for _ in range(5):
+        c = AltairVegaFusionContender()
+        kw = dict(chart="histogram", source="disk-parquet", n_traces=5, bins=BINS, n_points=0)
+        c.start_backend(**kw)
+        c.preload(frame_or_path=path, **kw)
+        c._pre_transform()
+        c.teardown()
+        seen.append(rss_mb())
+    assert seen[4] - seen[2] < 150, f"RSS after each trial (MB): {seen}"

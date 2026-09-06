@@ -124,11 +124,20 @@ class AltairVegaFusionContender(PageServerMixin):
         return self._url
 
     def teardown(self) -> None:
+        import vegafusion
+
         self.stop_page()
         if self._spec_server:
             self._spec_server.shutdown()
             self._spec_server = None
         self._inline = {}
+        # Drop the runtime: it retains every dataset a pre-transform scanned, and
+        # clear_cache() does not release it — measured +1.8 GB per trial at 20M rows x 5
+        # traces from Parquet, +20 GB per trial at 200M, which OOM-killed the driver
+        # after six in-process trials on a 94 GB host. reset() returns RSS to the
+        # baseline at no timing cost; start_backend's throwaway pre-transform re-warms
+        # the fresh runtime before the next trial's window opens.
+        vegafusion.runtime.reset()
 
 
 # --- Altair specs. `maxbins` is a niced MAXIMUM, not an exact count: Vega's bin picks a
