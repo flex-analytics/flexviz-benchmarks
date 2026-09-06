@@ -129,13 +129,14 @@ def benchmark_notes(
                 )
     if "flexviz" in eligible:
         notes.append(
-            "flexviz: the timed window starts at the page's first Plotly.newPlot — the "
-            "empty-stub-trace bootstrap that precedes the single POST /dashboard/update "
-            "— and ends at the post-render barrier, so the browser-side setup mosaic and "
-            "perspective carry inside their own windows is inside flexviz's too. "
-            "server_ms/transfer_ms/client_ms are still measured on the /dashboard/update "
-            "entry alone and therefore do not sum to total_ms (~33 ms of bootstrap sits "
-            "between newPlot and the request on the reference host)."
+            "flexviz: the timed window starts at the single POST /dashboard/update and "
+            "ends at the post-render barrier. The page requests its data first and draws "
+            "each figure once, with Plotly.react on the response, so there is no draw "
+            "before the request to leave outside the clock: the Plotly bootstrap mosaic "
+            "(t0 before vg.plot) and perspective (t0 before viewer.load) carry inside "
+            "their windows is inside flexviz's too. server_ms/transfer_ms/client_ms come "
+            "from that same request entry, so the three sum to total_ms up to the "
+            "sub-millisecond slack between the fetch call and requestStart."
         )
     spawned = sorted(n for n in eligible if n in ("mosaic-server", "perspective-server"))
     if "flexviz" in eligible and spawned:
@@ -172,28 +173,25 @@ def benchmark_notes(
     pr = sorted(n for n in eligible if n.startswith("plotly-resampler"))
     if chart == "line" and pr:
         notes.append(
-            "plotly-resampler is the ONLY tool here whose timed window is not the page's "
-            "first render. It downsamples inside add_trace() and show_dash serves the "
-            "already-aggregated figure with the resample callback registered "
-            "prevent_initial_call=True, so a page-load clock would measure a Dash "
-            "bootstrap and an n_points-point Plotly draw at every row count. What is "
-            "measured instead is the RESET-AXES relayout round-trip — the modebar's own "
-            "gesture, routed to construct_update_data's global-view branch — i.e. "
-            "relayout -> POST /_dash-update-component -> MinMaxLTTB over the full hf "
-            "arrays -> figure patch -> render -> barrier. That is a genuine full-n "
-            "aggregation (the downsampler is re-run unconditionally). So that the timed "
-            "relayout is the FIRST full-n pass and not a second one, the figure is "
-            "constructed on a placeholder of 2*n_points rows and its hf_data is then "
-            "pointed at the full arrays; the aggregation the relayout performs is "
-            "bit-identical either way, and what the placeholder changes is the untimed "
-            "FIRST PAINT, which shows the placeholder window rather than the whole "
-            "series. The full matrix showed no measurable difference between the two "
-            "constructions (server_ms 0.91-1.13x across every in-memory line cell, "
-            "centred on 1.00x, Aug 28 vs Aug 31 on the reference host), so the "
-            "placeholder is kept because it is the principled window, not because it "
-            "moved a number. flexviz's window starts at its first Plotly.newPlot and "
-            "plotly-resampler's at the relayout request into an already-drawn figure, so "
-            "plotly-resampler's is the narrower of the two."
+            "plotly-resampler downsamples inside add_trace(), so the figure construction "
+            "has to be inside the window or nothing about the engine is measured. The "
+            "harness gives Dash a CALLABLE app.layout, which Dash re-runs on every page "
+            "view: the timed window is GET /_dash-layout -> FigureResampler built and "
+            "MinMaxLTTB run over the full hf arrays -> figure JSON -> React render -> "
+            "Plotly draw -> barrier. server_ms is that request's TTFB (construction plus "
+            "aggregation plus serialisation), transfer_ms its body, client_ms last byte "
+            "to barrier. suppress_callback_exceptions=True keeps Dash from calling the "
+            "layout once at assignment to build a validation layout, which would make "
+            "the timed view a warm second pass; eager_loading=True puts plotly.js and "
+            "dcc's async chunks in blocking script tags before the layout request, so "
+            "the bundle download is page bootstrap and not measured window. Two "
+            "asymmetries are disclosed: a real Dash app builds its figure once at process "
+            "start and serves it to every viewer, where this harness rebuilds it per page "
+            "view; and Dash fetches /_dash-dependencies in parallel with the layout "
+            "request, which flexviz has no analogue for. The resample callback is not "
+            "registered — it binds the figure instance that existed at registration, it "
+            "is prevent_initial_call=True, and the first render never used it — so "
+            "zoom-driven re-aggregation is not exercised here."
         )
         notes.append(
             "plotly-resampler renders MinMaxLTTB: a min/max preselection at "
@@ -353,11 +351,11 @@ def benchmark_notes(
     if has_disk and mem_only:
         notes.append(
             f"{', '.join(mem_only)} record disk cells as source_out_of_scope. The engine "
-            "has no out-of-core path, so the file read lands at figure construction, "
-            "outside the relayout window that is what gets timed — a disk cell would "
-            "measure exactly what the in-memory cell measures while reading nothing "
-            "inside the window. Recorded out of scope rather than published as a disk "
-            "number the tool never earned. Never a failure."
+            "has no out-of-core path: hf_x/hf_y are numpy arrays, so the file is read "
+            "into memory when the store is built, before the timed layout request — a "
+            "disk cell would measure exactly what the in-memory cell measures while "
+            "reading no file inside the window. Recorded out of scope rather than "
+            "published as a disk number the tool never earned. Never a failure."
         )
     if has_disk and any(n in CLIENT_ONLY for n in eligible):
         client = ", ".join(sorted(n for n in eligible if n in CLIENT_ONLY))

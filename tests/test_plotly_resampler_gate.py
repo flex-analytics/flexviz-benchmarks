@@ -1,21 +1,21 @@
 """Phase 2A correctness gate for plotly-resampler.
 
-Two things must hold, and neither is checked by the harness's generic mark count:
+Three things must hold, and none is checked by the harness's generic mark count:
 
-1. The timed window really is the relayout round-trip over the FULL data. The probe
-   fires reset-axes and clocks POST /_dash-update-component; if plotly-resampler's
-   callback ever short-circuits (dash.no_update), the page hangs and the trial times
-   out — so the gate asserts the round trip happened and produced a fresh draw.
+1. The timed window really is the page's first render over the FULL data. The contender
+   gives Dash a callable app.layout, so GET /_dash-layout is where the figure is built
+   and MinMaxLTTB runs; the gate asserts the page drew from exactly one layout request
+   and that no /_dash-update-component round trip is involved.
 2. What lands in the browser is MinMaxLTTB over every row, at the configured point
    budget — not a truncation and not a stale precomputed view. Checked against the
    library's own aggregator run directly on the same fixture (the same shape the
    perspective/mosaic gates take: verify the harness wired the right columns and the
    full n, not a re-derivation of someone else's algorithm).
-3. Nothing aggregates the full arrays BEFORE the clock starts. The contender builds on
-   a placeholder and swaps hf_data (see the contender's TIMED WINDOW note); if that
-   ever regresses to building on the full arrays, the timed relayout silently becomes a
-   warm second pass and the tool is 1.2-1.5x fast for a reason that is not the engine.
-   Point 2 stays green through exactly that regression, which is why this is separate.
+3. Nothing aggregates the arrays BEFORE the clock starts. Dash calls a callable layout
+   once at ASSIGNMENT to build a validation layout unless suppress_callback_exceptions
+   is set; if that regresses, the timed page view becomes a warm second pass and the
+   tool is fast for a reason that is not the engine. Point 2 stays green through exactly
+   that regression, which is why this is separate.
 """
 
 import sys
@@ -25,31 +25,31 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
 
 import numpy as np  # noqa: E402
 import pytest  # noqa: E402
-from core.contenders.plotly_resampler import (  # noqa: E402
-    PLACEHOLDER_MULT,
-    PlotlyResamplerContender,
-)
+from core.contenders.plotly_resampler import PlotlyResamplerContender  # noqa: E402
 from core.datagen import frame_for  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
 ROWS, N_TRACES, N_POINTS = 20_000, 2, 1000
 
-# After the round trip: what each trace actually holds, plus the update-component
-# requests the page issued (proof the aggregation ran browser-triggered, not at load).
+# After the render: what each trace actually holds, plus the requests the page issued
+# (proof the aggregation ran inside the layout request and nowhere else).
 _PROBE_JS = """() => {
   const gd = document.querySelector('#resample-figure .js-plotly-plot');
+  // _fullData, not data: plotly.py 6 serialises numeric arrays as base64 typed-array
+  // specs ({dtype, bdata}), and only the coerced _fullData holds real arrays.
   return {
-    traces: gd.data.map((t) => ({
+    traces: gd._fullData.map((t) => ({
       n: t.x.length,
       x0: t.x[0], x1: t.x[t.x.length - 1],
       ymin: Math.min(...t.y), ymax: Math.max(...t.y),
       name: t.name,
     })),
-    // Only round trips our trigger caused: Dash fires one of its own at load, which
-    // the callback answers no_update.
+    layouts: performance.getEntriesByType('resource')
+      .filter((e) => e.name.indexOf('_dash-layout') !== -1).length,
+    // The resample callback is not registered: a round trip here would mean the figure
+    // is being re-aggregated outside the window this benchmark clocks.
     updates: performance.getEntriesByType('resource')
-      .filter((e) => e.name.indexOf('_dash-update-component') !== -1
-                     && e.startTime >= window.__pr_t0).length,
+      .filter((e) => e.name.indexOf('_dash-update-component') !== -1).length,
   };
 }"""
 
@@ -59,7 +59,9 @@ def _render(parallel: bool) -> dict:
     kw = dict(chart="line", source="in-memory", n_traces=N_TRACES, bins=0, n_points=N_POINTS)
     c = PlotlyResamplerContender(parallel=parallel)
     c.start_backend(**kw)
+    built = PlotlyResamplerContender._builds
     c.preload(frame_or_path=frame, **kw)
+    builds_at_preload = PlotlyResamplerContender._builds - built
     try:
         with sync_playwright() as p:
             b = p.chromium.launch(headless=True)
@@ -72,20 +74,30 @@ def _render(parallel: bool) -> dict:
             out = pg.evaluate(_PROBE_JS)
             b.close()
     finally:
+        builds_at_render = PlotlyResamplerContender._builds - built
         c.teardown()
-    return {**out, "bench": bench, "frame": frame}
+    return {
+        **out,
+        "bench": bench,
+        "frame": frame,
+        "builds_at_preload": builds_at_preload,
+        "builds_at_render": builds_at_render,
+    }
 
 
 @pytest.mark.parametrize("parallel", [False, True])
-def test_relayout_round_trip_is_what_gets_timed(parallel):
+def test_the_layout_request_is_what_gets_timed(parallel):
     out = _render(parallel)
     assert out["bench"]["status"] == "ok", out["bench"]
-    # The whole design rests on this: exactly one server round trip, fired from the page
-    # AFTER load. Zero would mean we clocked the precomputed figure (dash.no_update, or a
-    # probe that never triggered) — the failure mode this contender exists to avoid.
-    assert out["updates"] == 1, f"expected one triggered round trip, got {out['updates']}"
-    # The split is real: server_ms is the callback's aggregation, not a null or a zero.
+    # The whole design rests on this: one layout request, which is where the figure is
+    # built, and no callback round trip to move the aggregation out of the window.
+    assert out["layouts"] == 1, f"expected one layout request, got {out['layouts']}"
+    assert out["updates"] == 0, f"expected no callback round trip, got {out['updates']}"
+    # The split is real: server_ms is the construction plus aggregation, not a null or
+    # a zero, and every component is separable.
     assert out["bench"]["server_ms"] > 0
+    assert out["bench"]["transfer_ms"] is not None
+    assert out["bench"]["client_ms"] is not None
     assert out["bench"]["total_ms"] >= out["bench"]["server_ms"]
 
 
@@ -147,28 +159,22 @@ def test_hist2d_is_refused_rather_than_faked():
         )
 
 
-def test_construction_never_aggregates_the_full_arrays():
-    """The timed relayout must be the FIRST full-n pass, so preload must not do one."""
-    frame = frame_for("line", ROWS, N_TRACES, 42)
-    c = PlotlyResamplerContender()
-    kw = dict(chart="line", source="in-memory", n_traces=N_TRACES, bins=0, n_points=N_POINTS)
-    c.start_backend(**kw)
-    c.preload(frame_or_path=frame, **kw)
+def test_the_figure_is_built_only_inside_the_timed_request():
+    """The timed request must be the FIRST full-n pass, so nothing may build before it."""
+    out = _render(False)
+    assert out["builds_at_preload"] == 0, "the store build already constructed the figure"
+    assert out["builds_at_render"] == 1, f"{out['builds_at_render']} layout builds, want 1"
+
+
+def test_a_page_view_without_a_store_raises_instead_of_drawing_nothing():
+    """What makes an untimed build impossible to miss: Dash calls a callable layout once
+    at ASSIGNMENT unless suppress_callback_exceptions is set, and at that moment there is
+    no trial to build from — so the regression is a loud failure, not a warm second pass.
+    """
+    trial = PlotlyResamplerContender._trial
+    PlotlyResamplerContender._trial = None
     try:
-        x = frame["x"].to_numpy()
-        head = PLACEHOLDER_MULT * N_POINTS
-        assert len(c._fig.hf_data) == N_TRACES, "traces did not register as high-frequency"
-        for t in range(N_TRACES):
-            # hf_data carries the whole column: the relayout will aggregate all of it.
-            assert len(c._fig.hf_data[t]["x"]) == len(x)
-            assert c._fig.hf_data[t]["x"][-1] == pytest.approx(x[-1])
-            # ...but what add_trace actually aggregated never went past the placeholder,
-            # so no full-n pass has run yet. Built on the full arrays this would reach
-            # x[-1] instead.
-            drawn = np.asarray(c._fig.data[t].x)
-            assert drawn[-1] <= x[head - 1], (
-                f"trace {t} was aggregated over the full range at construction "
-                f"(drawn up to {drawn[-1]}, placeholder ends at {x[head - 1]})"
-            )
+        with pytest.raises(RuntimeError, match="before preload"):
+            PlotlyResamplerContender._build_layout()
     finally:
-        c.teardown()
+        PlotlyResamplerContender._trial = trial

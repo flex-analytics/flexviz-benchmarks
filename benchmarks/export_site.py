@@ -40,10 +40,11 @@ from report import publication_failures  # noqa: E402
 #
 # plotly-resampler entries are line/in-memory only: MEMORY_ONLY records their disk cells
 # source_out_of_scope, so series() simply finds nothing for them there and the disk
-# panels keep the four-tool roster. They were held out of the site while their timed
-# window was a warm second aggregation; it is a cold first one as of the placeholder fix
-# in core/contenders/plotly_resampler.py, so they rank here like anything else. Do not
-# regenerate from a results directory produced BEFORE that fix.
+# panels keep the four-tool roster. They rank here like anything else because their
+# window is now a cold first render too: a callable app.layout builds the figure inside
+# GET /_dash-layout (core/contenders/plotly_resampler.py). Do not regenerate from a
+# results directory older than schema 5, where the window was a reset-axes relayout into
+# an already-drawn figure.
 SITE_TOOLS = [
     "flexviz",
     "mosaic-server",

@@ -1,42 +1,46 @@
 """plotly-resampler contender — LINE ONLY (the library resamples scatter/line traces;
 it has no binning, so there is no histogram or hist2d workload).
 
-Native path: `FigureResampler` + Dash assembled exactly the way `show_dash()` assembles
-it (`Div > dcc.Graph(figure=self)` plus `register_update_graph_callback`), minus the
-blocking `app.run` / `webbrowser.open` so the harness can drive and tear it down.
+Native path: `FigureResampler` + Dash assembled the way `show_dash()` assembles it
+(`Div > dcc.Graph(id="resample-figure", figure=fig)`), minus the blocking `app.run` /
+`webbrowser.open` so the harness can drive it.
 
-TIMED WINDOW — the one thing to understand about this contender. plotly-resampler
-downsamples inside `add_trace()` (`_check_update_trace_data` runs at construction), and
-`show_dash` embeds the ALREADY-aggregated figure as `dcc.Graph(figure=self)` with the
-resample callback registered `prevent_initial_call=True`. Page load therefore renders
-precomputed points and measures nothing about the engine. So the probe clocks the
-RESET-AXES relayout round-trip instead: relayout -> POST /_dash-update-component ->
-MinMaxLTTB over the full hf arrays -> figure patch -> Plotly.react -> barrier. It is a
-genuine full-n aggregation: `_check_update_trace_data` re-runs the downsampler
-unconditionally, with no "view unchanged" short-circuit. It is also the NARROWER of the
-two request-shaped windows here: flexviz_probe.js clocks its first `Plotly.newPlot` ->
-barrier, i.e. the page bootstrap plus the /dashboard/update round-trip, while this one
-starts at the relayout request into an already-drawn figure.
+TIMED WINDOW — `GET /_dash-layout` -> the post-render barrier. `app.layout` is a
+CALLABLE, so Dash re-runs `_build_layout` on every page view (`dash.py` `serve_layout`
+-> `get_layout` -> `_layout_value`): the `FigureResampler` is constructed and MinMaxLTTB
+runs over the full `hf_x`/`hf_y` arrays INSIDE that request. `server_ms` is the request's
+TTFB (construction + aggregation + figure JSON), `transfer_ms` its body, `client_ms` last
+byte -> barrier (React render + the `dcc.Graph` Plotly draw). Same shape as flexviz's
+window: the request that triggers the pipeline -> barrier.
 
-WHY THE PLACEHOLDER — construct on `PLACEHOLDER_MULT * n_points` rows, then point
-`hf_data` at the full arrays. Built on the full arrays instead, `add_trace` aggregates
-them once BEFORE the clock starts, and the timed relayout is then a second pass over
-arrays and code paths the first one just walked — an advantage no other tool here gets,
-since every one of them aggregates for the first time inside its own window. The swap
-moves that first pass INTO the window without changing the window's shape.
+`suppress_callback_exceptions=True` is load-bearing, not cosmetic. Without it the
+`layout` setter (`dash.py`, the `_layout_is_function and not validation_layout` branch)
+calls a callable layout ONCE at assignment to build `validation_layout`, and the timed
+page view would be a warm SECOND pass over the same arrays — exactly the untimed-first-
+aggregation problem this window exists to remove.
 
-That advantage turns out not to be worth anything measurable: across every in-memory line
-cell of the full matrix, `server_ms` moved 0.91-1.13x (centred on 1.00x) between the
-pre-placeholder run (`results/full_2026-08-28`) and the post-placeholder one
-(`results/full_2026-08-31`) on the reference host. The placeholder is kept because the
-timed pass being the FIRST full-n pass is the principled window, not because it moved a
-number. No warm-pass advantage may be claimed for it.
-`hf_data` is the library's own documented handle for replacing a trace's data, the
-placeholder is above `n_points` so the traces register as high-frequency (at or below
-it plotly-resampler draws them directly and `hf_data` stays empty), and the aggregation
-the relayout then performs is bit-identical to the one the native path performs — the
-harness asserts exactly that. What differs is the untimed FIRST PAINT: it shows the
-placeholder window rather than the whole series. Disclosed in the notes.
+`eager_loading=True` turns dcc's async chunks and plotly.min.js from lazily fetched
+bundles into blocking script tags in the index page (`dash/resources.py`
+`_filter_resources` reads each resource's `async` flag against `config.eager_loading`;
+`dash/dcc/__init__.py` marks the chunks `async`, `dash.py` `_setup_plotlyjs` marks
+plotly `async="eager"`). They are then fetched BEFORE the layout request instead of
+after it, so the bundle download is page bootstrap and not measured window.
+
+NO RESAMPLE CALLBACK. `register_update_graph_callback` binds
+`self.construct_update_data_patch` — the figure instance that existed at registration —
+and a per-view figure gives it nothing stable to bind to. It is
+`prevent_initial_call=True`, so the first render never needed it. Zoom-driven
+re-aggregation is therefore not exercised here; what is measured is the first render,
+like every other tool in the suite.
+
+DISCLOSED ASYMMETRIES:
+  - A real Dash app builds its figure ONCE at process start and serves that same figure
+    to every viewer. This harness rebuilds it per page view so the aggregation is inside
+    the window. A second viewer of a real app therefore gets a cheaper page than what is
+    timed here.
+  - Dash fetches `/_dash-dependencies` in parallel with `/_dash-layout`. It is outside
+    the window (t0 is the layout request) but shares the connection pool; flexviz's page
+    has no second startup request.
 """
 
 from __future__ import annotations
@@ -49,14 +53,19 @@ import polars as pl
 from core.contenders.base import PROBES
 from core.serve import free_port
 
-# Placeholder length as a multiple of n_points. Must be > 1: at or below n_points
-# plotly-resampler draws a trace directly and never registers it in hf_data, so the
-# swap would have nothing to swap (preload raises if that happens).
-PLACEHOLDER_MULT = 2
-
 
 class PlotlyResamplerContender:
     client_store = False  # aggregates server-side in Python; the browser only renders
+
+    # ONE Dash server per matrix run (class-level, idempotent — same shape as
+    # FlexVizContender._ensure_server), so the browser's HTTP and code caches stay warm
+    # across trials exactly as flexviz's do. The layout callable reads the CURRENT
+    # trial's arrays from `_trial`, which preload() sets and teardown() clears.
+    _port = 0
+    _trial: dict | None = None
+    # Layout builds since process start. The window rests on the figure being built
+    # exactly once, inside the timed request; the gate reads this to prove it.
+    _builds = 0
 
     def __init__(self, *, parallel: bool = False) -> None:
         # Two roster entries: the library's documented default is single-threaded
@@ -66,23 +75,62 @@ class PlotlyResamplerContender:
         self.name = "plotly-resampler-par" if parallel else "plotly-resampler"
         self._parallel = parallel
         self.backend_root = None
-        self._url = ""
-        self._srv = None
 
     def start_backend(self, *, chart, source, n_traces, bins, n_points) -> None:
-        # Import the engine BEFORE preload so a memory trial's baseline is the loaded
-        # library and preload measures only the hf store + initial aggregation.
-        import dash  # noqa: F401
-        import plotly_resampler  # noqa: F401
+        # Start the EMPTY server (imports dash + plotly-resampler and spins the thread)
+        # before preload, so a memory trial's baseline is the loaded library and preload
+        # measures only the hf store. Idempotent — a no-op on later timing trials.
+        self._ensure_server()
 
-    def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
-        if chart != "line":
-            raise RuntimeError("plotly-resampler is line-only (no binning API)")
+    @classmethod
+    def _build_layout(cls):
+        """Dash calls this on every GET /_dash-layout — inside the timed window."""
         import dash
         import plotly.graph_objects as go
         from plotly_resampler import FigureResampler
         from plotly_resampler.aggregation import MinMaxLTTB
+
+        trial = cls._trial
+        if trial is None:
+            raise RuntimeError("plotly-resampler: page loaded before preload()")
+        cls._builds += 1
+        fig = FigureResampler(
+            default_n_shown_samples=trial["n_points"],
+            default_downsampler=MinMaxLTTB(parallel=True) if trial["parallel"] else MinMaxLTTB(),
+        )
+        # add_trace runs the downsampler (_check_update_trace_data) over the FULL
+        # arrays: the aggregation this benchmark measures.
+        for name, y in trial["ys"]:
+            fig.add_trace(go.Scattergl(name=name), hf_x=trial["x"], hf_y=y)
+        return dash.html.Div(
+            children=[dash.dcc.Graph(id="resample-figure", figure=fig)],
+            style={"display": "flex", "flex-flow": "column", "height": "95vh", "width": "100%"},
+        )
+
+    def _ensure_server(self) -> int:
+        if PlotlyResamplerContender._port:
+            return PlotlyResamplerContender._port
+        import dash
         from werkzeug.serving import make_server
+
+        app = dash.Dash(
+            "pr_bench",
+            eager_loading=True,
+            suppress_callback_exceptions=True,
+        )
+        app.layout = PlotlyResamplerContender._build_layout
+        port = free_port()
+        # make_server (what dash's own app.run uses) instead of app.run: nothing blocks
+        # and the thread is a daemon, so a memory-trial child exits with it.
+        srv = make_server("127.0.0.1", port, app.server, threaded=True)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        PlotlyResamplerContender._port = port
+        return port
+
+    def preload(self, *, chart, source, frame_or_path, n_traces, bins, n_points) -> None:
+        if chart != "line":
+            raise RuntimeError("plotly-resampler is line-only (no binning API)")
+        port = self._ensure_server()
 
         if isinstance(frame_or_path, Path):
             # No out-of-core path: hf_x/hf_y are numpy arrays, so the whole file is read
@@ -92,40 +140,14 @@ class PlotlyResamplerContender:
         else:
             frame = frame_or_path
 
-        fig = FigureResampler(
-            default_n_shown_samples=n_points,
-            default_downsampler=MinMaxLTTB(parallel=True) if self._parallel else MinMaxLTTB(),
-        )
-        x = frame["x"].to_numpy()
-        ys = [frame[f"y{t + 1}"].to_numpy() for t in range(n_traces)]
-        # Construct on a placeholder so the first full-n aggregation is the timed
-        # relayout, not this call. See TIMED WINDOW above.
-        head = PLACEHOLDER_MULT * n_points
-        for t in range(n_traces):
-            fig.add_trace(go.Scattergl(name=f"y{t + 1}"), hf_x=x[:head], hf_y=ys[t][:head])
-        if len(fig.hf_data) != n_traces:
-            raise RuntimeError(
-                f"plotly-resampler: {len(fig.hf_data)} of {n_traces} traces registered as "
-                f"high-frequency on a {head}-row placeholder — the swap below would leave "
-                f"the trace showing placeholder data"
-            )
-        for t in range(n_traces):
-            fig.hf_data[t]["x"] = x
-            fig.hf_data[t]["y"] = ys[t]
-
-        app = dash.Dash(f"pr_bench_{id(self)}")
-        app.layout = dash.html.Div(
-            children=[dash.dcc.Graph(id="resample-figure", figure=fig)],
-            style={"display": "flex", "flex-flow": "column", "height": "95vh", "width": "100%"},
-        )
-        fig.register_update_graph_callback(app, "resample-figure")
-        self._fig = fig  # keep the hf store alive for the trial's duration
-
-        port = free_port()
-        # make_server (what dash's own app.run uses) instead of app.run: it can be shut
-        # down from teardown, so a matrix does not leak a thread and a port per trial.
-        self._srv = make_server("127.0.0.1", port, app.server, threaded=True)
-        threading.Thread(target=self._srv.serve_forever, daemon=True).start()
+        # The store is the hf arrays. Building the figure over them is the engine's
+        # work and belongs to the timed request, so it happens in _build_layout.
+        PlotlyResamplerContender._trial = {
+            "x": frame["x"].to_numpy(),
+            "ys": [(f"y{t + 1}", frame[f"y{t + 1}"].to_numpy()) for t in range(n_traces)],
+            "n_points": n_points,
+            "parallel": self._parallel,
+        }
         self._url = f"http://127.0.0.1:{port}/"
 
     def get_url(self) -> str:
@@ -138,8 +160,6 @@ class PlotlyResamplerContender:
         ]
 
     def teardown(self) -> None:
-        if self._srv is not None:
-            self._srv.shutdown()
-            self._srv.server_close()
-            self._srv = None
-        self._fig = None
+        # The server outlives the trial (one per matrix run); the arrays must not —
+        # holding them would pin every in-memory cell's data for the whole run.
+        PlotlyResamplerContender._trial = None

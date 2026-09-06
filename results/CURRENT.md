@@ -22,8 +22,10 @@ killed the wrapper shell at ~09:15 during `line_big`; it was relaunched detached
 The 6 censored line cells are perspective (`-server` and `-wasm`) at 2M and 5M — the
 2,000,000-cell viewer-charts truncation, `rendered_fraction < 1`, censored from rankings.
 
-**Not yet published.** `make site-data` has not been run against this directory; see the
-last caveat.
+**Not yet published, and now superseded by the code.** `make site-data` has not been run
+against this directory, and `SCHEMA_VERSION` has since moved to `"5"` (both flexviz's and
+plotly-resampler's windows changed), so `report.py` renders this run only with
+`--diagnostic`. See the last two caveats.
 
 ## What changed since the last published run
 
@@ -118,7 +120,8 @@ flexviz in the three largest multi-trace cells: `nt=5` 100M (186.0 vs 174.0 ms),
 competitive throughout — 200M `nt=1`: **43.0 vs 54.7 ms** single-threaded, 41.3
 parallel. The total gap is the Plotly bootstrap now inside flexviz's window (change 1
 above) plus plotly-resampler's window being a **relayout into an already-drawn figure**,
-which is disclosed in the result's `notes` and is not a first render.
+which is disclosed in the result's `notes` and is not a first render. Schema 5 closes
+that second half: see the last caveat.
 
 Memory: flexviz's in-memory backend peak is **flat at 22.9–26.3 MB at every hist2d size**,
 1M through 200M. On disk read the anon column — at hist2d 200M flexviz is **726 MB anon
@@ -184,6 +187,11 @@ only, where VmHWM is already correct (`child.py` reads the frame with
   rows (see Standings). It is not noise and it is not a censored cell.
 - **The site has no hist2d panel.** `export_site.py` takes `--histogram` and `--line`
   only, and `SITE_TOOLS` is the six-tool server-compute roster — altair-vegafusion is not
-  in it, and whether plotly-resampler's relayout window belongs on a chart of cold first
-  renders is still an open call. Publishing this run is therefore a **separate decision**,
-  not a `make site-data` away.
+  in it. Publishing this run is therefore a **separate decision**, not a `make site-data`
+  away.
+- **plotly-resampler's window here is not a first render, and the code has moved on.**
+  These numbers time a reset-axes relayout into an already-drawn figure. Schema 5 times
+  a cold page view instead: Dash gets a callable `app.layout`, so `GET /_dash-layout`
+  builds the `FigureResampler` and runs MinMaxLTTB inside the request. That settles the
+  open call about charting it beside cold first renders, and it obsoletes these cells —
+  the tool must be re-measured before it goes on the site.

@@ -42,11 +42,11 @@ CLIENT_ONLY: set[str] = {"mosaic-wasm", "perspective-wasm"}
 MEMORY_ONLY: dict[str, str] = {
     tool: (
         "plotly-resampler has no out-of-core path (hf_x/hf_y are numpy arrays), so the "
-        "file read happens at figure construction. Its timed window is the reset-axes "
-        "relayout round-trip, which re-aggregates the already-resident arrays — a disk "
-        "cell would therefore measure exactly what the in-memory cell measures and read "
-        "nothing inside the window. Recorded out of scope rather than published as a "
-        "disk number the tool never earned."
+        "file is read into memory when the store is built, before the timed window. That "
+        "window is the GET /_dash-layout that builds the figure over the already-resident "
+        "arrays — a disk cell would therefore measure exactly what the in-memory cell "
+        "measures and read no file inside the window. Recorded out of scope rather than "
+        "published as a disk number the tool never earned."
     )
     for tool in ("plotly-resampler", "plotly-resampler-par")
 }

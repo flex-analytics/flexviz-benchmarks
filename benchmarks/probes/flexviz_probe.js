@@ -1,14 +1,16 @@
 // flexviz_probe.js — Playwright init-script for FlexViz pages.
 //
-// WINDOW: the FIRST Plotly.newPlot call -> the post-render barrier. FlexViz's page calls
-// newPlot with empty stub traces at module top level and only afterwards issues the single
-// POST /dashboard/update, so a t0 at the request would leave FlexViz's row-independent
-// Plotly bootstrap (~30 ms) outside its clock while mosaic (t0 before vg.plot) and
-// perspective (t0 before viewer.load) carry their equivalent setup inside theirs. Capture
-// still triggers on the `react` that draws the answer, and server_ms (TTFB) / transfer_ms /
-// client_ms (last byte -> barrier) still come from the /dashboard/update resource entry —
-// so total_ms is NOT the sum of the three components: the newPlot -> request bootstrap is
-// the difference.
+// WINDOW: the POST /dashboard/update request -> the post-render barrier. FlexViz's page
+// requests its data first and draws each figure once with Plotly.react when the response
+// lands, so there is no startup newPlot to clock from: t0 is the request (the resource
+// entry's requestStart, or the fetch-hook instant when the buffer has not published the
+// entry yet) and capture triggers on the `react` that draws the answer. server_ms (TTFB)
+// / transfer_ms / client_ms (last byte -> barrier) come from that same entry, so the
+// three components sum to total_ms up to the fetch-call-to-requestStart slack.
+//
+// The newPlot hook stays: FlexViz still calls newPlot as a fallback for a figure the
+// init response did not draw, and a page that ever draws BEFORE requesting must keep
+// that draw inside the window rather than starting the clock at the request.
 //
 // Uses Object.defineProperty to intercept window.Plotly assignment so the
 // hook is installed synchronously the moment Plotly sets itself on window —
@@ -38,10 +40,10 @@
 
     var entry = window.__benchHelpers.lastResourceEntry('/update');
 
-    // t0 = the first newPlot; falling back to the update request (its resource entry's
-    // requestStart, or the fetch-hook instant when the entry is not yet published) if
-    // no newPlot was observed. No request and no newPlot at all is an explicit error,
-    // never a total_ms that quietly includes the page load.
+    // t0 = the update request (its resource entry's requestStart, or the fetch-hook
+    // instant when the entry is not yet published) — unless a newPlot ran first, which
+    // is then the earlier and therefore correct origin. No request and no newPlot at
+    // all is an explicit error, never a total_ms that quietly includes the page load.
     var t0 = plotStart !== null ? plotStart : entry ? entry.requestStart : requestedAt;
     if (t0 === null) {
       window.__benchHelpers.benchError('no /dashboard/update request observed');
@@ -51,9 +53,10 @@
   }
 
   function hookPlotly(plotly) {
-    // newPlot starts the clock (FlexViz's stub-trace bootstrap is inside the window);
-    // react is the capture trigger — it is the call that draws the /dashboard/update
-    // answer, and only then is the resource entry there to split server/transfer.
+    // newPlot starts the clock if it ever runs before the request (any draw that
+    // precedes the request belongs inside the window); react is the capture trigger —
+    // it is the call that draws the /dashboard/update answer, and only then is the
+    // resource entry there to split server/transfer.
     var origNewPlot = plotly.newPlot.bind(plotly);
     plotly.newPlot = function () {
       if (plotStart === null) plotStart = performance.now();

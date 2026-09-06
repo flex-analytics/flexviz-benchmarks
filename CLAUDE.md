@@ -172,8 +172,9 @@ included — for numbers that never ran under it.
 - `CONTENDERS` — the 10-tool roster: `"flexviz"`, `"altair-vegafusion"`, `"mosaic-server"`, `"mosaic-wasm"`, `"perspective-server"`, `"perspective-wasm"`, `"plotly-resampler"`, `"plotly-resampler-par"`, `"vaex"`, `"datashader"`
 - `CLIENT_ONLY` — client/WASM tools (`"mosaic-wasm"`, `"perspective-wasm"`) that compute in the browser and are benchmarked **in-memory only** — a benchmark-design choice (status `source_out_of_scope`), not an engine limit; the driver skips them on disk sources
 - `MEMORY_ONLY` — `tool -> reason` for in-memory-only tools whose reason is *not* browser
-  compute (`plotly-resampler*`: no out-of-core path, and its timed window is a relayout
-  over already-resident arrays, so a disk cell would read nothing inside the window).
+  compute (`plotly-resampler*`: no out-of-core path, so the file is read when the store is
+  built, before the timed layout request — a disk cell would read no file inside the
+  window).
   Kept separate so `CLIENT_ONLY` keeps meaning exactly "computes in the browser".
   `memory_only_reason(tool, source)` is the single check the driver and `cell_statuses`
   both call; both sets produce `source_out_of_scope`
@@ -302,34 +303,37 @@ a "ceiling").
 - **plotly-resampler (0.11)** — **line only** (it resamples scatter/line traces; there is
   no binning API, so a histogram would be binned by numpy outside the library) and
   **in-memory only** (`MEMORY_ONLY`; `hf_x`/`hf_y` are numpy arrays, no out-of-core path).
-  **Its timed window is the only one in the suite that is not the page's first render**,
-  and the reason is structural: the library downsamples inside `add_trace()`, and
-  `show_dash` serves the already-aggregated figure with the resample callback registered
-  `prevent_initial_call=True`. Clocking page load would measure a Dash bootstrap plus an
-  `n_points`-point Plotly draw — flat at every row count. What is measured instead is the
-  **reset-axes relayout round-trip** (the modebar's own gesture, routed to
-  `construct_update_data`'s global-view branch): relayout → POST
-  `/_dash-update-component` → MinMaxLTTB over the full `hf` arrays → figure patch →
-  render → barrier — a genuine full-n aggregation. So the timed relayout is the **first**
-  full-n pass and not a second one, the figure is constructed on a placeholder of
-  `2*n_points` rows and its `hf_data` is then pointed at the full arrays; the aggregation
-  the relayout performs is bit-identical either way, and only the untimed first paint
-  differs. The full matrix showed **no measurable difference** between the two
-  constructions (`server_ms` 0.91–1.13×, centred on 1.00×, `full_2026-08-28` vs
-  `full_2026-08-31`), so the placeholder is kept because it is the principled window, not
-  because it moved a number. Its window is the **narrower** of the two request-shaped
-  ones: flexviz clocks from its first `Plotly.newPlot`, this one from the relayout
-  request into an already-drawn figure — disclosed in `notes`.
+  The library downsamples inside `add_trace()`, so the **figure construction has to be
+  inside the window** or nothing about the engine is measured. `app.layout` is therefore a
+  **callable**, which Dash re-runs on every page view (`serve_layout` → `_layout_value`):
+  the timed window is `GET /_dash-layout` → `FigureResampler` built and MinMaxLTTB run
+  over the full `hf` arrays → figure JSON → React render → Plotly draw → barrier.
+  `server_ms` is that request's TTFB (construction + aggregation + serialisation),
+  `transfer_ms` its body, `client_ms` last byte → barrier. Two Dash flags are
+  load-bearing: **`suppress_callback_exceptions=True`**, or the `layout` setter calls the
+  callable once at assignment to build `validation_layout` and the timed view becomes a
+  warm second pass; and **`eager_loading=True`**, which turns dcc's async chunks and
+  plotly.js into blocking script tags fetched before the layout request
+  (`resources.py:_filter_resources`) instead of lazily after it. The resample callback is
+  **not registered**: it binds the figure instance that existed at registration, a
+  per-view figure gives it nothing stable, and it is `prevent_initial_call=True` — so
+  zoom-driven re-aggregation is not exercised. Two asymmetries are disclosed in `notes`:
+  a real Dash app builds its figure once at process start and serves it to every viewer,
+  where this harness rebuilds it per page view; and Dash fetches `_dash-dependencies` in
+  parallel with `_dash-layout`, which flexviz has no analogue for. One Dash server per
+  matrix run (class-level, like `FlexVizContender._ensure_server`), so the browser's HTTP
+  and code caches stay warm across trials as flexviz's do; `preload` fills a class-level
+  holder with the trial's arrays and `teardown` clears it.
   Two roster entries: `plotly-resampler` is the documented default
   `MinMaxLTTB(parallel=False)`, `plotly-resampler-par` is `parallel=True` (measured
   ~1.4–1.7× on the aggregation alone; the workload is memory-bandwidth bound). The
   aggregator defaults land in `provenance.execution.plotly_resampler`.
-  Probe gotchas, all load-bearing (`probes/plotly_resampler_probe.js`): Dash fires its own
-  update round-trip while booting and firing into it makes Plotly treat reset-axes as a
-  no-op (hence the settle gate); `dcc.Graph` applies the returned `Patch` through its own
-  bundled Plotly, *not* `window.Plotly`, so the redraw is caught with the graph div's
-  `plotly_afterplot` event; and `dcc.Graph(id=...)` is the wrapper — the Plotly div is the
-  `.js-plotly-plot` inside it.
+  Probe gotchas (`probes/plotly_resampler_probe.js`): dash-renderer requests the layout
+  with `fetch`, so the fetch hook covers it (no XHR path); `dcc.Graph(id=...)` is the
+  wrapper — the Plotly div is the `.js-plotly-plot` inside it; and that div fires exactly
+  **one** `plotly_afterplot` for the first draw, so the listener is attached from inside
+  the `Plotly.react` call that draws it (dcc resolves `Plotly` as a global at call time),
+  with a poll as fallback.
 - **altair-vegafusion** — Altair specs (`mark_bar` + `alt.Bin(maxbins=bins)` per trace,
   one layer each; `mark_rect` over two binned axes for hist2d) compiled once to Vega by
   vl-convert in `preload` — benchmark plumbing, outside every window. The timed window is
@@ -418,14 +422,15 @@ JSON serialisation of the spec); mosaic and perspective report `total_ms` only (
 and the viewer expose no split). Axis-extent discovery (min/max) runs inside the timed
 window for every tool, on the tool's own engine.
 
-flexviz's `t0` is its first `Plotly.newPlot`, not its `/dashboard/update` request.
-FlexViz's page draws empty stub traces at module top level and only then issues the single
-update POST, so clocking the request would leave a row-independent ~33 ms Plotly bootstrap
-outside its window while mosaic (`t0` before `vg.plot`) and perspective (`t0` before
-`viewer.load`) carry their equivalent setup inside theirs. Its `server_ms`/`transfer_ms`/
-`client_ms` still come from the update entry, so for flexviz alone `total_ms` is not the
-sum of the three components. `SCHEMA_VERSION` is `"4"`; every result recorded under `"3"`
-measured the narrower window and fails `report.publication_failures`.
+flexviz's `t0` is its `POST /dashboard/update` request. FlexViz's page requests its data
+first and draws each figure once, with `Plotly.react` on the response, so no draw precedes
+the request and the Plotly bootstrap mosaic (`t0` before `vg.plot`) and perspective (`t0`
+before `viewer.load`) carry inside their windows is inside flexviz's too. `server_ms`/
+`transfer_ms`/`client_ms` come from that same entry, so the three sum to `total_ms` up to
+the fetch-call-to-`requestStart` slack. The probe keeps its `newPlot` hook as the earlier
+`t0` for a page that ever draws before requesting. `SCHEMA_VERSION` is `"5"`; results
+recorded under `"4"` measured flexviz's newPlot window and plotly-resampler's relayout
+window, and fail `report.publication_failures`.
 
 **Memory model (two passes)** — timing repeats run warm with `memory=False` (no
 instrumentation); memory comes from **one cold, process-isolated trial per cell**

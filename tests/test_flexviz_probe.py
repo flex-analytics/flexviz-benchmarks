@@ -1,9 +1,10 @@
-"""flexviz's clock starts at the FIRST Plotly.newPlot, not at /dashboard/update.
+"""A draw that precedes /dashboard/update stays INSIDE flexviz's window.
 
-FlexViz's page calls newPlot with stub traces at module top level and only then issues
-the update request; if t0 ever slid back to the request, the bootstrap between the two
-would fall outside flexviz's window while mosaic and perspective carry theirs inside.
-The fake Plotly here puts a known GAP_MS between the two, which must be inside total_ms.
+FlexViz's page now requests its data first and draws once with react on the response, so
+t0 is the request. The newPlot hook is what keeps that honest: should a page ever draw
+before requesting, the work between the two must not fall outside flexviz's window while
+mosaic and perspective carry theirs inside. The fake Plotly here puts a known GAP_MS
+between a newPlot and the request, which must be inside total_ms.
 """
 
 import sys
@@ -56,7 +57,7 @@ def bench(tmp_path_factory):
     return out
 
 
-def test_t0_is_the_first_newplot_not_the_update_request(bench):
+def test_a_draw_before_the_request_starts_the_clock_not_the_request(bench):
     assert bench["status"] == "ok"
     # With t0 at the request this would be a couple of ms; with t0 at newPlot the whole
     # gap is inside the window.

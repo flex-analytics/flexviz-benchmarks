@@ -23,9 +23,11 @@ from typing import Any
 
 import psutil
 
-# 4: flexviz's timed window now starts at the first Plotly.newPlot (was: the
-# /dashboard/update request), so every earlier result file is not comparable.
-SCHEMA_VERSION = "4"
+# 5: flexviz's page requests its data before drawing, so its window starts at the
+# /dashboard/update request again; plotly-resampler builds its figure inside the timed
+# GET /_dash-layout (was: a reset-axes relayout). Both windows moved, so every earlier
+# result file is not comparable.
+SCHEMA_VERSION = "5"
 
 REPO = Path(__file__).resolve().parents[2]
 VENDOR_DIR = REPO / "benchmarks" / "probes" / "vendor"
