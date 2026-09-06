@@ -11,6 +11,9 @@ the "no client-side fallback" warning check are gated too.
 """
 
 import json
+import subprocess
+import sys
+from pathlib import Path
 
 import numpy as np
 import polars as pl
@@ -134,25 +137,50 @@ def test_line_is_refused():
         )
 
 
+_TRIALS = """
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from core.contenders.altair_vegafusion import AltairVegaFusionContender
+if sys.argv[3] == "no-release":  # the pre-fix teardown, for the sanity run
+    import core.contenders.altair_vegafusion as m
+    m._release_memory = lambda: None
+kw = dict(chart="histogram", source="disk-parquet", n_traces=5, bins=100, n_points=0)
+for _ in range(5):
+    c = AltairVegaFusionContender()
+    c.start_backend(**kw)
+    c.preload(frame_or_path=Path(sys.argv[2]), **kw)
+    c._pre_transform()
+    c.teardown()
+    with open("/proc/self/status") as f:
+        print(next(int(l.split()[1]) // 1024 for l in f if l.startswith("VmRSS:")))
+"""
+
+
+def _rss_after_each_trial(path, variant):
+    # A fresh interpreter: inside a shared pytest process the other engines' thread
+    # pools leave glibc arena state that makes RSS wobble by hundreds of MB either way.
+    out = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            _TRIALS,
+            str(Path(__file__).parent.parent / "benchmarks"),
+            str(path),
+            variant,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.split()
+    return [int(v) for v in out]
+
+
 def test_repeated_trials_do_not_retain_the_scanned_dataset(tmp_path):
-    """Without runtime.reset() in teardown every trial keeps its scanned data alive:
+    """Without runtime.reset() in teardown every trial keeps its scanned data resident:
     +1.8 GB per trial at 20M rows from Parquet (+450 MB at this size), enough to
-    OOM-kill the driver's six in-process trials at 200M. The first two trials absorb
-    allocator warm-up, so the assertion is on the tail: trials 3..5 must stay flat."""
-    rows = 5_000_000
-    path = ensure_disk_dataset(tmp_path / "ds", "histogram", rows, 5, 42, "disk-parquet", True)
-
-    def rss_mb():
-        with open("/proc/self/status") as f:
-            return next(int(line.split()[1]) / 1024 for line in f if line.startswith("VmRSS:"))
-
-    seen = []
-    for _ in range(5):
-        c = AltairVegaFusionContender()
-        kw = dict(chart="histogram", source="disk-parquet", n_traces=5, bins=BINS, n_points=0)
-        c.start_backend(**kw)
-        c.preload(frame_or_path=path, **kw)
-        c._pre_transform()
-        c.teardown()
-        seen.append(rss_mb())
+    OOM-kill the driver's six in-process trials at 200M (see _release_memory). Assert on the tail (trials
+    3..5) so the first trials' warm-up allocations do not count."""
+    path = ensure_disk_dataset(tmp_path / "ds", "histogram", 5_000_000, 5, 42, "disk-parquet", True)
+    seen = _rss_after_each_trial(path, "release")
     assert seen[4] - seen[2] < 150, f"RSS after each trial (MB): {seen}"

@@ -124,20 +124,12 @@ class AltairVegaFusionContender(PageServerMixin):
         return self._url
 
     def teardown(self) -> None:
-        import vegafusion
-
         self.stop_page()
         if self._spec_server:
             self._spec_server.shutdown()
             self._spec_server = None
         self._inline = {}
-        # Drop the runtime: it retains every dataset a pre-transform scanned, and
-        # clear_cache() does not release it — measured +1.8 GB per trial at 20M rows x 5
-        # traces from Parquet, +20 GB per trial at 200M, which OOM-killed the driver
-        # after six in-process trials on a 94 GB host. reset() returns RSS to the
-        # baseline at no timing cost; start_backend's throwaway pre-transform re-warms
-        # the fresh runtime before the next trial's window opens.
-        vegafusion.runtime.reset()
+        _release_memory()
 
 
 # --- Altair specs. `maxbins` is a niced MAXIMUM, not an exact count: Vega's bin picks a
@@ -173,3 +165,26 @@ def _hist2d_spec(url: str, bins: int) -> dict:
         )
         .to_dict(format="vega")
     )
+
+
+def _release_memory() -> None:
+    """Return a trial's scanned data to the OS, between trials, outside every window.
+
+    Freed but not returned: DataFusion decodes Parquet in row-group batches below glibc's
+    mmap threshold, and its 32 worker threads' arenas keep those chunks after the plan
+    finishes — measured +1.8 GB of RSS per trial at 20M rows x 5 traces from Parquet and
+    +20 GB per trial at 200M, which OOM-killed the driver's six in-process trials on a
+    94 GB host (first 2026-09-06 matrix). `clear_cache()` does nothing for it. Dropping the
+    runtime retires the worker threads (and most of their arenas); `malloc_trim` returns
+    what the main arena still holds. `start_backend` re-warms the fresh runtime before
+    the next trial's window opens, so timing is unaffected.
+    """
+    import ctypes
+
+    import vegafusion
+
+    vegafusion.runtime.reset()
+    try:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except (OSError, AttributeError):
+        pass  # not glibc: nothing to trim
