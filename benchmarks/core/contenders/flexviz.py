@@ -65,7 +65,9 @@ class FlexVizContender:
         fig = Figure(lf)
         for t in range(n_traces):
             if chart == "line":
-                fig.add_line(x="x", y=f"y{t + 1}", n_points=n_points)
+                # The generator sorts x; assume_sorted_x is the documented way
+                # to skip the per-source sortedness pass a resident line pays.
+                fig.add_line(x="x", y=f"y{t + 1}", n_points=n_points, assume_sorted_x=True)
             elif chart == "hist2d":
                 # One `bins` x `bins` count grid (the fixed_hist2d kernel on a resident
                 # frame, the streaming plan on a scan source). n_traces is 1 here.

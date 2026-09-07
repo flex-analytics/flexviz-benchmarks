@@ -167,7 +167,9 @@ def benchmark_notes(
             "FlexViz renders a min-max envelope: argmin+argmax of y over n_points//2 "
             "equal-WIDTH x buckets spanning the data range — a fixed point budget, "
             "unlike Mosaic's pixel-driven reduction (one bucket per pixel column), so "
-            "the two draw the same picture only when the budget matches the plot width."
+            "the two draw the same picture only when the budget matches the plot width. "
+            "x is declared sorted (assume_sorted_x=True): the generator sorts it, and the "
+            "option skips the sortedness pass a resident source would otherwise pay once."
         )
     pr = sorted(n for n in eligible if n.startswith("plotly-resampler"))
     if chart == "line" and pr:
