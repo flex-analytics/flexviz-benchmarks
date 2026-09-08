@@ -1,31 +1,36 @@
 {
  "meta": {
-  "run_date": "2026-08-28",
-  "generated_utc": "2026-08-28T09:26:36+00:00",
+  "run_date": "2026-09-08",
+  "generated_utc": "2026-09-08T17:03:10+00:00",
   "machine": "32-core AMD Ryzen 9 5950X",
   "ram_gb": 94,
   "repeats": 5,
   "renderer": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce RTX 2070 (0x00001F02)), NVIDIA)",
   "chromium": "151.0.7922.34",
-  "flexviz_sha": "a60dd0b",
-  "benchmarks_sha": "fea816e",
+  "flexviz_sha": "d958ea1",
+  "benchmarks_sha": "b34fbfa",
   "repo_url": "https://github.com/flex-analytics/flexviz-benchmarks",
   "sources": [
    "ttfr_histogram_full.json",
-   "ttfr_line_full.json"
+   "ttfr_line_full.json",
+   "ttfr_hist2d_full.json"
   ],
   "engine_dominated_from": 10000000,
   "tools": [
    "flexviz",
    "mosaic-server",
    "vaex",
-   "datashader"
+   "datashader",
+   "altair-vegafusion",
+   "plotly-resampler",
+   "plotly-resampler-par"
   ]
  },
  "charts": {
   "histogram": {
-   "cells": 141,
+   "cells": 183,
    "tools": [
+    "altair-vegafusion",
     "flexviz",
     "mosaic-server",
     "vaex"
@@ -33,556 +38,736 @@
    "timing": {
     "in-memory": {
      "1": {
-      "flexviz": [
+      "altair-vegafusion": [
        [
         1000000,
-        55.3
+        87.7
        ],
        [
         2000000,
-        55.9
+        107.5
        ],
        [
         5000000,
-        48.1
+        122.8
        ],
        [
         10000000,
-        58.6
+        151.6
        ],
        [
         20000000,
-        67.4
+        218.1
        ],
        [
         50000000,
-        84.2
+        381.4
        ],
        [
         200000000,
-        173.8
+        1265.3
+       ]
+      ],
+      "flexviz": [
+       [
+        1000000,
+        33.5
+       ],
+       [
+        2000000,
+        37.6
+       ],
+       [
+        5000000,
+        38.0
+       ],
+       [
+        10000000,
+        39.9
+       ],
+       [
+        20000000,
+        50.5
+       ],
+       [
+        50000000,
+        66.7
+       ],
+       [
+        200000000,
+        160.2
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        105.4
+        94.2
        ],
        [
         2000000,
-        106.0
+        96.5
        ],
        [
         5000000,
-        104.6
+        107.7
        ],
        [
         10000000,
-        122.8
+        120.1
        ],
        [
         20000000,
-        167.4
+        168.3
        ],
        [
         50000000,
-        255.1
+        254.9
        ],
        [
         200000000,
-        671.5
+        655.9
        ]
       ],
       "vaex": [
        [
         1000000,
-        86.8
+        95.9
        ],
        [
         2000000,
-        95.6
+        89.1
        ],
        [
         5000000,
-        84.9
+        87.7
        ],
        [
         10000000,
-        98.2
+        96.8
        ],
        [
         20000000,
-        112.4
+        103.9
        ],
        [
         50000000,
-        139.1
+        135.8
        ],
        [
         200000000,
-        312.2
+        311.4
        ]
       ]
      },
      "2": {
-      "flexviz": [
+      "altair-vegafusion": [
        [
         1000000,
-        55.8
+        108.1
        ],
        [
         2000000,
-        54.0
+        114.5
        ],
        [
         5000000,
-        59.0
+        123.2
        ],
        [
         10000000,
-        64.8
+        201.1
        ],
        [
         20000000,
-        79.3
+        262.6
        ],
        [
         50000000,
-        112.8
+        580.4
        ],
        [
         200000000,
-        276.4
+        2152.7
+       ]
+      ],
+      "flexviz": [
+       [
+        1000000,
+        41.4
+       ],
+       [
+        2000000,
+        42.5
+       ],
+       [
+        5000000,
+        46.4
+       ],
+       [
+        10000000,
+        52.4
+       ],
+       [
+        20000000,
+        61.6
+       ],
+       [
+        50000000,
+        95.2
+       ],
+       [
+        200000000,
+        274.4
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        104.3
+        110.9
        ],
        [
         2000000,
-        120.0
+        122.2
        ],
        [
         5000000,
-        141.3
+        145.3
        ],
        [
         10000000,
-        159.4
+        161.7
        ],
        [
         20000000,
-        236.7
+        243.3
        ],
        [
         50000000,
-        424.6
+        427.5
        ],
        [
         200000000,
-        1260.3
+        1245.9
        ]
       ],
       "vaex": [
        [
         1000000,
-        103.3
+        112.0
        ],
        [
         2000000,
-        107.4
+        109.4
        ],
        [
         5000000,
-        119.3
+        111.2
        ],
        [
         10000000,
-        129.6
+        121.3
        ],
        [
         20000000,
-        139.6
+        148.6
        ],
        [
         50000000,
-        226.6
+        208.1
        ],
        [
         200000000,
-        574.7
+        559.6
        ]
       ]
      },
      "5": {
-      "flexviz": [
+      "altair-vegafusion": [
        [
         1000000,
-        74.5
+        135.9
        ],
        [
         2000000,
-        76.1
+        130.4
        ],
        [
         5000000,
-        76.0
+        199.1
        ],
        [
         10000000,
-        90.7
+        307.6
        ],
        [
         20000000,
-        121.7
+        565.5
        ],
        [
         50000000,
-        209.3
+        1324.6
        ],
        [
         200000000,
-        648.1
+        5333.4
+       ]
+      ],
+      "flexviz": [
+       [
+        1000000,
+        56.1
+       ],
+       [
+        2000000,
+        60.2
+       ],
+       [
+        5000000,
+        68.0
+       ],
+       [
+        10000000,
+        79.9
+       ],
+       [
+        20000000,
+        104.6
+       ],
+       [
+        50000000,
+        190.4
+       ],
+       [
+        200000000,
+        629.1
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        141.6
+        149.6
        ],
        [
         2000000,
-        172.5
+        178.9
        ],
        [
         5000000,
-        236.5
+        231.9
        ],
        [
         10000000,
-        300.9
+        291.2
        ],
        [
         20000000,
-        501.3
+        491.8
        ],
        [
         50000000,
-        961.2
+        949.3
        ],
        [
         200000000,
-        3106.0
+        3048.0
        ]
       ],
       "vaex": [
        [
         1000000,
-        166.3
+        169.0
        ],
        [
         2000000,
-        156.8
+        167.0
        ],
        [
         5000000,
-        163.7
+        168.6
        ],
        [
         10000000,
-        198.5
+        195.2
        ],
        [
         20000000,
-        283.6
+        298.5
        ],
        [
         50000000,
-        448.4
+        423.2
        ],
        [
         200000000,
-        1704.0
+        1585.3
        ]
       ]
      }
     },
     "disk-parquet": {
      "1": {
-      "flexviz": [
+      "altair-vegafusion": [
        [
         1000000,
-        59.2
+        82.9
        ],
        [
         2000000,
-        63.8
+        121.9
        ],
        [
         5000000,
-        66.9
+        214.3
        ],
        [
         10000000,
-        68.6
+        412.6
        ],
        [
         20000000,
-        87.0
+        742.9
        ],
        [
         50000000,
-        121.8
+        1903.3
        ],
        [
         200000000,
-        357.6
+        5721.6
+       ]
+      ],
+      "flexviz": [
+       [
+        1000000,
+        47.2
+       ],
+       [
+        2000000,
+        45.9
+       ],
+       [
+        5000000,
+        47.0
+       ],
+       [
+        10000000,
+        47.6
+       ],
+       [
+        20000000,
+        54.3
+       ],
+       [
+        50000000,
+        92.4
+       ],
+       [
+        200000000,
+        273.5
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        128.5
+        127.6
        ],
        [
         2000000,
-        130.6
+        132.0
        ],
        [
         5000000,
-        149.8
+        141.9
        ],
        [
         10000000,
-        163.7
+        161.9
        ],
        [
         20000000,
-        179.7
+        186.5
        ],
        [
         50000000,
-        263.4
+        269.2
        ],
        [
         200000000,
-        624.0
+        623.9
        ]
       ],
       "vaex": [
        [
         1000000,
-        103.2
+        109.1
        ],
        [
         2000000,
-        111.9
+        116.6
        ],
        [
         5000000,
-        125.7
+        125.0
        ],
        [
         10000000,
-        164.7
+        163.1
        ],
        [
         20000000,
-        249.7
+        241.0
        ],
        [
         50000000,
-        433.7
+        417.4
        ],
        [
         200000000,
-        1700.8
+        1741.6
        ]
       ]
      },
      "2": {
-      "flexviz": [
+      "altair-vegafusion": [
        [
         1000000,
-        69.4
+        156.9
        ],
        [
         2000000,
-        64.9
+        224.2
        ],
        [
         5000000,
-        75.9
+        387.2
        ],
        [
         10000000,
-        86.3
+        659.7
        ],
        [
         20000000,
-        108.2
+        1171.2
        ],
        [
         50000000,
-        202.8
+        2816.5
        ],
        [
         200000000,
-        647.1
+        10603.9
+       ]
+      ],
+      "flexviz": [
+       [
+        1000000,
+        56.5
+       ],
+       [
+        2000000,
+        53.5
+       ],
+       [
+        5000000,
+        55.7
+       ],
+       [
+        10000000,
+        64.1
+       ],
+       [
+        20000000,
+        86.0
+       ],
+       [
+        50000000,
+        157.8
+       ],
+       [
+        200000000,
+        514.8
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        172.1
+        168.7
        ],
        [
         2000000,
-        200.8
+        199.3
        ],
        [
         5000000,
-        213.7
+        209.5
        ],
        [
         10000000,
-        220.8
+        239.7
        ],
        [
         20000000,
-        281.6
+        291.8
        ],
        [
         50000000,
-        439.6
+        439.8
        ],
        [
         200000000,
-        1162.0
+        1141.9
        ]
       ],
       "vaex": [
        [
         1000000,
-        140.5
+        136.0
        ],
        [
         2000000,
-        142.6
+        141.4
        ],
        [
         5000000,
-        192.7
+        200.7
        ],
        [
         10000000,
-        265.9
+        265.0
        ],
        [
         20000000,
-        432.7
+        412.4
        ],
        [
         50000000,
-        749.5
+        736.0
        ],
        [
         200000000,
-        3259.0
+        3278.7
        ]
       ]
      },
      "5": {
-      "flexviz": [
+      "altair-vegafusion": [
        [
         1000000,
-        100.5
+        325.3
        ],
        [
         2000000,
-        111.2
+        380.3
        ],
        [
         5000000,
-        122.9
+        596.8
        ],
        [
         10000000,
-        138.4
+        1059.0
        ],
        [
         20000000,
-        207.0
+        2056.0
        ],
        [
         50000000,
-        427.2
+        4898.9
        ],
        [
         200000000,
-        1481.1
+        19108.3
+       ]
+      ],
+      "flexviz": [
+       [
+        1000000,
+        95.1
+       ],
+       [
+        2000000,
+        99.2
+       ],
+       [
+        5000000,
+        94.0
+       ],
+       [
+        10000000,
+        117.8
+       ],
+       [
+        20000000,
+        173.1
+       ],
+       [
+        50000000,
+        362.2
+       ],
+       [
+        200000000,
+        1227.3
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        312.7
+        325.6
        ],
        [
         2000000,
-        346.4
+        356.9
        ],
        [
         5000000,
-        429.8
+        412.5
        ],
        [
         10000000,
-        431.0
+        437.2
        ],
        [
         20000000,
-        608.7
+        590.6
        ],
        [
         50000000,
-        988.2
+        979.9
        ],
        [
         200000000,
-        2779.2
+        2736.1
        ]
       ],
       "vaex": [
        [
         1000000,
-        247.6
+        250.9
        ],
        [
         2000000,
-        271.7
+        285.3
        ],
        [
         5000000,
-        416.0
+        394.4
        ],
        [
         10000000,
-        567.7
+        553.2
        ],
        [
         20000000,
-        930.3
+        910.5
        ],
        [
         50000000,
-        1817.0
+        1786.4
        ],
        [
         200000000,
-        8768.3
+        8699.6
        ]
       ]
      }
@@ -590,70 +775,40 @@
    },
    "memory": {
     "1": {
+     "altair-vegafusion": [
+      [
+       1000000,
+       49.6
+      ],
+      [
+       2000000,
+       63.4
+      ],
+      [
+       5000000,
+       76.7
+      ],
+      [
+       10000000,
+       100.6
+      ],
+      [
+       20000000,
+       142.9
+      ],
+      [
+       50000000,
+       267.5
+      ],
+      [
+       200000000,
+       896.4
+      ]
+     ],
      "flexviz": [
       [
        1000000,
-       24.1
-      ],
-      [
-       2000000,
-       24.3
-      ],
-      [
-       5000000,
-       24.8
-      ],
-      [
-       10000000,
-       24.7
-      ],
-      [
-       20000000,
-       24.9
-      ],
-      [
-       50000000,
-       24.9
-      ],
-      [
-       200000000,
-       24.9
-      ]
-     ],
-     "mosaic-server": [
-      [
-       1000000,
-       18.4
-      ],
-      [
-       2000000,
-       21.8
-      ],
-      [
-       5000000,
-       15.8
-      ],
-      [
-       10000000,
-       20.3
-      ],
-      [
-       20000000,
-       14.3
-      ],
-      [
-       50000000,
-       14.1
-      ],
-      [
-       200000000,
-       13.2
-      ]
-     ],
-     "vaex": [
-      [
-       1000000,
-       15.8
+       23.2
       ],
       [
        2000000,
@@ -661,169 +816,45 @@
       ],
       [
        5000000,
-       46.3
+       23.8
       ],
       [
        10000000,
-       84.8
+       23.8
       ],
       [
        20000000,
-       161.2
+       24.0
       ],
       [
        50000000,
-       390.5
+       24.1
       ],
       [
        200000000,
-       1535.8
-      ]
-     ]
-    },
-    "2": {
-     "flexviz": [
-      [
-       1000000,
-       25.2
-      ],
-      [
-       2000000,
-       25.4
-      ],
-      [
-       5000000,
-       26.0
-      ],
-      [
-       10000000,
-       25.9
-      ],
-      [
-       20000000,
-       26.1
-      ],
-      [
-       50000000,
-       26.1
-      ],
-      [
-       200000000,
-       26.0
+       24.1
       ]
      ],
      "mosaic-server": [
       [
        1000000,
-       19.0
+       18.5
       ],
       [
        2000000,
-       22.1
+       21.8
       ],
       [
        5000000,
-       14.4
+       15.0
       ],
       [
        10000000,
-       18.9
+       20.5
       ],
       [
        20000000,
-       14.1
-      ],
-      [
-       50000000,
-       13.8
-      ],
-      [
-       200000000,
-       24.6
-      ]
-     ],
-     "vaex": [
-      [
-       1000000,
-       24.0
-      ],
-      [
-       2000000,
-       39.3
-      ],
-      [
-       5000000,
-       85.1
-      ],
-      [
-       10000000,
-       161.6
-      ],
-      [
-       20000000,
-       314.3
-      ],
-      [
-       50000000,
-       772.3
-      ],
-      [
-       200000000,
-       3062.7
-      ]
-     ]
-    },
-    "5": {
-     "flexviz": [
-      [
-       1000000,
-       26.3
-      ],
-      [
-       2000000,
-       26.5
-      ],
-      [
-       5000000,
-       27.6
-      ],
-      [
-       10000000,
-       27.5
-      ],
-      [
-       20000000,
-       27.9
-      ],
-      [
-       50000000,
-       27.8
-      ],
-      [
-       200000000,
-       27.7
-      ]
-     ],
-     "mosaic-server": [
-      [
-       1000000,
-       24.0
-      ],
-      [
-       2000000,
-       25.5
-      ],
-      [
-       5000000,
-       19.8
-      ],
-      [
-       10000000,
-       21.3
-      ],
-      [
-       20000000,
-       11.9
+       13.6
       ],
       [
        50000000,
@@ -831,37 +862,281 @@
       ],
       [
        200000000,
-       40.4
+       12.7
       ]
      ],
      "vaex": [
       [
        1000000,
-       47.7
+       15.3
       ],
       [
        2000000,
-       85.7
+       23.0
       ],
       [
        5000000,
-       199.9
+       45.8
       ],
       [
        10000000,
-       391.2
+       84.3
       ],
       [
        20000000,
-       772.4
+       160.6
       ],
       [
        50000000,
-       1917.8
+       389.9
       ],
       [
        200000000,
-       7643.3
+       1535.9
+      ]
+     ]
+    },
+    "2": {
+     "altair-vegafusion": [
+      [
+       1000000,
+       64.7
+      ],
+      [
+       2000000,
+       78.8
+      ],
+      [
+       5000000,
+       100.4
+      ],
+      [
+       10000000,
+       149.1
+      ],
+      [
+       20000000,
+       226.8
+      ],
+      [
+       50000000,
+       474.2
+      ],
+      [
+       200000000,
+       1717.4
+      ]
+     ],
+     "flexviz": [
+      [
+       1000000,
+       23.6
+      ],
+      [
+       2000000,
+       24.0
+      ],
+      [
+       5000000,
+       24.3
+      ],
+      [
+       10000000,
+       24.6
+      ],
+      [
+       20000000,
+       24.5
+      ],
+      [
+       50000000,
+       24.8
+      ],
+      [
+       200000000,
+       24.7
+      ]
+     ],
+     "mosaic-server": [
+      [
+       1000000,
+       19.6
+      ],
+      [
+       2000000,
+       23.8
+      ],
+      [
+       5000000,
+       14.7
+      ],
+      [
+       10000000,
+       18.5
+      ],
+      [
+       20000000,
+       14.0
+      ],
+      [
+       50000000,
+       13.5
+      ],
+      [
+       200000000,
+       15.8
+      ]
+     ],
+     "vaex": [
+      [
+       1000000,
+       23.5
+      ],
+      [
+       2000000,
+       38.8
+      ],
+      [
+       5000000,
+       84.5
+      ],
+      [
+       10000000,
+       161.2
+      ],
+      [
+       20000000,
+       313.7
+      ],
+      [
+       50000000,
+       771.8
+      ],
+      [
+       200000000,
+       3063.0
+      ]
+     ]
+    },
+    "5": {
+     "altair-vegafusion": [
+      [
+       1000000,
+       92.7
+      ],
+      [
+       2000000,
+       111.2
+      ],
+      [
+       5000000,
+       175.6
+      ],
+      [
+       10000000,
+       281.6
+      ],
+      [
+       20000000,
+       497.1
+      ],
+      [
+       50000000,
+       1131.4
+      ],
+      [
+       200000000,
+       4277.2
+      ]
+     ],
+     "flexviz": [
+      [
+       1000000,
+       24.5
+      ],
+      [
+       2000000,
+       25.0
+      ],
+      [
+       5000000,
+       25.8
+      ],
+      [
+       10000000,
+       26.0
+      ],
+      [
+       20000000,
+       26.1
+      ],
+      [
+       50000000,
+       26.4
+      ],
+      [
+       200000000,
+       26.1
+      ]
+     ],
+     "mosaic-server": [
+      [
+       1000000,
+       25.0
+      ],
+      [
+       2000000,
+       26.0
+      ],
+      [
+       5000000,
+       19.3
+      ],
+      [
+       10000000,
+       20.9
+      ],
+      [
+       20000000,
+       15.9
+      ],
+      [
+       50000000,
+       11.3
+      ],
+      [
+       200000000,
+       39.7
+      ]
+     ],
+     "vaex": [
+      [
+       1000000,
+       47.1
+      ],
+      [
+       2000000,
+       85.3
+      ],
+      [
+       5000000,
+       199.4
+      ],
+      [
+       10000000,
+       390.8
+      ],
+      [
+       20000000,
+       772.0
+      ],
+      [
+       50000000,
+       1917.2
+      ],
+      [
+       200000000,
+       7643.4
       ]
      ]
     }
@@ -876,37 +1151,37 @@
      "chart": "histogram",
      "source": "in-memory",
      "rows": 1000000,
-     "ratio": 2.9
+     "ratio": 2.02
     },
     {
      "chart": "histogram",
      "source": "in-memory",
      "rows": 2000000,
-     "ratio": 2.66
+     "ratio": 2.13
     },
     {
      "chart": "histogram",
      "source": "in-memory",
      "rows": 5000000,
-     "ratio": 2.89
+     "ratio": 2.62
     },
     {
      "chart": "histogram",
      "source": "in-memory",
      "rows": 10000000,
-     "ratio": 3.3
+     "ratio": 3.1
     },
     {
      "chart": "histogram",
      "source": "in-memory",
      "rows": 20000000,
-     "ratio": 3.15
+     "ratio": 3.31
     },
     {
      "chart": "histogram",
      "source": "in-memory",
      "rows": 50000000,
-     "ratio": 3.8
+     "ratio": 3.71
     },
     {
      "chart": "histogram",
@@ -918,56 +1193,64 @@
      "chart": "histogram",
      "source": "disk-parquet",
      "rows": 1000000,
-     "ratio": 3.06
+     "ratio": 3.63
     },
     {
      "chart": "histogram",
      "source": "disk-parquet",
      "rows": 2000000,
-     "ratio": 3.29
+     "ratio": 4.12
     },
     {
      "chart": "histogram",
      "source": "disk-parquet",
      "rows": 5000000,
-     "ratio": 3.14
+     "ratio": 3.23
     },
     {
      "chart": "histogram",
      "source": "disk-parquet",
      "rows": 10000000,
-     "ratio": 3.32
+     "ratio": 3.89
     },
     {
      "chart": "histogram",
      "source": "disk-parquet",
      "rows": 20000000,
-     "ratio": 3.93
+     "ratio": 4.33
     },
     {
      "chart": "histogram",
      "source": "disk-parquet",
      "rows": 50000000,
-     "ratio": 4.63
+     "ratio": 4.94
     },
     {
      "chart": "histogram",
      "source": "disk-parquet",
      "rows": 200000000,
-     "ratio": 4.44
+     "ratio": 4.93
     }
    ],
    "notes": [
+    "perspective-server is excluded from the histogram chart (unsupported): perspective has no histogram chart type: viewer-charts 5.2 ships no binning at all and \"Density\" is a 2-D radial-splat KDE, a different trace type (docs/superpowers/specs/2026-08-22-perspective5-gate.md).",
+    "perspective-wasm is excluded from the histogram chart (unsupported): perspective has no histogram chart type: viewer-charts 5.2 ships no binning at all and \"Density\" is a 2-D radial-splat KDE, a different trace type (docs/superpowers/specs/2026-08-22-perspective5-gate.md).",
     "datashader is excluded from the histogram chart (unsupported): datashader has no 1-D histogram: the bin counts would come from numpy, so the timing would not measure datashader.",
+    "flexviz: the timed window starts at the single POST /dashboard/update and ends at the post-render barrier. The page requests its data first and draws each figure once, with Plotly.react on the response, so there is no draw before the request to leave outside the clock: the Plotly bootstrap mosaic (t0 before vg.plot) and perspective (t0 before viewer.load) carry inside their windows is inside flexviz's too. server_ms/transfer_ms/client_ms come from that same request entry, so the three sum to total_ms up to the sub-millisecond slack between the fetch call and requestStart.",
+    "flexviz's timing pass runs against ONE in-driver server started once per matrix, while mosaic-server is spawned fresh per trial. Process spawn and engine import are outside every window either way, but allocator and thread-pool warmth are not the same across the two.",
     "Mosaic bins with vg.bin({steps}) treat steps as a niced maximum, not an exact count: for this data span it renders ~92 bins where other tools render exactly `bins`; the query cost is equivalent (one GROUP BY over the data).",
+    "Vaex in-memory histogram timings can be dominated by fixed Matplotlib/PNG/browser overhead at these output sizes.",
     "Vaex reads the shared Parquet input like every disk tool \u2014 a cross-tool input-format constraint, not vaex's optimal native format (vaex's docs recommend HDF5 and note a decompression penalty for Parquet).",
     "Multi-trace histograms are not pixel-identical across tools: flexviz bins every trace over the shared x-axis range (union of extents); Mosaic and Vaex bin each trace over its own column extent. Per-trace counts sum to rows either way and the scan cost is equivalent.",
+    "altair-vegafusion bins with alt.Bin(maxbins=bins): Vega's bin picks a nice step ({1,2,5}x10^n) over the engine-computed extent, so the realised bin count moves with the data range \u2014 ~84 bins at 1M rows and ~52 at 10M on this data, where the other tools draw exactly `bins`. Exact bins would need the extent computed outside the engine, so the nicing is kept and disclosed; the gate checks counts on the engine's own edges.",
+    "altair-vegafusion's window is a GET /spec.json that runs VegaFusion's pre_transform_spec (DataFusion: extent, bin, aggregate) inside the request and returns the Vega spec with the binned rows inlined; the browser parses it with vega and awaits View.runAsync(). server_ms is the Server-Timing of that whole server pipeline, JSON serialisation included. The VegaFusion task-graph cache is cleared before every request, since otherwise every repeat after the first is a cache read.",
+    "altair-vegafusion's store: in-memory the polars frame is handed to VegaFusion over the Arrow C stream without a copy; on a disk source the file path is the chart's data url and DataFusion scans the Parquet inside the request.",
+    "VegaFusion runs a single engine: the DuckDB SQL connection was removed in VegaFusion 2.0 (2024-11-13); a duckdb relation is still accepted as an inline dataset but is converted to Arrow and DataFusion evaluates the plan, so a duckdb-backed entry would be the same measurement under a different name.",
     "mosaic-server on a disk source is loaded as a VIEW over the file, so the scan stays inside the timed window. This is a disclosed deviation from Mosaic's loadParquet default, which materializes a table before any query runs; the in-memory cells do use that materializing default.",
-    "Vaex in-memory histogram timings can be dominated by fixed Matplotlib/PNG/browser overhead at these output sizes.",
     "mosaic-wasm compute in the browser and are benchmarked in-memory ONLY: the disk cells are out of scope by benchmark design, not because the engines lack a file path. Those cells are recorded as source_out_of_scope, never as failures.",
     "mosaic-wasm lets DuckDB-WASM pick its own build: selectBundle() feature detection over the vendored `mvp` and `eh` candidates \u2014 the documented default path, single-threaded. The experimental COI/pthreads build is not vendored (it needs cross-origin isolation, which changes the page's capabilities). The selected bundle is recorded per run.",
-    "perspective-server is excluded from the histogram chart (unsupported): perspective has no histogram chart type: viewer-charts 5.2 ships no binning at all and \"Density\" is a 2-D radial-splat KDE, a different trace type (docs/superpowers/specs/2026-08-22-perspective5-gate.md).",
-    "perspective-wasm is excluded from the histogram chart (unsupported): perspective has no histogram chart type: viewer-charts 5.2 ships no binning at all and \"Density\" is a 2-D radial-splat KDE, a different trace type (docs/superpowers/specs/2026-08-22-perspective5-gate.md)."
+    "altair-vegafusion's store: in-memory the polars frame is handed to VegaFusion over the Arrow C stream without a copy.",
+    "altair-vegafusion's store: on a disk source the file path is the chart's data url and DataFusion scans the Parquet inside the request."
    ]
   },
   "line": {
@@ -975,7 +1258,9 @@
    "tools": [
     "datashader",
     "flexviz",
-    "mosaic-server"
+    "mosaic-server",
+    "plotly-resampler",
+    "plotly-resampler-par"
    ],
    "timing": {
     "in-memory": {
@@ -983,103 +1268,171 @@
       "datashader": [
        [
         1000000,
-        104.5
+        105.1
        ],
        [
         2000000,
-        110.9
+        107.3
        ],
        [
         5000000,
-        124.6
+        116.4
        ],
        [
         10000000,
-        150.7
+        143.2
        ],
        [
         20000000,
-        193.0
+        196.4
        ],
        [
         50000000,
-        415.2
+        391.8
        ],
        [
         100000000,
-        777.9
+        769.3
        ],
        [
         200000000,
-        1439.3
+        1461.2
        ]
       ],
       "flexviz": [
        [
         1000000,
-        55.0
+        35.7
        ],
        [
         2000000,
-        60.0
+        37.1
        ],
        [
         5000000,
-        52.2
+        36.9
        ],
        [
         10000000,
-        56.3
+        40.3
        ],
        [
         20000000,
-        54.4
+        41.6
        ],
        [
         50000000,
-        63.1
+        45.4
        ],
        [
         100000000,
-        71.2
+        56.0
        ],
        [
         200000000,
-        87.8
+        72.0
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        104.1
+        105.3
        ],
        [
         2000000,
-        117.8
+        116.2
        ],
        [
         5000000,
-        156.5
+        157.2
        ],
        [
         10000000,
-        227.9
+        229.6
        ],
        [
         20000000,
-        348.3
+        355.6
        ],
        [
         50000000,
-        687.6
+        692.8
        ],
        [
         100000000,
-        1163.4
+        1151.0
        ],
        [
         200000000,
-        2102.7
+        2081.8
+       ]
+      ],
+      "plotly-resampler": [
+       [
+        1000000,
+        121.9
+       ],
+       [
+        2000000,
+        110.8
+       ],
+       [
+        5000000,
+        119.6
+       ],
+       [
+        10000000,
+        138.6
+       ],
+       [
+        20000000,
+        147.6
+       ],
+       [
+        50000000,
+        158.7
+       ],
+       [
+        100000000,
+        230.2
+       ],
+       [
+        200000000,
+        319.1
+       ]
+      ],
+      "plotly-resampler-par": [
+       [
+        1000000,
+        124.4
+       ],
+       [
+        2000000,
+        109.7
+       ],
+       [
+        5000000,
+        112.9
+       ],
+       [
+        10000000,
+        134.0
+       ],
+       [
+        20000000,
+        145.6
+       ],
+       [
+        50000000,
+        148.6
+       ],
+       [
+        100000000,
+        195.4
+       ],
+       [
+        200000000,
+        290.1
        ]
       ]
      },
@@ -1087,103 +1440,171 @@
       "datashader": [
        [
         1000000,
-        146.3
+        149.3
        ],
        [
         2000000,
-        160.2
+        151.4
        ],
        [
         5000000,
-        199.2
+        197.6
        ],
        [
         10000000,
-        230.6
+        244.1
        ],
        [
         20000000,
-        348.2
+        344.1
        ],
        [
         50000000,
-        757.6
+        756.5
        ],
        [
         100000000,
-        1533.1
+        1520.3
        ],
        [
         200000000,
-        2905.9
+        2884.2
        ]
       ],
       "flexviz": [
        [
         1000000,
-        53.1
+        45.8
        ],
        [
         2000000,
-        59.8
+        46.5
        ],
        [
         5000000,
-        57.7
+        48.5
        ],
        [
         10000000,
-        67.7
+        50.0
        ],
        [
         20000000,
-        70.4
+        55.6
        ],
        [
         50000000,
-        76.7
+        64.1
        ],
        [
         100000000,
-        92.5
+        81.4
        ],
        [
         200000000,
-        137.0
+        118.6
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        122.2
+        125.1
        ],
        [
         2000000,
-        152.7
+        155.2
        ],
        [
         5000000,
-        228.1
+        231.6
        ],
        [
         10000000,
-        360.8
+        342.0
        ],
        [
         20000000,
-        602.8
+        604.9
        ],
        [
         50000000,
-        1250.0
+        1255.1
        ],
        [
         100000000,
-        2201.1
+        2185.0
        ],
        [
         200000000,
-        4108.5
+        4057.9
+       ]
+      ],
+      "plotly-resampler": [
+       [
+        1000000,
+        133.7
+       ],
+       [
+        2000000,
+        122.8
+       ],
+       [
+        5000000,
+        133.9
+       ],
+       [
+        10000000,
+        159.7
+       ],
+       [
+        20000000,
+        189.2
+       ],
+       [
+        50000000,
+        231.7
+       ],
+       [
+        100000000,
+        329.7
+       ],
+       [
+        200000000,
+        515.6
+       ]
+      ],
+      "plotly-resampler-par": [
+       [
+        1000000,
+        127.2
+       ],
+       [
+        2000000,
+        124.7
+       ],
+       [
+        5000000,
+        129.3
+       ],
+       [
+        10000000,
+        163.9
+       ],
+       [
+        20000000,
+        176.7
+       ],
+       [
+        50000000,
+        210.2
+       ],
+       [
+        100000000,
+        308.9
+       ],
+       [
+        200000000,
+        462.5
        ]
       ]
      },
@@ -1191,103 +1612,171 @@
       "datashader": [
        [
         1000000,
-        334.5
+        330.8
        ],
        [
         2000000,
-        381.3
+        367.4
        ],
        [
         5000000,
-        450.1
+        437.9
        ],
        [
         10000000,
-        560.2
+        548.9
        ],
        [
         20000000,
-        963.7
+        942.2
        ],
        [
         50000000,
-        2275.3
+        2231.3
        ],
        [
         100000000,
-        4531.9
+        4570.6
        ],
        [
         200000000,
-        8786.4
+        8741.1
        ]
       ],
       "flexviz": [
        [
         1000000,
-        80.5
+        61.5
        ],
        [
         2000000,
-        76.8
+        62.7
        ],
        [
         5000000,
-        79.5
+        64.9
        ],
        [
         10000000,
-        89.0
+        68.1
        ],
        [
         20000000,
-        96.1
+        77.5
        ],
        [
         50000000,
-        122.9
+        105.5
        ],
        [
         100000000,
-        162.9
+        155.0
        ],
        [
         200000000,
-        262.3
+        248.7
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        186.7
+        192.1
        ],
        [
         2000000,
-        260.4
+        259.9
        ],
        [
         5000000,
-        447.0
+        433.6
        ],
        [
         10000000,
-        758.2
+        752.2
        ],
        [
         20000000,
-        1393.5
+        1369.7
        ],
        [
         50000000,
-        3038.3
+        3022.6
        ],
        [
         100000000,
-        5447.5
+        5433.4
        ],
        [
         200000000,
-        10302.0
+        10142.8
+       ]
+      ],
+      "plotly-resampler": [
+       [
+        1000000,
+        130.6
+       ],
+       [
+        2000000,
+        137.6
+       ],
+       [
+        5000000,
+        165.9
+       ],
+       [
+        10000000,
+        203.4
+       ],
+       [
+        20000000,
+        278.6
+       ],
+       [
+        50000000,
+        397.6
+       ],
+       [
+        100000000,
+        619.5
+       ],
+       [
+        200000000,
+        1096.9
+       ]
+      ],
+      "plotly-resampler-par": [
+       [
+        1000000,
+        137.0
+       ],
+       [
+        2000000,
+        150.2
+       ],
+       [
+        5000000,
+        155.0
+       ],
+       [
+        10000000,
+        196.8
+       ],
+       [
+        20000000,
+        242.3
+       ],
+       [
+        50000000,
+        352.1
+       ],
+       [
+        100000000,
+        583.9
+       ],
+       [
+        200000000,
+        1034.1
        ]
       ]
      }
@@ -1297,103 +1786,103 @@
       "datashader": [
        [
         1000000,
-        153.0
+        164.1
        ],
        [
         2000000,
-        228.9
+        227.5
        ],
        [
         5000000,
-        517.0
+        494.6
        ],
        [
         10000000,
-        1051.9
+        1029.7
        ],
        [
         20000000,
-        779.4
+        759.6
        ],
        [
         50000000,
-        1298.5
+        1269.0
        ],
        [
         100000000,
-        2485.5
+        2558.8
        ],
        [
         200000000,
-        5182.1
+        4895.0
        ]
       ],
       "flexviz": [
        [
         1000000,
-        84.1
+        55.0
        ],
        [
         2000000,
-        89.2
+        60.6
        ],
        [
         5000000,
-        104.4
+        98.4
        ],
        [
         10000000,
-        123.4
+        106.3
        ],
        [
         20000000,
-        159.5
+        153.5
        ],
        [
         50000000,
-        318.3
+        260.6
        ],
        [
         100000000,
-        568.6
+        471.7
        ],
        [
         200000000,
-        1058.6
+        858.2
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        114.3
+        121.5
        ],
        [
         2000000,
-        131.5
+        130.3
        ],
        [
         5000000,
-        163.9
+        175.6
        ],
        [
         10000000,
-        232.5
+        230.2
        ],
        [
         20000000,
-        344.7
+        348.8
        ],
        [
         50000000,
-        695.4
+        689.2
        ],
        [
         100000000,
-        1167.2
+        1164.1
        ],
        [
         200000000,
-        2117.7
+        2105.1
        ]
       ]
      },
@@ -1401,103 +1890,103 @@
       "datashader": [
        [
         1000000,
-        284.7
+        267.4
        ],
        [
         2000000,
-        438.0
+        416.8
        ],
        [
         5000000,
-        961.1
+        1047.0
        ],
        [
         10000000,
-        2055.2
+        2066.6
        ],
        [
         20000000,
-        1546.3
+        1493.3
        ],
        [
         50000000,
-        2715.1
+        2688.5
        ],
        [
         100000000,
-        5348.7
+        5634.4
        ],
        [
         200000000,
-        11101.3
+        11268.6
        ]
       ],
       "flexviz": [
        [
         1000000,
-        136.2
+        90.8
        ],
        [
         2000000,
-        146.6
+        109.1
        ],
        [
         5000000,
-        164.6
+        125.0
        ],
        [
         10000000,
-        178.4
+        166.2
        ],
        [
         20000000,
-        277.9
+        267.2
        ],
        [
         50000000,
-        601.5
+        502.0
        ],
        [
         100000000,
-        1099.1
+        911.3
        ],
        [
         200000000,
-        2105.1
+        1698.2
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        148.9
+        143.7
        ],
        [
         2000000,
-        183.0
+        180.3
        ],
        [
         5000000,
-        248.4
+        246.6
        ],
        [
         10000000,
-        377.8
+        385.8
        ],
        [
         20000000,
-        652.8
+        646.1
        ],
        [
         50000000,
-        1327.5
+        1299.3
        ],
        [
         100000000,
-        2259.8
+        2245.3
        ],
        [
         200000000,
-        4208.4
+        4104.9
        ]
       ]
      },
@@ -1505,103 +1994,103 @@
       "datashader": [
        [
         1000000,
-        703.7
+        683.8
        ],
        [
         2000000,
-        1132.0
+        1145.2
        ],
        [
         5000000,
-        3012.0
+        3104.6
        ],
        [
         10000000,
-        6067.2
+        6064.3
        ],
        [
         20000000,
-        4799.0
+        4741.2
        ],
        [
         50000000,
-        9679.9
+        9567.1
        ],
        [
         100000000,
-        20361.6
+        20100.4
        ],
        [
         200000000,
-        43197.8
+        42889.3
        ]
       ],
       "flexviz": [
        [
         1000000,
-        273.2
+        236.3
        ],
        [
         2000000,
-        281.9
+        239.9
        ],
        [
         5000000,
-        332.6
+        271.0
        ],
        [
         10000000,
-        377.3
+        339.8
        ],
        [
         20000000,
-        616.7
+        529.4
        ],
        [
         50000000,
-        1474.0
+        1187.0
        ],
        [
         100000000,
-        2710.2
+        2178.4
        ],
        [
         200000000,
-        5151.8
+        4172.9
        ]
       ],
       "mosaic-server": [
        [
         1000000,
-        261.3
+        249.8
        ],
        [
         2000000,
-        327.4
+        312.2
        ],
        [
         5000000,
-        505.7
+        508.8
        ],
        [
         10000000,
-        817.0
+        825.4
        ],
        [
         20000000,
-        1528.7
+        1530.2
        ],
        [
         50000000,
-        3181.3
+        3144.0
        ],
        [
         100000000,
-        5537.0
+        5523.8
        ],
        [
         200000000,
-        10294.5
+        10232.9
        ]
       ]
      }
@@ -1612,83 +2101,83 @@
      "datashader": [
       [
        1000000,
-       74.2
+       73.7
       ],
       [
        2000000,
-       100.7
+       100.3
       ],
       [
        5000000,
-       137.6
+       136.8
       ],
       [
        10000000,
-       215.3
+       214.3
       ],
       [
        20000000,
-       372.1
+       372.3
       ],
       [
        50000000,
-       842.0
+       841.6
       ],
       [
        100000000,
-       1596.8
+       1587.4
       ],
       [
        200000000,
-       3176.3
+       3177.5
       ]
      ],
      "flexviz": [
       [
        1000000,
-       20.2
+       23.1
       ],
       [
        2000000,
-       20.2
+       22.9
       ],
       [
        5000000,
-       20.2
+       23.1
       ],
       [
        10000000,
-       20.2
+       23.0
       ],
       [
        20000000,
-       20.3
+       23.1
       ],
       [
        50000000,
-       20.3
+       23.0
       ],
       [
        100000000,
-       20.3
+       23.0
       ],
       [
        200000000,
-       16.7
+       21.1
       ]
      ],
      "mosaic-server": [
       [
        1000000,
-       78.2
+       77.9
       ],
       [
        2000000,
-       89.2
+       88.6
       ],
       [
        5000000,
-       50.5
+       49.6
       ],
       [
        10000000,
@@ -1696,19 +2185,87 @@
       ],
       [
        20000000,
-       261.2
+       275.7
       ],
       [
        50000000,
-       763.3
+       763.1
       ],
       [
        100000000,
-       1550.3
+       1556.9
       ],
       [
        200000000,
-       3267.2
+       3254.8
+      ]
+     ],
+     "plotly-resampler": [
+      [
+       1000000,
+       34.2
+      ],
+      [
+       2000000,
+       34.3
+      ],
+      [
+       5000000,
+       34.1
+      ],
+      [
+       10000000,
+       33.8
+      ],
+      [
+       20000000,
+       34.1
+      ],
+      [
+       50000000,
+       34.2
+      ],
+      [
+       100000000,
+       34.0
+      ],
+      [
+       200000000,
+       34.2
+      ]
+     ],
+     "plotly-resampler-par": [
+      [
+       1000000,
+       36.6
+      ],
+      [
+       2000000,
+       36.6
+      ],
+      [
+       5000000,
+       36.6
+      ],
+      [
+       10000000,
+       36.5
+      ],
+      [
+       20000000,
+       36.5
+      ],
+      [
+       50000000,
+       36.3
+      ],
+      [
+       100000000,
+       36.6
+      ],
+      [
+       200000000,
+       36.2
       ]
      ]
     },
@@ -1716,103 +2273,171 @@
      "datashader": [
       [
        1000000,
-       113.6
+       115.8
       ],
       [
        2000000,
-       149.4
+       151.0
       ],
       [
        5000000,
-       209.6
+       211.4
       ],
       [
        10000000,
-       328.8
+       323.3
       ],
       [
        20000000,
-       544.6
+       547.5
       ],
       [
        50000000,
-       1193.7
+       1194.4
       ],
       [
        100000000,
-       2358.0
+       2367.3
       ],
       [
        200000000,
-       4690.9
+       4715.5
       ]
      ],
      "flexviz": [
       [
        1000000,
-       20.7
+       23.6
       ],
       [
        2000000,
-       20.7
+       23.6
       ],
       [
        5000000,
-       20.8
+       23.5
       ],
       [
        10000000,
-       20.8
+       23.5
       ],
       [
        20000000,
-       20.8
+       23.6
       ],
       [
        50000000,
-       20.8
+       23.5
       ],
       [
        100000000,
-       20.8
+       23.6
       ],
       [
        200000000,
-       17.2
+       22.1
       ]
      ],
      "mosaic-server": [
       [
        1000000,
-       99.6
+       101.5
       ],
       [
        2000000,
-       114.8
+       113.0
       ],
       [
        5000000,
-       57.8
+       57.1
       ],
       [
        10000000,
-       216.5
+       216.7
       ],
       [
        20000000,
-       256.5
+       277.3
       ],
       [
        50000000,
-       759.5
+       777.8
       ],
       [
        100000000,
-       2510.2
+       2334.5
       ],
       [
        200000000,
-       5918.4
+       5952.3
+      ]
+     ],
+     "plotly-resampler": [
+      [
+       1000000,
+       34.3
+      ],
+      [
+       2000000,
+       34.2
+      ],
+      [
+       5000000,
+       34.1
+      ],
+      [
+       10000000,
+       34.2
+      ],
+      [
+       20000000,
+       33.8
+      ],
+      [
+       50000000,
+       33.9
+      ],
+      [
+       100000000,
+       34.2
+      ],
+      [
+       200000000,
+       33.9
+      ]
+     ],
+     "plotly-resampler-par": [
+      [
+       1000000,
+       36.7
+      ],
+      [
+       2000000,
+       36.7
+      ],
+      [
+       5000000,
+       36.8
+      ],
+      [
+       10000000,
+       36.9
+      ],
+      [
+       20000000,
+       36.9
+      ],
+      [
+       50000000,
+       36.6
+      ],
+      [
+       100000000,
+       36.7
+      ],
+      [
+       200000000,
+       36.7
       ]
      ]
     },
@@ -1820,122 +2445,178 @@
      "datashader": [
       [
        1000000,
-       209.9
+       210.4
       ],
       [
        2000000,
-       267.4
+       265.9
       ],
       [
        5000000,
-       395.4
+       385.7
       ],
       [
        10000000,
-       584.1
+       585.8
       ],
       [
        20000000,
-       1027.3
+       1037.2
       ],
       [
        50000000,
-       2386.4
+       2377.4
       ],
       [
        100000000,
-       4662.1
+       4668.5
       ],
       [
        200000000,
-       9225.7
+       9207.4
       ]
      ],
      "flexviz": [
       [
        1000000,
-       21.6
+       24.6
       ],
       [
        2000000,
-       21.5
+       24.6
       ],
       [
        5000000,
-       21.5
+       24.6
       ],
       [
        10000000,
-       21.6
+       24.6
       ],
       [
        20000000,
-       21.7
+       24.5
       ],
       [
        50000000,
-       21.6
+       24.5
       ],
       [
        100000000,
-       21.6
+       24.5
       ],
       [
        200000000,
-       18.0
+       22.9
       ]
      ],
      "mosaic-server": [
       [
        1000000,
-       123.8
+       134.1
       ],
       [
        2000000,
-       127.2
+       131.0
       ],
       [
        5000000,
-       60.4
+       56.9
       ],
       [
        10000000,
-       199.2
+       200.4
       ],
       [
        20000000,
-       103.3
+       149.1
       ],
       [
        50000000,
-       875.2
+       1120.2
       ],
       [
        100000000,
-       3539.9
+       3293.1
       ],
       [
        200000000,
-       6730.2
+       6000.7
+      ]
+     ],
+     "plotly-resampler": [
+      [
+       1000000,
+       34.2
+      ],
+      [
+       2000000,
+       34.2
+      ],
+      [
+       5000000,
+       34.1
+      ],
+      [
+       10000000,
+       34.0
+      ],
+      [
+       20000000,
+       34.1
+      ],
+      [
+       50000000,
+       34.0
+      ],
+      [
+       100000000,
+       34.4
+      ],
+      [
+       200000000,
+       34.2
+      ]
+     ],
+     "plotly-resampler-par": [
+      [
+       1000000,
+       37.0
+      ],
+      [
+       2000000,
+       36.9
+      ],
+      [
+       5000000,
+       37.3
+      ],
+      [
+       10000000,
+       37.5
+      ],
+      [
+       20000000,
+       36.8
+      ],
+      [
+       50000000,
+       37.8
+      ],
+      [
+       100000000,
+       37.0
+      ],
+      [
+       200000000,
+       36.9
       ]
      ]
     }
    },
-   "losses": [
-    {
-     "chart": "line",
-     "rows": 1000000,
-     "n_traces": 5,
-     "source": "disk-parquet",
-     "winner": "mosaic-server",
-     "winner_ms": 261.3,
-     "flexviz_ms": 273.2,
-     "gap": 1.05,
-     "significant": false
-    }
-   ],
+   "losses": [],
    "verdict": {
-    "won": 47,
+    "won": 48,
     "of": 48
    },
    "fusion": [
@@ -1943,79 +2624,79 @@
      "chart": "line",
      "source": "in-memory",
      "rows": 1000000,
-     "ratio": 2.27
+     "ratio": 2.55
     },
     {
      "chart": "line",
      "source": "in-memory",
      "rows": 2000000,
-     "ratio": 2.57
-    },
-    {
-     "chart": "line",
-     "source": "in-memory",
-     "rows": 5000000,
-     "ratio": 2.92
-    },
-    {
-     "chart": "line",
-     "source": "in-memory",
-     "rows": 10000000,
      "ratio": 3.0
     },
     {
      "chart": "line",
      "source": "in-memory",
+     "rows": 5000000,
+     "ratio": 2.68
+    },
+    {
+     "chart": "line",
+     "source": "in-memory",
+     "rows": 10000000,
+     "ratio": 2.79
+    },
+    {
+     "chart": "line",
+     "source": "in-memory",
      "rows": 20000000,
-     "ratio": 3.44
+     "ratio": 3.25
     },
     {
      "chart": "line",
      "source": "in-memory",
      "rows": 50000000,
-     "ratio": 4.06
+     "ratio": 3.91
     },
     {
      "chart": "line",
      "source": "in-memory",
      "rows": 100000000,
-     "ratio": 4.39
+     "ratio": 4.21
     },
     {
      "chart": "line",
      "source": "in-memory",
      "rows": 200000000,
-     "ratio": 4.63
+     "ratio": 4.51
     },
     {
      "chart": "line",
      "source": "disk-parquet",
      "rows": 1000000,
-     "ratio": 4.1
+     "ratio": 6.08
     },
     {
      "chart": "line",
      "source": "disk-parquet",
      "rows": 2000000,
-     "ratio": 4.07
+     "ratio": 5.0
     },
     {
      "chart": "line",
      "source": "disk-parquet",
      "rows": 5000000,
-     "ratio": 4.09
+     "ratio": 4.62
     },
     {
      "chart": "line",
      "source": "disk-parquet",
      "rows": 10000000,
-     "ratio": 3.89
+     "ratio": 4.51
     },
     {
      "chart": "line",
      "source": "disk-parquet",
      "rows": 20000000,
-     "ratio": 4.75
+     "ratio": 4.89
     },
     {
      "chart": "line",
@@ -2027,35 +2708,545 @@
      "chart": "line",
      "source": "disk-parquet",
      "rows": 100000000,
-     "ratio": 5.06
+     "ratio": 4.97
     },
     {
      "chart": "line",
      "source": "disk-parquet",
      "rows": 200000000,
-     "ratio": 5.01
+     "ratio": 5.07
     }
    ],
    "notes": [
+    "altair-vegafusion is excluded from the line chart (unsupported): Vega-Lite ships no downsampling transform \u2014 its roster is aggregate, bin, density, loess, quantile, regression, sample and window, and `sample` is random reservoir sampling that drops the extrema rather than preserving an envelope. A line cell would inline every row (1M rows = 48.7 MB of JSON), measuring JSON serialisation and Vega's SVG path builder, not a downsampler.",
     "vaex is excluded from the line chart (unsupported): vaex-viz has no line-trace function (public API verified).",
-    "FlexViz renders a min-max envelope: argmin+argmax of y over n_points//2 equal-ROW-COUNT buckets \u2014 a fixed point budget, unlike Mosaic's pixel-driven reduction, so the two are not the same picture: on this data (sorted uniform-random x) they converge as rows grow but choose different points bucket-by-bucket at small sizes.",
-    "plotly-resampler is the ONLY tool here whose timed window is not the page's first render. It downsamples inside add_trace() and show_dash serves the already-aggregated figure with the resample callback registered prevent_initial_call=True, so a page-load clock would measure a Dash bootstrap and an n_points-point Plotly draw at every row count. What is measured instead is the RESET-AXES relayout round-trip \u2014 the modebar's own gesture, routed to construct_update_data's global-view branch \u2014 i.e. relayout -> POST /_dash-update-component -> MinMaxLTTB over the full hf arrays -> figure patch -> render -> barrier. That is a genuine full-n aggregation (the downsampler is re-run unconditionally), and the same window shape as flexviz's /dashboard/update, which also clocks a request into an already-initialised Plotly div. The asymmetry that remains is warmth: plotly-resampler aggregates TWICE per trial \u2014 once untimed at add_trace, once timed at the relayout \u2014 so the measured pass runs over arrays and code paths the untimed pass just walked, an advantage no other tool here gets.",
-    "plotly-resampler renders MinMaxLTTB: a min/max preselection at minmax_ratio=4 followed by LTTB down to n_points. That is neither flexviz's pure min-max envelope over equal-row-count buckets nor Mosaic's pixel-driven M4 \u2014 three different pictures at the same point budget.",
+    "perspective-server is unsupported above n_traces=1 for the line chart (unsupported): perspective's native \"X/Y Line\" carries a single y series; multi-series would need either a benchmark-side wide->long reshape (split_by) or the row-index-x \"Y Line\", neither of which is the same chart.",
+    "perspective-wasm is unsupported above n_traces=1 for the line chart (unsupported): perspective's native \"X/Y Line\" carries a single y series; multi-series would need either a benchmark-side wide->long reshape (split_by) or the row-index-x \"Y Line\", neither of which is the same chart.",
+    "flexviz: the timed window starts at the single POST /dashboard/update and ends at the post-render barrier. The page requests its data first and draws each figure once, with Plotly.react on the response, so there is no draw before the request to leave outside the clock: the Plotly bootstrap mosaic (t0 before vg.plot) and perspective (t0 before viewer.load) carry inside their windows is inside flexviz's too. server_ms/transfer_ms/client_ms come from that same request entry, so the three sum to total_ms up to the sub-millisecond slack between the fetch call and requestStart.",
+    "flexviz's timing pass runs against ONE in-driver server started once per matrix, while mosaic-server and perspective-server are spawned fresh per trial. Process spawn and engine import are outside every window either way, but allocator and thread-pool warmth are not the same across the two.",
+    "Perspective renders the RAW line: native X/Y Line over the x and y1 columns, no group_by, no expressions, no sort \u2014 but its viewer-charts plugin caps a chart at 2,000,000 cells and draws head(cap / view columns) rows, i.e. the FIRST 1,000,000 rows for these two columns. That is truncation, not downsampling, and there is no public setting to lift it: any cell above 1M rows records the fraction actually drawn and is censored from rankings.",
+    "perspective-server on a disk source measures INGESTION: the file is read and the server Table is built inside the timed window (perspective has no out-of-core scan of a Parquet file \u2014 building the Table is what it provides).",
+    "FlexViz renders a min-max envelope: argmin+argmax of y over n_points//2 equal-WIDTH x buckets spanning the data range \u2014 a fixed point budget, unlike Mosaic's pixel-driven reduction (one bucket per pixel column), so the two draw the same picture only when the budget matches the plot width. x is declared sorted (assume_sorted_x=True): the generator sorts it, and the option skips the sortedness pass a resident source would otherwise pay once.",
+    "plotly-resampler downsamples inside add_trace(), so the figure construction has to be inside the window or nothing about the engine is measured. The harness gives Dash a CALLABLE app.layout, which Dash re-runs on every page view: the timed window is GET /_dash-layout -> FigureResampler built and MinMaxLTTB run over the full hf arrays -> figure JSON -> React render -> Plotly draw -> barrier. server_ms is that request's TTFB (construction plus aggregation plus serialisation), transfer_ms its body, client_ms last byte to barrier. suppress_callback_exceptions=True keeps Dash from calling the layout once at assignment to build a validation layout, which would make the timed view a warm second pass; eager_loading=True puts plotly.js and dcc's async chunks in blocking script tags before the layout request, so the bundle download is page bootstrap and not measured window. Two asymmetries are disclosed: a real Dash app builds its figure once at process start and serves it to every viewer, where this harness rebuilds it per page view; and Dash fetches /_dash-dependencies in parallel with the layout request, which flexviz has no analogue for. The resample callback is not registered \u2014 it binds the figure instance that existed at registration, it is prevent_initial_call=True, and the first render never used it \u2014 so zoom-driven re-aggregation is not exercised here.",
+    "plotly-resampler renders MinMaxLTTB: a min/max preselection at minmax_ratio=4 followed by LTTB down to n_points. That is neither flexviz's pure min-max envelope over equal-width x buckets nor Mosaic's pixel-driven M4 \u2014 three different pictures at the same point budget.",
     "plotly-resampler appears twice on purpose. `plotly-resampler` is the library's documented default, MinMaxLTTB(parallel=False) \u2014 single-threaded; `plotly-resampler-par` is the same algorithm with parallel=True, i.e. the thread budget flexviz's rayon kernel and DuckDB take by default. The pair separates the algorithm from the default, so neither number has to stand in for both.",
     "Mosaic IGNORES n_points: vgplot applies pixel-aware automatic M4 reduction, keeping up to 4 extrema (min, max, first, last) per pixel column of the plot width \u2014 not a fixed point budget.",
     "Datashader renders the full raw line (no downsampling) \u2014 its native workload \u2014 over an in-memory dask frame, persisted with one partition per core per its performance docs. Store construction and persistence happen before TTFR.",
     "Datashader's disk path keeps dask read_parquet defaults: partitioning is inferred from the file and row-group metadata, and the lazy scan runs inside TTFR.",
     "mosaic-server on a disk source is loaded as a VIEW over the file, so the scan stays inside the timed window. This is a disclosed deviation from Mosaic's loadParquet default, which materializes a table before any query runs; the in-memory cells do use that materializing default.",
-    "plotly-resampler, plotly-resampler-par record disk cells as source_out_of_scope. The engine has no out-of-core path, so the file read lands at figure construction, outside the relayout window that is what gets timed \u2014 a disk cell would measure exactly what the in-memory cell measures while reading nothing inside the window. Recorded out of scope rather than published as a disk number the tool never earned. Never a failure.",
+    "plotly-resampler, plotly-resampler-par record disk cells as source_out_of_scope. The engine has no out-of-core path: hf_x/hf_y are numpy arrays, so the file is read into memory when the store is built, before the timed layout request \u2014 a disk cell would measure exactly what the in-memory cell measures while reading no file inside the window. Recorded out of scope rather than published as a disk number the tool never earned. Never a failure.",
+    "mosaic-wasm, perspective-wasm compute in the browser and are benchmarked in-memory ONLY: the disk cells are out of scope by benchmark design, not because the engines lack a file path. Those cells are recorded as source_out_of_scope, never as failures.",
     "datashader's dask is capped by vaex-core's `dask<2024.9` constraint in this shared environment. Datashader uses dask for its dataframe compute path; Vaex uses its own executor and depends on dask utilities and fingerprinting. The version in force is in the provenance table; the cost of the cap is measured in docs/superpowers/specs/ (dask A/B).",
+    "perspective-wasm's engine binary is chosen by browser feature detection \u2014 wasm32 (4GB heap) or memory64 (16GB) \u2014 which decides where a ceiling falls. The binary actually loaded is recorded in provenance.runtime.",
+    "mosaic-wasm lets DuckDB-WASM pick its own build: selectBundle() feature detection over the vendored `mvp` and `eh` candidates \u2014 the documented default path, single-threaded. The experimental COI/pthreads build is not vendored (it needs cross-origin isolation, which changes the page's capabilities). The selected bundle is recorded per run.",
+    "flexviz's timing pass runs against ONE in-driver server started once per matrix, while mosaic-server is spawned fresh per trial. Process spawn and engine import are outside every window either way, but allocator and thread-pool warmth are not the same across the two.",
+    "mosaic-wasm compute in the browser and are benchmarked in-memory ONLY: the disk cells are out of scope by benchmark design, not because the engines lack a file path. Those cells are recorded as source_out_of_scope, never as failures."
+   ]
+  },
+  "hist2d": {
+   "cells": 75,
+   "tools": [
+    "altair-vegafusion",
+    "datashader",
+    "flexviz",
+    "mosaic-server",
+    "vaex"
+   ],
+   "timing": {
+    "in-memory": {
+     "1": {
+      "altair-vegafusion": [
+       [
+        1000000,
+        204.2
+       ],
+       [
+        2000000,
+        193.1
+       ],
+       [
+        5000000,
+        214.5
+       ],
+       [
+        10000000,
+        306.7
+       ],
+       [
+        20000000,
+        504.7
+       ],
+       [
+        50000000,
+        1021.7
+       ],
+       [
+        200000000,
+        3668.9
+       ]
+      ],
+      "datashader": [
+       [
+        1000000,
+        141.5
+       ],
+       [
+        2000000,
+        136.3
+       ],
+       [
+        5000000,
+        143.8
+       ],
+       [
+        10000000,
+        149.0
+       ],
+       [
+        20000000,
+        164.8
+       ],
+       [
+        50000000,
+        234.9
+       ],
+       [
+        200000000,
+        574.0
+       ]
+      ],
+      "flexviz": [
+       [
+        1000000,
+        47.1
+       ],
+       [
+        2000000,
+        50.8
+       ],
+       [
+        5000000,
+        53.4
+       ],
+       [
+        10000000,
+        60.4
+       ],
+       [
+        20000000,
+        67.5
+       ],
+       [
+        50000000,
+        116.2
+       ],
+       [
+        200000000,
+        266.1
+       ]
+      ],
+      "mosaic-server": [
+       [
+        1000000,
+        93.6
+       ],
+       [
+        2000000,
+        104.2
+       ],
+       [
+        5000000,
+        111.9
+       ],
+       [
+        10000000,
+        140.6
+       ],
+       [
+        20000000,
+        191.3
+       ],
+       [
+        50000000,
+        282.4
+       ],
+       [
+        200000000,
+        784.0
+       ]
+      ],
+      "vaex": [
+       [
+        1000000,
+        137.4
+       ],
+       [
+        2000000,
+        125.2
+       ],
+       [
+        5000000,
+        138.3
+       ],
+       [
+        10000000,
+        153.4
+       ],
+       [
+        20000000,
+        168.8
+       ],
+       [
+        50000000,
+        238.1
+       ],
+       [
+        200000000,
+        596.2
+       ]
+      ]
+     },
+     "2": {},
+     "5": {}
+    },
+    "disk-parquet": {
+     "1": {
+      "altair-vegafusion": [
+       [
+        1000000,
+        212.2
+       ],
+       [
+        2000000,
+        231.7
+       ],
+       [
+        5000000,
+        315.6
+       ],
+       [
+        10000000,
+        502.7
+       ],
+       [
+        20000000,
+        855.2
+       ],
+       [
+        50000000,
+        1899.9
+       ],
+       [
+        200000000,
+        7323.9
+       ]
+      ],
+      "datashader": [
+       [
+        1000000,
+        137.0
+       ],
+       [
+        2000000,
+        184.0
+       ],
+       [
+        5000000,
+        288.4
+       ],
+       [
+        10000000,
+        535.7
+       ],
+       [
+        20000000,
+        1046.2
+       ],
+       [
+        50000000,
+        1075.2
+       ],
+       [
+        200000000,
+        3582.0
+       ]
+      ],
+      "flexviz": [
+       [
+        1000000,
+        57.0
+       ],
+       [
+        2000000,
+        59.9
+       ],
+       [
+        5000000,
+        67.2
+       ],
+       [
+        10000000,
+        70.8
+       ],
+       [
+        20000000,
+        90.1
+       ],
+       [
+        50000000,
+        172.2
+       ],
+       [
+        200000000,
+        479.5
+       ]
+      ],
+      "mosaic-server": [
+       [
+        1000000,
+        134.2
+       ],
+       [
+        2000000,
+        144.9
+       ],
+       [
+        5000000,
+        156.0
+       ],
+       [
+        10000000,
+        166.9
+       ],
+       [
+        20000000,
+        197.7
+       ],
+       [
+        50000000,
+        283.4
+       ],
+       [
+        200000000,
+        646.1
+       ]
+      ],
+      "vaex": [
+       [
+        1000000,
+        168.0
+       ],
+       [
+        2000000,
+        183.4
+       ],
+       [
+        5000000,
+        207.6
+       ],
+       [
+        10000000,
+        284.8
+       ],
+       [
+        20000000,
+        443.3
+       ],
+       [
+        50000000,
+        825.8
+       ],
+       [
+        200000000,
+        3377.8
+       ]
+      ]
+     },
+     "2": {},
+     "5": {}
+    }
+   },
+   "memory": {
+    "1": {
+     "altair-vegafusion": [
+      [
+       1000000,
+       84.6
+      ],
+      [
+       2000000,
+       80.9
+      ],
+      [
+       5000000,
+       100.7
+      ],
+      [
+       10000000,
+       125.5
+      ],
+      [
+       20000000,
+       164.1
+      ],
+      [
+       50000000,
+       291.9
+      ],
+      [
+       200000000,
+       942.5
+      ]
+     ],
+     "datashader": [
+      [
+       1000000,
+       50.8
+      ],
+      [
+       2000000,
+       51.4
+      ],
+      [
+       5000000,
+       53.6
+      ],
+      [
+       10000000,
+       59.0
+      ],
+      [
+       20000000,
+       73.1
+      ],
+      [
+       50000000,
+       113.9
+      ],
+      [
+       200000000,
+       258.3
+      ]
+     ],
+     "flexviz": [
+      [
+       1000000,
+       21.8
+      ],
+      [
+       2000000,
+       21.8
+      ],
+      [
+       5000000,
+       21.8
+      ],
+      [
+       10000000,
+       21.8
+      ],
+      [
+       20000000,
+       21.9
+      ],
+      [
+       50000000,
+       21.8
+      ],
+      [
+       200000000,
+       18.4
+      ]
+     ],
+     "mosaic-server": [
+      [
+       1000000,
+       19.6
+      ],
+      [
+       2000000,
+       22.8
+      ],
+      [
+       5000000,
+       15.3
+      ],
+      [
+       10000000,
+       22.6
+      ],
+      [
+       20000000,
+       16.9
+      ],
+      [
+       50000000,
+       18.1
+      ],
+      [
+       200000000,
+       27.2
+      ]
+     ],
+     "vaex": [
+      [
+       1000000,
+       34.2
+      ],
+      [
+       2000000,
+       48.7
+      ],
+      [
+       5000000,
+       94.1
+      ],
+      [
+       10000000,
+       171.0
+      ],
+      [
+       20000000,
+       324.2
+      ],
+      [
+       50000000,
+       782.6
+      ],
+      [
+       200000000,
+       3072.9
+      ]
+     ]
+    },
+    "2": {},
+    "5": {}
+   },
+   "losses": [],
+   "verdict": {
+    "won": 14,
+    "of": 14
+   },
+   "fusion": [],
+   "notes": [
+    "perspective-server is excluded from the hist2d chart (unsupported): perspective has no continuous 2-D binning: viewer-charts 5.2's \"Heatmap\" is a categorical pivot grid over group_by/split_by and its \"Density\" is a radial-splat KDE with no bin count (docs/superpowers/specs/2026-08-22-perspective5-gate.md), so the grid would have to be binned outside the tool.",
+    "perspective-wasm is excluded from the hist2d chart (unsupported): perspective has no continuous 2-D binning: viewer-charts 5.2's \"Heatmap\" is a categorical pivot grid over group_by/split_by and its \"Density\" is a radial-splat KDE with no bin count (docs/superpowers/specs/2026-08-22-perspective5-gate.md), so the grid would have to be binned outside the tool.",
+    "flexviz: the timed window starts at the single POST /dashboard/update and ends at the post-render barrier. The page requests its data first and draws each figure once, with Plotly.react on the response, so there is no draw before the request to leave outside the clock: the Plotly bootstrap mosaic (t0 before vg.plot) and perspective (t0 before viewer.load) carry inside their windows is inside flexviz's too. server_ms/transfer_ms/client_ms come from that same request entry, so the three sum to total_ms up to the sub-millisecond slack between the fetch call and requestStart.",
+    "flexviz's timing pass runs against ONE in-driver server started once per matrix, while mosaic-server is spawned fresh per trial. Process spawn and engine import are outside every window either way, but allocator and thread-pool warmth are not the same across the two.",
+    "hist2d runs at n_traces=1 only: overlaid heatmaps occlude one another, and vaex-viz draws a pair of them as SUBPLOTS \u2014 a different picture, not a denser one.",
+    "flexviz draws the grid with Figure.add_histogram2d(x_bins=bins, y_bins=bins): the fixed_hist2d Rust kernel on a resident frame, and on a disk source a streaming group-by over a combined (xbin, ybin) key that resolves the two axes' extents in a separate collect first \u2014 both passes inside the timed window.",
+    "mosaic renders vg.raster with width/height pinned to the bin count, forcing a bins x bins grid instead of vgplot's pixel-driven default; fill:'density' is vgplot's own count-per-cell channel and bandwidth stays at its 0 default, so the image is the unsmoothed counts. vgplot pads its raster bins (the grid spans bins-1 intervals plus an edge), so mosaic's cell edges are not the flush numpy bins.",
+    "vaex draws df.viz.heatmap(x, y, shape=(bins, bins), limits='minmax') onto one matplotlib Agg figure \u2014 its own count(binby=[x, y]) kernel bins, half-open on both axes, so rows sitting exactly on either maximum fall outside the grid. vaex-viz 0.6 calls a matplotlib colormap entry point removed in matplotlib 3.9; the harness re-aliases it before the memory baseline and outside every timed window, and nothing in the binning or drawing path is changed.",
+    "datashader bins with Canvas(plot_width=bins, plot_height=bins).points(x, y, agg=count()) and shades the grid to a PNG; the axis extents come from the same fused dask min/max pass the line workload uses, inside the timed window.",
+    "altair-vegafusion bins with alt.Bin(maxbins=bins): Vega's bin picks a nice step ({1,2,5}x10^n) over the engine-computed extent, so the realised bin count moves with the data range \u2014 ~84 bins at 1M rows and ~52 at 10M on this data, where the other tools draw exactly `bins`. Exact bins would need the extent computed outside the engine, so the nicing is kept and disclosed; the gate checks counts on the engine's own edges.",
+    "altair-vegafusion's window is a GET /spec.json that runs VegaFusion's pre_transform_spec (DataFusion: extent, bin, aggregate) inside the request and returns the Vega spec with the binned rows inlined; the browser parses it with vega and awaits View.runAsync(). server_ms is the Server-Timing of that whole server pipeline, JSON serialisation included. The VegaFusion task-graph cache is cleared before every request, since otherwise every repeat after the first is a cache read.",
+    "altair-vegafusion's store: in-memory the polars frame is handed to VegaFusion over the Arrow C stream without a copy; on a disk source the file path is the chart's data url and DataFusion scans the Parquet inside the request.",
+    "VegaFusion runs a single engine: the DuckDB SQL connection was removed in VegaFusion 2.0 (2024-11-13); a duckdb relation is still accepted as an inline dataset but is converted to Arrow and DataFusion evaluates the plan, so a duckdb-backed entry would be the same measurement under a different name.",
+    "mosaic-server on a disk source is loaded as a VIEW over the file, so the scan stays inside the timed window. This is a disclosed deviation from Mosaic's loadParquet default, which materializes a table before any query runs; the in-memory cells do use that materializing default.",
     "mosaic-wasm compute in the browser and are benchmarked in-memory ONLY: the disk cells are out of scope by benchmark design, not because the engines lack a file path. Those cells are recorded as source_out_of_scope, never as failures.",
     "mosaic-wasm lets DuckDB-WASM pick its own build: selectBundle() feature detection over the vendored `mvp` and `eh` candidates \u2014 the documented default path, single-threaded. The experimental COI/pthreads build is not vendored (it needs cross-origin isolation, which changes the page's capabilities). The selected bundle is recorded per run.",
-    "perspective-server is unsupported above n_traces=1 for the line chart (unsupported): perspective's native \"X/Y Line\" carries a single y series; multi-series would need either a benchmark-side wide->long reshape (split_by) or the row-index-x \"Y Line\", neither of which is the same chart.",
-    "perspective-wasm is unsupported above n_traces=1 for the line chart (unsupported): perspective's native \"X/Y Line\" carries a single y series; multi-series would need either a benchmark-side wide->long reshape (split_by) or the row-index-x \"Y Line\", neither of which is the same chart.",
-    "Perspective renders the RAW line: native X/Y Line over the x and y1 columns, no group_by, no expressions, no sort \u2014 but its viewer-charts plugin caps a chart at 2,000,000 cells and draws head(cap / view columns) rows, i.e. the FIRST 1,000,000 rows for these two columns. That is truncation, not downsampling, and there is no public setting to lift it: any cell above 1M rows records the fraction actually drawn and is censored from rankings.",
-    "perspective-server on a disk source measures INGESTION: the file is read and the server Table is built inside the timed window (perspective has no out-of-core scan of a Parquet file \u2014 building the Table is what it provides).",
-    "mosaic-wasm, perspective-wasm compute in the browser and are benchmarked in-memory ONLY: the disk cells are out of scope by benchmark design, not because the engines lack a file path. Those cells are recorded as source_out_of_scope, never as failures.",
-    "perspective-wasm's engine binary is chosen by browser feature detection \u2014 wasm32 (4GB heap) or memory64 (16GB) \u2014 which decides where a ceiling falls. The binary actually loaded is recorded in provenance.runtime."
+    "altair-vegafusion's store: in-memory the polars frame is handed to VegaFusion over the Arrow C stream without a copy.",
+    "altair-vegafusion's store: on a disk source the file path is the chart's data url and DataFusion scans the Parquet inside the request."
    ]
   }
  }
