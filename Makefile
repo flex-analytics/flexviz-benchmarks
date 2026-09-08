@@ -31,6 +31,7 @@ site-data:
 	uv run python benchmarks/export_site.py \
 	  --histogram $(RESULTS)/ttfr_histogram_full.json \
 	  --line      $(RESULTS)/ttfr_line_full.json \
+	  --hist2d    $(RESULTS)/ttfr_hist2d_full.json \
 	  --out       site_data/benchmarks.json \
 	  --fallback  $(SITE_REPO)/site_redesign_oss/assets/benchmarks.js
 	uv run python benchmarks/export_readme_hero.py

@@ -15,9 +15,12 @@ Cells the suite censors (`rendered_fraction < 1`, e.g. Perspective past its 2M-c
 are dropped here, not merely flagged: a censored cell must never reach a public ranking.
 
     uv run python benchmarks/export_site.py \
-        --histogram results/full_2026-08-23/ttfr_histogram_full.json \
-        --line      results/full_2026-08-23/ttfr_line_full.json \
+        --histogram results/<run>/ttfr_histogram_full.json \
+        --line      results/<run>/ttfr_line_full.json \
+        --hist2d    results/<run>/ttfr_hist2d_full.json \
         --out       site_data/benchmarks.json
+
+--hist2d is optional; without it the payload carries the two charts it always has.
 """
 
 from __future__ import annotations
@@ -40,16 +43,23 @@ from report import publication_failures  # noqa: E402
 #
 # plotly-resampler entries are line/in-memory only: MEMORY_ONLY records their disk cells
 # source_out_of_scope, so series() simply finds nothing for them there and the disk
-# panels keep the four-tool roster. They rank here like anything else because their
+# panels keep the smaller roster. They rank here like anything else because their
 # window is now a cold first render too: a callable app.layout builds the figure inside
 # GET /_dash-layout (core/contenders/plotly_resampler.py). Do not regenerate from a
 # results directory older than schema 5, where the window was a reset-axes relayout into
 # an already-drawn figure.
+#
+# altair-vegafusion (DataFusion via VegaFusion) runs histogram and hist2d, both sources;
+# (line, altair-vegafusion) is unsupported (Vega-Lite ships no downsampling transform),
+# so series() finds nothing for it on the line chart and that roster is unchanged. Each
+# chart's roster is whatever tools have completed cells there, so a tool that never ran a
+# chart never appears on it — no per-chart list to keep in sync here.
 SITE_TOOLS = [
     "flexviz",
     "mosaic-server",
     "vaex",
     "datashader",
+    "altair-vegafusion",
     "plotly-resampler",
     "plotly-resampler-par",
 ]
@@ -162,6 +172,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--histogram", type=Path, required=True)
     ap.add_argument("--line", type=Path, required=True)
+    ap.add_argument("--hist2d", type=Path, help="optional third chart (2-D histogram)")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument(
         "--fallback",
@@ -171,27 +182,34 @@ def main() -> None:
     )
     args = ap.parse_args()
 
-    charts = {"histogram": load(args.histogram), "line": load(args.line)}
+    sources = {"histogram": args.histogram, "line": args.line}
+    if args.hist2d:
+        sources["hist2d"] = args.hist2d
+    charts = {chart: load(path) for chart, path in sources.items()}
     # The meta block below describes the WHOLE payload from the histogram file's
-    # provenance, so the two charts must be the same experiment — the same identity
+    # provenance, so every chart must be the same experiment — the same identity
     # merge_results demands between phases of one chart. Without this a chart-only rerun
-    # (a new tool on the line matrix, say) would publish a card claiming the other
-    # chart's environment, lock hash included, for numbers that never ran under it.
-    hist_prov, line_prov = (charts[c]["provenance"] for c in ("histogram", "line"))
+    # (a new tool on the line matrix, say) would publish a card claiming another chart's
+    # environment, lock hash included, for numbers that never ran under it. histogram is
+    # the reference; each other chart is checked against it.
+    prov = charts["histogram"]["provenance"]
     # `phases` is merge_results' per-chart manifest (which files, which cells) — chart
     # bookkeeping, not environment; each entry carries its own generated_utc/runtime.
     per_chart = PROVENANCE_PER_PHASE | {"phases"}
-    for key in sorted(set(hist_prov) | set(line_prov)):
-        if key in per_chart:
+    for chart in charts:
+        if chart == "histogram":
             continue
-        if diff := _diff_path(hist_prov.get(key), line_prov.get(key), f"provenance.{key}"):
-            path, mine, theirs = diff
-            raise SystemExit(
-                f"REFUSING: histogram and line are not the same experiment — {path}="
-                f"{mine!r} (histogram) vs {theirs!r} (line). Re-run both charts, or "
-                f"publish them from runs that share an environment."
-            )
-    prov = hist_prov
+        other = charts[chart]["provenance"]
+        for key in sorted(set(prov) | set(other)):
+            if key in per_chart:
+                continue
+            if diff := _diff_path(prov.get(key), other.get(key), f"provenance.{key}"):
+                path, mine, theirs = diff
+                raise SystemExit(
+                    f"REFUSING: histogram and {chart} are not the same experiment — {path}="
+                    f"{mine!r} (histogram) vs {theirs!r} ({chart}). Re-run the charts, or "
+                    f"publish them from runs that share an environment."
+                )
     host = prov.get("host", {})
     # merge_results hoists the identity fields and keeps generated_utc per phase, since
     # phases legitimately run at different times. The run started at the earliest one.
@@ -215,7 +233,7 @@ def main() -> None:
             "flexviz_sha": prov["git"]["flexviz"]["sha"][:7],
             "benchmarks_sha": prov["git"]["benchmarks"]["sha"][:7],
             "repo_url": "https://github.com/flex-analytics/flexviz-benchmarks",
-            "sources": [args.histogram.name, args.line.name],
+            "sources": [path.name for path in sources.values()],
             "engine_dominated_from": ENGINE_DOMINATED_FROM,
             "tools": SITE_TOOLS,
         },
