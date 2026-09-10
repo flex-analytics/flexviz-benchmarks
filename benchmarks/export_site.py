@@ -41,13 +41,15 @@ from report import publication_failures  # noqa: E402
 # because its 2M-cell cap censors every cell above 1M — neither can share an axis with
 # these honestly. benchmarks.html says so in Method.
 #
-# plotly-resampler entries are line/in-memory only: MEMORY_ONLY records their disk cells
-# source_out_of_scope, so series() simply finds nothing for them there and the disk
-# panels keep the smaller roster. They rank here like anything else because their
-# window is now a cold first render too: a callable app.layout builds the figure inside
-# GET /_dash-layout (core/contenders/plotly_resampler.py). Do not regenerate from a
-# results directory older than schema 5, where the window was a reset-axes relayout into
-# an already-drawn figure.
+# Only the default single-threaded plotly-resampler build is charted, under the name
+# "plotly-resampler": it is the library's own out-of-the-box default. The parallel build
+# (parallel=True, tool id "plotly-resampler-par") is measured in the suite but kept off
+# the site. The charted entry is line/in-memory only: its disk cells are recorded
+# source_out_of_scope, so series() finds nothing for it there and the disk panels keep the
+# smaller roster. It ranks here like anything else because its window is now a cold first
+# render too: a callable app.layout builds the figure inside GET /_dash-layout
+# (core/contenders/plotly_resampler.py). Do not regenerate from a results directory older
+# than schema 5, where the window was a reset-axes relayout into an already-drawn figure.
 #
 # altair-vegafusion (DataFusion via VegaFusion) runs histogram and hist2d, both sources;
 # (line, altair-vegafusion) is unsupported (Vega-Lite ships no downsampling transform),
@@ -61,7 +63,6 @@ SITE_TOOLS = [
     "datashader",
     "altair-vegafusion",
     "plotly-resampler",
-    "plotly-resampler-par",
 ]
 
 # Below this, every engine is dominated by fixed browser-render cost rather than by the

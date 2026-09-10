@@ -21,6 +21,12 @@ class Trial:
     # renders (perspective's viewer-charts truncates to head(2M cells / view columns)).
     # None = the tool drew a reduction OF ALL rows, so no cap applies.
     rendered_fraction: float | None = None
+    # Screen-bounded render disclosure (xy): the render tier (density/decimated/direct) and
+    # the marks actually drawn. NON-censoring — unlike rendered_fraction, a tier is a
+    # faithful reduction OF ALL rows (a fixed-size summary), not truncation. Present only
+    # for tools that report it; None means the tool did not disclose a tier.
+    render_tier: str | None = None
+    render_marks: int | None = None
     # Memory fields are populated only on a memory trial (one cold, process-isolated
     # trial per cell); timing trials carry None. Deltas are raw (may be slightly
     # negative from GC below baseline) — clamped at report time, not here.
@@ -54,6 +60,10 @@ class Summary:
     # cap); < 1.0 means the cell is censored — see report.censored_cells.
     rendered_fraction: float | None
     rendered_rows: int | None
+    # Screen-bounded render disclosure (xy): tier + marks drawn, constant per cell.
+    # NON-censoring (a faithful summary of all rows), unlike rendered_fraction.
+    render_tier: str | None
+    render_marks: int | None
     # From the single cold memory trial (not medians — the timing repeats run warm
     # and process-shared, where peak-minus-baseline collapses via allocator reuse).
     backend_timed_peak_mb: float | None
@@ -83,6 +93,8 @@ def summarize(
     totals = [t.total_ms for t in trials]
     payloads = [t.payload_bytes for t in trials if t.payload_bytes is not None]
     rendered_fraction = _med([t.rendered_fraction for t in trials])
+    tiers = [t.render_tier for t in trials if t.render_tier is not None]
+    marks = [t.render_marks for t in trials if t.render_marks is not None]
     m = memory_trial
     return Summary(
         rows=rows,
@@ -99,6 +111,8 @@ def summarize(
         payload_bytes_median=round(statistics.median(payloads)) if payloads else None,
         rendered_fraction=rendered_fraction,  # constant per cell
         rendered_rows=round(rendered_fraction * rows) if rendered_fraction is not None else None,
+        render_tier=tiers[0] if tiers else None,  # deterministic per cell
+        render_marks=round(statistics.median(marks)) if marks else None,
         backend_timed_peak_mb=m.backend_timed_peak_mb if m else None,
         browser_timed_peak_mb=m.browser_timed_peak_mb if m else None,
         resident_footprint_mb=m.resident_footprint_mb if m else None,

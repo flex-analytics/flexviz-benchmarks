@@ -69,6 +69,8 @@ TOOL_COLOR: dict[str, str] = {
     "perspective-wasm": "#c4b5fd",  # light violet
     "vaex": "#f59e0b",  # amber
     "datashader": "#0891b2",  # cyan
+    "xy": "#059669",  # emerald (WebGL2 browser path)
+    "xy-raster": "#34d399",  # light emerald (to_png static-export path)
 }
 TOOL_MARKER: dict[str, str] = {
     "flexviz": "circle",
@@ -78,6 +80,8 @@ TOOL_MARKER: dict[str, str] = {
     "perspective-wasm": "diamond-open",
     "vaex": "triangle-up",
     "datashader": "cross",
+    "xy": "star",
+    "xy-raster": "star-open",
 }
 # Partial cells (n < repeats) render in this grey wherever they appear.
 CENSORED_COLOR = "#9ca3af"
@@ -1035,6 +1039,7 @@ def _build_metric_table(
     )
     rows_html = ""
     any_censored = False
+    any_tiered = False
     for tool, source in row_keys:
         cells = []
         for value in dimension_values:
@@ -1045,18 +1050,37 @@ def _build_metric_table(
                 else None
             )
             any_censored = any_censored or cell is not None
+            # Non-censoring disclosure: a tool that draws a fixed-size screen-bounded
+            # summary of ALL rows (xy's density/decimation) reports its tier + marks. It
+            # stays publishable (unlike a censored cell) but is flagged so its flat TTFR
+            # is not read as out-drawing a per-row renderer at equal work.
+            tier = summary.get("render_tier") if summary else None
+            tier_title = ""
+            if cell is None and tier:
+                any_tiered = True
+                marks = summary.get("render_marks")
+                mtxt = f", ~{marks:,} marks drawn" if marks else ""
+                tier_title = (
+                    f' title="screen-bounded render: tier {escape(tier)}{escape(mtxt)} '
+                    f"from {summary['rows']:,} rows — a fixed-size summary of all rows "
+                    f'(like flexviz/mosaic), not a per-row draw"'
+                )
             for field, _ in metrics:
                 # A null timing component means the pipeline cannot separate it, which is
                 # different from having no measurement at all for the cell.
                 missing = "not separable" if summary and field.endswith("_ms") else "&mdash;"
                 v = summary.get(field) if summary else None
-                if cell is None:
-                    cells.append(f'<td class="metric">{_format_ms(v, missing)}</td>')
-                else:
+                if cell is not None:
                     cells.append(
                         f'<td class="metric censored" title="{escape(cell.get("reason") or "")}">'
                         f"{_format_ms(v, missing)}*</td>"
                     )
+                elif tier and field.endswith("_ms"):
+                    cells.append(
+                        f'<td class="metric"{tier_title}>{_format_ms(v, missing)}&deg;</td>'
+                    )
+                else:
+                    cells.append(f'<td class="metric">{_format_ms(v, missing)}</td>')
         rows_html += f"<tr><td>{escape(tool)}</td><td>{escape(source)}</td>{''.join(cells)}</tr>"
 
     footnote = (
@@ -1065,6 +1089,13 @@ def _build_metric_table(
         if any_censored
         else ""
     )
+    if any_tiered:
+        footnote += (
+            '<p class="footnote">&deg; screen-bounded render: the tool drew a fixed-size '
+            "summary (density/decimation) of <em>all</em> rows &mdash; publishable and "
+            "comparable to other aggregating engines, but not to a per-row renderer at "
+            "equal work; hover for the tier and mark count.</p>"
+        )
     return f"""\
 <div class="timing-detail">
   <h3>{escape(heading)}</h3>

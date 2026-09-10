@@ -15,6 +15,7 @@ from core.contenders.perspective_server import PerspectiveServerContender
 from core.contenders.perspective_wasm import PerspectiveWasmContender
 from core.contenders.plotly_resampler import PlotlyResamplerContender
 from core.contenders.vaex import VaexContender
+from core.contenders.xy import XyContender, XyRasterContender
 
 
 def build_registry(
@@ -33,4 +34,6 @@ def build_registry(
         "vaex": VaexContender,
         "datashader": DatashaderContender,
         "altair-vegafusion": AltairVegaFusionContender,
+        "xy": XyContender,
+        "xy-raster": XyRasterContender,
     }
