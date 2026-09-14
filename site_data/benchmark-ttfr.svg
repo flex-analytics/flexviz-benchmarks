@@ -4,38 +4,34 @@
 <text x="132" y="65" font-size="13.5" text-anchor="end" font-weight="600" fill="#121212">flexviz</text>
 <rect x="144" y="50" width="330" height="20" rx="6" fill="#EFEFEB"/>
 <rect x="144" y="50" width="8.0" height="20" rx="4" fill="#E8590C"/>
-<text x="162.0" y="65" font-size="13.5" fill="#121212">249 ms</text>
-<text x="132" y="95" font-size="13.5" text-anchor="end" font-weight="400" fill="rgba(18,18,18,0.62)">plotly-resampler-par</text>
+<text x="162.0" y="65" font-size="13.5" fill="#121212">251 ms</text>
+<text x="132" y="95" font-size="13.5" text-anchor="end" font-weight="400" fill="rgba(18,18,18,0.62)">plotly-resampler</text>
 <rect x="144" y="80" width="330" height="20" rx="6" fill="#EFEFEB"/>
-<rect x="144" y="80" width="21.8" height="20" rx="4" fill="#ADADAA"/>
-<text x="175.8" y="95" font-size="13.5" fill="#121212">1,034 ms</text>
-<text x="132" y="125" font-size="13.5" text-anchor="end" font-weight="400" fill="rgba(18,18,18,0.62)">plotly-resampler</text>
+<rect x="144" y="80" width="23.3" height="20" rx="4" fill="#ADADAA"/>
+<text x="177.3" y="95" font-size="13.5" fill="#121212">1,095 ms</text>
+<text x="132" y="125" font-size="13.5" text-anchor="end" font-weight="400" fill="rgba(18,18,18,0.62)">datashader</text>
 <rect x="144" y="110" width="330" height="20" rx="6" fill="#EFEFEB"/>
-<rect x="144" y="110" width="23.1" height="20" rx="4" fill="#ADADAA"/>
-<text x="177.1" y="125" font-size="13.5" fill="#121212">1,097 ms</text>
-<text x="132" y="155" font-size="13.5" text-anchor="end" font-weight="400" fill="rgba(18,18,18,0.62)">datashader</text>
+<rect x="144" y="110" width="184.8" height="20" rx="4" fill="#ADADAA"/>
+<text x="338.8" y="125" font-size="13.5" fill="#121212">8,688 ms</text>
+<text x="132" y="155" font-size="13.5" text-anchor="end" font-weight="400" fill="rgba(18,18,18,0.62)">mosaic</text>
 <rect x="144" y="140" width="330" height="20" rx="6" fill="#EFEFEB"/>
-<rect x="144" y="140" width="184.4" height="20" rx="4" fill="#ADADAA"/>
-<text x="338.4" y="155" font-size="13.5" fill="#121212">8,741 ms</text>
-<text x="132" y="185" font-size="13.5" text-anchor="end" font-weight="400" fill="rgba(18,18,18,0.62)">mosaic</text>
-<rect x="144" y="170" width="330" height="20" rx="6" fill="#EFEFEB"/>
-<rect x="144" y="170" width="214.0" height="20" rx="4" fill="#64645F"/>
-<text x="368.0" y="185" font-size="13.5" fill="#121212">10,143 ms</text>
+<rect x="144" y="140" width="214.0" height="20" rx="4" fill="#64645F"/>
+<text x="368.0" y="155" font-size="13.5" fill="#121212">10,060 ms</text>
 <text x="540" y="34" font-size="11" letter-spacing="2.5" fill="rgba(18,18,18,0.45)">HISTOGRAM</text>
 <text x="628" y="65" font-size="13.5" text-anchor="end" font-weight="600" fill="#121212">flexviz</text>
 <rect x="640" y="50" width="330" height="20" rx="6" fill="#EFEFEB"/>
-<rect x="640" y="50" width="25.2" height="20" rx="4" fill="#E8590C"/>
-<text x="675.2" y="65" font-size="13.5" fill="#121212">629 ms</text>
+<rect x="640" y="50" width="18.4" height="20" rx="4" fill="#E8590C"/>
+<text x="668.4" y="65" font-size="13.5" fill="#121212">457 ms</text>
 <text x="628" y="95" font-size="13.5" text-anchor="end" font-weight="400" fill="rgba(18,18,18,0.62)">vaex</text>
 <rect x="640" y="80" width="330" height="20" rx="6" fill="#EFEFEB"/>
-<rect x="640" y="80" width="63.6" height="20" rx="4" fill="#ADADAA"/>
-<text x="713.6" y="95" font-size="13.5" fill="#121212">1,585 ms</text>
+<rect x="640" y="80" width="62.2" height="20" rx="4" fill="#ADADAA"/>
+<text x="712.2" y="95" font-size="13.5" fill="#121212">1,543 ms</text>
 <text x="628" y="125" font-size="13.5" text-anchor="end" font-weight="400" fill="rgba(18,18,18,0.62)">mosaic</text>
 <rect x="640" y="110" width="330" height="20" rx="6" fill="#EFEFEB"/>
-<rect x="640" y="110" width="122.3" height="20" rx="4" fill="#64645F"/>
-<text x="772.3" y="125" font-size="13.5" fill="#121212">3,048 ms</text>
+<rect x="640" y="110" width="122.7" height="20" rx="4" fill="#64645F"/>
+<text x="772.7" y="125" font-size="13.5" fill="#121212">3,042 ms</text>
 <text x="628" y="155" font-size="13.5" text-anchor="end" font-weight="400" fill="rgba(18,18,18,0.62)">altair-vegafusion</text>
 <rect x="640" y="140" width="330" height="20" rx="6" fill="#EFEFEB"/>
 <rect x="640" y="140" width="214.0" height="20" rx="4" fill="#ADADAA"/>
-<text x="864.0" y="155" font-size="13.5" fill="#121212">5,333 ms</text>
+<text x="864.0" y="155" font-size="13.5" fill="#121212">5,307 ms</text>
 </svg>

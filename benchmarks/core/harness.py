@@ -198,6 +198,12 @@ class RenderProbe:
             # Only tools that cap what they draw report this (perspective); everyone
             # else leaves it null, meaning "drew a reduction of all rows".
             rendered_fraction=f("rendered_fraction"),
+            # Screen-bounded render disclosure (xy): a string tier + int mark count; only
+            # tools that report it set these (non-censoring — a summary of all rows).
+            render_tier=bench.get("render_tier"),
+            render_marks=int(bench["render_marks"])
+            if bench.get("render_marks") is not None
+            else None,
             backend_timed_peak_mb=backend_timed_peak,
             browser_timed_peak_mb=browser_timed_peak,
             resident_footprint_mb=resident,

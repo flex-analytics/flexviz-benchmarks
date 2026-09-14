@@ -28,6 +28,8 @@ CONTENDERS: list[str] = [
     "plotly-resampler-par",
     "vaex",
     "datashader",
+    "xy",
+    "xy-raster",
 ]
 
 # Client/WASM engines compute in the browser and are benchmarked in-memory only. This is
@@ -50,6 +52,15 @@ MEMORY_ONLY: dict[str, str] = {
     )
     for tool in ("plotly-resampler", "plotly-resampler-par")
 }
+_XY_DISK_REASON = (
+    "xy reads only its own native `.f64` memory-mapped column format (verified: no "
+    "parquet/csv/ipc reader anywhere in the package), so it cannot scan the suite's shared "
+    "disk inputs. A disk cell would have to ingest the file into RAM columns before the "
+    "timed window, measuring exactly the in-memory cell — not xy's out-of-core `.f64` path. "
+    "Recorded out of scope rather than published as a disk number the tool never earned."
+)
+MEMORY_ONLY["xy"] = _XY_DISK_REASON  # WebGL2 browser path (to_html)
+MEMORY_ONLY["xy-raster"] = _XY_DISK_REASON  # to_png static-export path
 
 
 def memory_only_reason(tool: str, source: str) -> str | None:

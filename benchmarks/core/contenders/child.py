@@ -26,6 +26,8 @@ IN_PROCESS = {
     "plotly-resampler",
     "plotly-resampler-par",
     "altair-vegafusion",
+    "xy",
+    "xy-raster",
 }
 
 
